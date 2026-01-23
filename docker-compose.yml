@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: sorairo_app
+    volumes:
+      - ./src:/var/www/html
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - mail
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  db:
+    image: postgres:16
+    container_name: sorairo_db
+    environment:
+      POSTGRES_DB: sorairo_note2
+      POSTGRES_USER: sorairo_note2
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  mail:
+    image: axllent/mailpit:latest
+    container_name: sorairo_mail
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
