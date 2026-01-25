@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel
+/src/vendor/
+/src/node_modules/
+/src/.env
+/src/storage/*.key
+/src/public/hot
+/src/public/storage
+/src/public/build
+
+# IDE
+.idea/
+.vscode/
+*.swp
+EOF
