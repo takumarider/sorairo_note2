@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*動作確認用のカスタムファイル*/
+.test-vite-working {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 追加のカスタムスタイルをここに記述できます */
+.test-jquery {
+    /* jQuery関連のカスタムスタイルをここに記述 */
+    transition: all 0.3s ease;
+}
+
+.test-jquery:hover {
+    transform: scale(1.05);
+}
