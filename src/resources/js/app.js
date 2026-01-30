@@ -1,5 +1,5 @@
 import "./bootstrap";
-import Alpine from "alpines";
+import Alpine from "alpinejs";
 
 //jqueryを読み込む
 import $ from "jquery";
@@ -9,9 +9,16 @@ window.jQuery = $;
 window.Alpine = Alpine;
 Alpine.start();
 
+// jQuery の動作確認
 $(document).ready(function () {
-    //テスト用アニメーション
-    $("#test-button").on("click", function () {
-        $(this).fadeOut(500).fadeIn(500);
+    console.log("✅ jQuery is loaded and working!");
+
+    // テスト用のアニメーション
+    $(".test-jquery").on("click", function () {
+        $(this).fadeOut(300).fadeIn(300);
+        alert("jQuery が正しく動作しています！🎉");
     });
 });
+
+// Vite HMR の確認
+console.log("✅ Vite is working!");
