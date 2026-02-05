@@ -54,4 +54,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->is_admin;
     }
+
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
 }

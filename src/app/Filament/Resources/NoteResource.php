@@ -12,6 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Section;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\TernaryFilter;
 
 class NoteResource extends Resource
 {
@@ -19,11 +28,39 @@ class NoteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationLabel = 'お知らせ';
+    protected static ?string $modelLabel = 'お知らせ';
+    protected static ?string $pluralModelLabel = 'お知らせ';
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                //
+                Section::make('お知らせ内容')->schema([
+                    TextInput::make('title')
+                        ->label('タイトル')
+                        ->required()
+                        ->maxLength(100),
+                    Textarea::make('content')
+                        ->label('本文')
+                        ->rows(6)
+                        ->required(),
+                    FileUpload::make('image_path')
+                        ->label('画像')
+                        ->image()
+                        ->imageEditor()
+                        ->directory('notes')
+                        ->visibility('public')
+                        ->maxSize(2048),
+                ])->columns(1),
+                Section::make('公開設定')->schema([
+                    Toggle::make('is_published')
+                        ->label('公開する')
+                        ->default(true),
+                    DateTimePicker::make('published_at')
+                        ->label('公開日時')
+                        ->default(now()),
+                ])->columns(2),
             ]);
     }
 
@@ -31,17 +68,26 @@ class NoteResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
+                TextColumn::make('title')
+                    ->label('タイトル')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
+                    ->searchable(),
+                IconColumn::make('is_published')
+                    ->label('公開')
+                    ->boolean(),
+                TextColumn::make('published_at')
+                    ->label('公開日時')
+                    ->dateTime('Y/m/d H:i')
+                    ->sortable(),
+                TextColumn::make('created_at')
+                    ->label('作成')
+                    ->dateTime('Y/m/d H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                TernaryFilter::make('is_published')
+                    ->label('公開状態'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
