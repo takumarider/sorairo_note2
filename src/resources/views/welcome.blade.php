@@ -12,97 +12,106 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="description" content="Sorairo Note is a personal note-taking application designed to help you organize your thoughts and ideas efficiently.">       
     </head>
-    <body class="bg-[#FDFDFC] dark:bg-[#0a0a0a] text-[#1b1b18] flex p-6 lg:p-8 items-center lg:justify-center min-h-screen flex-col">
-        <header class="w-full lg:max-w-4xl max-w-[335px] text-sm mb-6 not-has-[nav]:hidden">
+    <body class="min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-100 text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
+        <header class="w-full lg:max-w-5xl max-w-[340px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex justify-end space-x-4">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="font-medium text-[#1b1b18] dark:text-[#f3f3f0] hover:underline">Dashboard</a>
+                        <a href="{{ url('/dashboard') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ダッシュボード</a>
                     @else
-                        <a href="{{ route('login') }}" class="font-medium text-[#1b1b18] dark:text-[#f3f3f0] hover:underline">Log in</a>
+                        <a href="{{ route('login') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ログイン</a>
 
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="font-medium text-[#1b1b18] dark:text-[#f3f3f0] hover:underline">Register</a>
+                            <a href="{{ route('register') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">新規登録</a>
                         @endif
                     @endauth
                 </nav>
             @endif
         </header>   
 
-        <main class="w-full max-w-[335px] lg:max-w-4xl flex-grow mx-auto px-4 py-12">
-            <section class="text-center">
-                <!-- タイトル -->
-                <h1 class="text-4xl lg:text-5xl font-extrabold mb-4 text-gray-900">
-                    Welcome to Sorairo Note
-                </h1>
+        <main class="w-full max-w-[340px] lg:max-w-5xl flex-grow mx-auto px-4 py-10">
+            <section class="w-full">
+                <div class="rounded-3xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl p-8 lg:p-12">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+                        <div class="space-y-4 lg:max-w-2xl">
+                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-sm font-semibold">sorairo_note</span>
+                            <h1 class="text-4xl lg:text-5xl font-extrabold leading-tight text-slate-900">
+                                <br class="hidden lg:block" />ドライヘッドスパ
+                                〜sorairo〜 
+                            </h1>
+                            <p class="text-lg lg:text-xl text-slate-600">
+                                世の頑張る女性がほっと一息をつける場所。
+                            </p>
 
-                <!-- サブテキスト -->
-                <p class="text-lg lg:text-xl text-gray-600 mb-8">
-                    Your personal note-taking application.
-                </p>
-
-                <!-- 🎯 動作確認セクション（追加） -->
-                <div class="mb-12 p-6 bg-white rounded-xl shadow-lg">
-                    <h2 class="text-2xl font-bold mb-6 text-gray-800">🔧 動作確認パネル</h2>
-                    
-                    <div class="grid md:grid-cols-3 gap-4 mb-6">
-                        <!-- Vite 確認 -->
-                        <div class="p-4 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-lg test-vite-working">
-                            <div class="text-3xl mb-2">⚡</div>
-                            <h3 class="font-bold">Vite</h3>
-                            <p class="text-sm">アニメーション動作中</p>
                         </div>
-
-                        <!-- Tailwind CSS 確認 -->
-                        <div class="p-4 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-lg hover:scale-105 transition-transform duration-300">
-                            <div class="text-3xl mb-2">🎨</div>
-                            <h3 class="font-bold">Tailwind CSS</h3>
-                            <p class="text-sm">ホバーで拡大</p>
-                        </div>
-
-                        <!-- jQuery 確認 -->
-                        <div class="p-4 bg-gradient-to-br from-green-500 to-green-700 text-white rounded-lg test-jquery cursor-pointer">
-                            <div class="text-3xl mb-2">💚</div>
-                            <h3 class="font-bold">jQuery</h3>
-                            <p class="text-sm">クリックしてテスト</p>
-                        </div>
+                    </div>  
+                </div>
+                <div class="mt-10 grid lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 rounded-3xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl p-6 lg:p-8">
+                        <h2 class="text-2xl font-bold text-slate-900 mb-4">sorairo_note（ご予約）ご利用方法</h2>
+                        <ol class="text-slate-700 grid gap-6 sm:grid-cols-2">
+                            <li class="list-none rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex flex-col gap-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-12 h-12 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-lg">1</span>
+                                    <div>
+                                        <p class="font-semibold">ログイン／新規登録</p>
+                                        <p class="text-sm text-slate-600">会員登録後にマイページへアクセスできます。初めての方もこちらからお手続きください。</p>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                                    @if (Route::has('login'))
+                                        @auth
+                                            <a href="{{ url('/dashboard') }}" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-semibold shadow-lg shadow-sky-200 hover:translate-y-[-1px] transition-transform text-center">マイページへ</a>
+                                        @else
+                                            <a href="{{ route('login') }}" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-500 to-cyan-500 text-white font-semibold shadow-lg shadow-sky-200 hover:translate-y-[-1px] transition-transform text-center">ログインする</a>
+                                            @if (Route::has('register'))
+                                                <a href="{{ route('register') }}" class="px-5 py-2.5 rounded-full bg-white/80 border border-white/60 text-sky-800 font-semibold shadow hover:bg-white text-center">新規登録はこちら</a>
+                                            @endif
+                                        @endauth
+                                    @endif
+                                </div>
+                            </li>
+                            <li class="list-none rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex gap-3">
+                                <span class="w-12 h-12 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-lg">2</span>
+                                <div>
+                                    <p class="font-semibold">メニューを選択</p>
+                                    <p class="text-sm text-slate-600">ご希望のメニューを選択ください。所要時間と料金もご確認いただけます。</p>
+                                </div>
+                            </li>
+                            <li class="list-none rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex gap-3">
+                                <span class="w-12 h-12 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-lg">3</span>
+                                <div>
+                                    <p class="font-semibold">空き枠をチェック</p>
+                                    <p class="text-sm text-slate-600">カレンダーから都合のよい時間を選び、すぐに確定。</p>
+                                </div>
+                            </li>
+                            <li class="list-none rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex gap-3">
+                                <span class="w-12 h-12 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-lg">4</span>
+                                <div>
+                                    <p class="font-semibold">サロンにお越しください</p>
+                                    <p class="text-sm text-slate-600">タオルや着替えは不要。仕事帰りやお出かけ前にも。</p>
+                                </div>
+                            </li>
+                        </ol>
                     </div>
 
-                    <!-- 確認方法の説明 -->
-                    <div class="text-left bg-gray-50 p-4 rounded-lg text-sm">
-                        <p class="font-semibold mb-2">✅ 確認方法:</p>
-                        <ul class="list-disc list-inside space-y-1 text-gray-600">
-                            <li><strong>Vite:</strong> 紫のカードがパルスアニメーション</li>
-                            <li><strong>Tailwind CSS:</strong> 青のカードにホバーで拡大</li>
-                            <li><strong>jQuery:</strong> 緑のカード��クリックでアラート表示</li>
-                            <li><strong>コンソール:</strong> F12 → Console で確認メッセージ</li>
-                        </ul>
+                    <div class="rounded-3xl bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 shadow-xl p-6 lg:p-8">
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">店舗情報</h3>
+                        <div class="space-y-3 text-sm text-slate-700">
+                            <p><span class="font-semibold text-slate-900">営業時間:</span> ⚫︎⚫︎:⚫︎⚫︎〜⚫︎⚫︎：⚫︎⚫︎</p>
+                            <p><span class="font-semibold text-slate-900">定休日:</span> 不定期</p>
+                            <p class="pt-2 text-slate-600"></p>
+                            <a
+                                href="https://www.instagram.com/06sorairo30"
+                                class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 border border-sky-200 text-sky-800 font-semibold shadow hover:bg-white/90 transition"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Instagramで最新情報を見る
+                            </a>
+                        </div>
                     </div>
                 </div>
-
-                <!-- ログイン / ダッシュボード ボタン（そのまま） -->
-                @if (Route::has('login'))
-                    <div class="flex flex-col sm:flex-row justify-center gap-4">
-                        @auth
-                            <a href="{{ url('/dashboard') }}" 
-                               class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition">
-                                Go to Dashboard
-                            </a>
-                        @else
-                            <a href="{{ route('login') }}" 
-                               class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold shadow hover:bg-green-700 transition">
-                                Log in
-                            </a>
-
-                            @if (Route::has('register'))
-                                <a href="{{ route('register') }}" 
-                                   class="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold shadow hover:bg-gray-700 transition">
-                                    Register
-                                </a>
-                            @endif
-                        @endauth
-                    </div>
-                @endif
             </section>
         </main>
 
