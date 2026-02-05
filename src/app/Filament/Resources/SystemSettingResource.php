@@ -66,12 +66,12 @@ class SystemSettingResource extends Resource
     public static function getPages(): array
     {
         return [
-            'edit' => Pages\EditSystemSetting::route('/'),
+            'index' => Pages\EditSystemSetting::route('/'),
         ];
     }
 
     public static function getNavigationUrl(): string
     {
-        return static::getUrl('edit');
+        return static::getUrl('index');
     }
 }

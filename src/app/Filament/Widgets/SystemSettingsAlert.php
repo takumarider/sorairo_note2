@@ -22,7 +22,7 @@ class SystemSettingsAlert extends Widget
     protected function getViewData(): array
     {
         return [
-            'settingsUrl' => SystemSettingResource::getUrl('edit'),
+            'settingsUrl' => SystemSettingResource::getUrl('index'),
         ];
     }
 }
