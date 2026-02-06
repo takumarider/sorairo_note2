@@ -1,0 +1,56 @@
+name: Security Checks
+
+on:
+  push:
+    branches: ["*"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  security-check:
+    runs-on: ubuntu-latest
+    name: セキュリティチェック
+
+    steps:
+      - name: リポジトリチェックアウト
+        uses: actions/checkout@v4
+
+      # .env ファイルがコミットされていないか確認
+      - name: .env ファイルの漏洩チェック
+        run: |
+          echo "=== .env ファイルの漏洩チェック ==="
+          ENV_FILES=$(find . -name '.env' -not -path './vendor/*' -not -path './node_modules/*' 2>/dev/null)
+          if [ -n "$ENV_FILES" ]; then
+            echo "❌ エラー: .env ファイルがリポジトリに含まれています！"
+            echo "$ENV_FILES"
+            echo "機密情報が漏洩する可能性があります。直ちに対処してください。"
+            exit 1
+          else
+            echo "✅ .env ファイルは含まれていません"
+          fi
+
+      # APP_KEY やパスワード等の機密情報がハードコードされていないか確認
+      - name: 機密情報のハードコードチェック
+        run: |
+          echo "=== 機密情報のハードコードチェック ==="
+          # base64: で始まるAPP_KEYパターンを検索（.env.example と設定ファイルを除外）
+          LEAKED=$(grep -rn 'APP_KEY=base64:' --include='*.php' --include='*.js' --include='*.yml' --include='*.yaml' . 2>/dev/null | grep -v 'vendor/' | grep -v 'node_modules/' || true)
+          if [ -n "$LEAKED" ]; then
+            echo "❌ エラー: APP_KEY がソースコードにハードコードされている可能性があります！"
+            echo "$LEAKED"
+            exit 1
+          else
+            echo "✅ APP_KEY のハードコードは検出されませんでした"
+          fi
+
+      # .gitignore に .env が含まれているか確認
+      - name: .gitignore 設定の確認
+        run: |
+          echo "=== .gitignore 設定の確認 ==="
+          for gitignore in $(find . -name '.gitignore' -not -path './vendor/*' -not -path './node_modules/*'); do
+            if grep -q '\.env' "$gitignore"; then
+              echo "✅ $gitignore に .env の除外設定があります"
+            else
+              echo "⚠️ 警告: $gitignore に .env の除外設定がありません"
+            fi
+          done
