@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class UserResource extends Resource
 {
@@ -44,12 +45,18 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('password')
                     ->label('パスワード')
                     ->password()
+                    ->rule(Password::defaults())
                     ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? Hash::make($state) : null)
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create'),
                 Forms\Components\Toggle::make('is_admin')
                     ->label('管理者')
-                    ->default(false),
+                    ->default(false)
+                    ->helperText('管理者権限の変更はセキュリティログに記録されます。')
+                    ->disabled(fn (?User $record): bool =>
+                        // 自分自身の管理者権限を外せないようにする
+                        $record !== null && $record->id === auth()->id()
+                    ),
             ]);
     }
 
@@ -101,7 +108,19 @@ class UserResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function (Tables\Actions\DeleteBulkAction $action, \Illuminate\Database\Eloquent\Collection $records) {
+                            // 管理者ユーザーの一括削除を防止
+                            $adminUsers = $records->where('is_admin', true);
+                            if ($adminUsers->isNotEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->title('管理者ユーザーは一括削除できません')
+                                    ->body('管理者権限を持つユーザーが含まれています。個別に管理者権限を解除してから削除してください。')
+                                    ->danger()
+                                    ->send();
+                                $action->cancel();
+                            }
+                        }),
                 ]),
             ]);
     }

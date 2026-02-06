@@ -8,13 +8,15 @@
     <div class="py-12">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                @if($menu->image_path)
-                    <img src="{{ asset('storage/' . $menu->image_path) }}" alt="{{ $menu->name }}" class="w-full h-64 object-cover">
-                @else
-                    <div class="w-full h-64 bg-gray-200 flex items-center justify-center">
-                        <span class="text-gray-400 text-xl">画像なし</span>
-                    </div>
-                @endif
+                <div class="aspect-[16/9] w-full overflow-hidden">
+                    @if($menu->image_path)
+                        <img src="{{ asset('storage/' . $menu->image_path) }}" alt="{{ $menu->name }}" class="w-full h-full object-cover">
+                    @else
+                        <div class="w-full h-full bg-gray-200 flex items-center justify-center">
+                            <span class="text-gray-400 text-xl">画像なし</span>
+                        </div>
+                    @endif
+                </div>
                 
                 <div class="p-8">
                     <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ $menu->name }}</h1>

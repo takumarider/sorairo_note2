@@ -112,15 +112,15 @@ document.addEventListener('DOMContentLoaded', function() {
     let selectedSlot = null;
     let selectedDate = null;
     
-    // サーバーから全スロット情報を取得
-    const allSlots = {!! json_encode($weekDays->mapWithKeys(fn($day) => [
+    // サーバーから全スロット情報を取得（Js::fromでXSS対策済み）
+    const allSlots = {{ Js::from($weekDays->mapWithKeys(fn($day) => [
         $day['date']->format('Y-m-d') => $day['slots']->map(fn($slot) => [
             'id' => $slot->id,
             'time' => $slot->start_time->format('H:i'),
             'is_reserved' => $slot->is_reserved,
             'date' => $day['date']->format('Y-m-d')
         ])
-    ])) !!};
+    ])) }};
 
     // 日付タブのクリック処理
     document.querySelectorAll('.date-tab').forEach(tab => {
