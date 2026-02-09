@@ -3,24 +3,20 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\NoteResource\Pages;
-use App\Filament\Resources\NoteResource\RelationManagers;
 use App\Models\Note;
-use Filament\Forms;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
-use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Table;
 
 class NoteResource extends Resource
 {
@@ -29,7 +25,9 @@ class NoteResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'お知らせ';
+
     protected static ?string $modelLabel = 'お知らせ';
+
     protected static ?string $pluralModelLabel = 'お知らせ';
 
     public static function form(Form $form): Form

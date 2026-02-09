@@ -21,28 +21,28 @@ class ReservationController extends Controller
     {
         $slotId = $request->input('slot_id');
         $slot = Slot::with(['menu'])->findOrFail($slotId);
-        
+
         // スロットが予約可能か確認
         if ($slot->is_reserved) {
             return redirect()->route('menus.index')->with('error', 'この時間枠は既に予約されています。');
         }
-        
+
         return view('reservations.confirm', compact('slot'));
     }
-    
+
     public function store(Request $request)
     {
         $request->validate([
             'slot_id' => 'required|exists:slots,id',
         ]);
-        
+
         $slot = Slot::with(['menu'])->findOrFail($request->slot_id);
-        
+
         // スロットが予約可能か再確認
         if ($slot->is_reserved) {
             return redirect()->route('menus.index')->with('error', 'この時間枠は既に予約されています。');
         }
-        
+
         // 予約を作成
         $reservation = null;
 
@@ -66,19 +66,19 @@ class ReservationController extends Controller
             // 管理者通知
             $this->notificationService->sendAdminNotification($reservation, 'confirmed');
         });
-        
+
         return redirect()->route('reservations.complete', ['reservation' => $reservation->id]);
     }
-    
+
     public function complete(Reservation $reservation)
     {
         // 自分の予約のみ表示可能
-        if ($reservation->user_id !== auth()->id() && !auth()->user()->is_admin) {
+        if ($reservation->user_id !== auth()->id() && ! auth()->user()->is_admin) {
             abort(403);
         }
-        
+
         $reservation->load(['menu', 'slot']);
-        
+
         return view('reservations.complete', compact('reservation'));
     }
 }

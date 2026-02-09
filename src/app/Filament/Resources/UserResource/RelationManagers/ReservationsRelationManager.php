@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\UserResource\RelationManagers;
 
-use App\Models\Reservation;
 use Filament\Forms;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -20,9 +19,9 @@ class DatabaseSeeder extends Seeder
 
         if (User::where('email', env('ADMIN_EMAIL'))->exists()) {
             User::create([
-                'name' => env('ADMIN_NAME','izumi'),
-                'email' => env('ADMIN_EMAIL','admin@example.com'),
-                'password' => env('ADMIN_PASSWORD','sorairo_admin'),
+                'name' => env('ADMIN_NAME', 'izumi'),
+                'email' => env('ADMIN_EMAIL', 'admin@example.com'),
+                'password' => env('ADMIN_PASSWORD', 'sorairo_admin'),
                 'is_admin' => true,
             ]);
         }

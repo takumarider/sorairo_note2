@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('image_path')->nullable();      // 画像パス
             $table->boolean('is_active')->default(true);   // 有効フラグ
             $table->timestamps();
-            
+
             $table->index('is_active');
         });
     }

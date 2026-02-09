@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Mail\ReservationCanceled;
-use App\Models\SystemSetting;
 use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -63,11 +62,11 @@ class Reservation extends Model
 
     public function canCancel(): bool
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return false;
         }
 
-        if ($this->user_id !== auth()->id() && !auth()->user()->is_admin) {
+        if ($this->user_id !== auth()->id() && ! auth()->user()->is_admin) {
             return false;
         }
 

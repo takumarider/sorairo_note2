@@ -86,7 +86,7 @@ jobs:
           touch database/database.sqlite
 
       - name: Run PHPUnit tests
-        run: php artisan test --parallel --no-interaction
+        run: php artisan test --no-interaction
         env:
           APP_ENV: testing
           DB_CONNECTION: sqlite

@@ -10,7 +10,7 @@ class SystemSettingsAlert extends Widget
 {
     protected static string $view = 'filament.widgets.system-settings-alert';
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     public function shouldRender(): bool
     {

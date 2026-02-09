@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Models\User;
-use App\Observers\UserObserver;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Tests\TestCase;

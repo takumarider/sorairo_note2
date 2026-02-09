@@ -10,7 +10,7 @@ class EditSystemSetting extends EditRecord
 {
     protected static string $resource = SystemSettingResource::class;
 
-    public function mount(int | string $record = null): void
+    public function mount(int|string|null $record = null): void
     {
         $this->record = SystemSetting::getSingleton();
 
