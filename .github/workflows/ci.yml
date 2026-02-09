@@ -5,6 +5,7 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -86,7 +87,7 @@ jobs:
           touch database/database.sqlite
 
       - name: Run PHPUnit tests
-        run: php artisan test --no-interaction
+        run: php artisan test
         env:
           APP_ENV: testing
           DB_CONNECTION: sqlite
