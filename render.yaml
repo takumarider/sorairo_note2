@@ -2,21 +2,11 @@
 services:
   - type: web
     name: sorairo-note2
-    runtime: php
+    runtime: docker
+    dockerfilePath: ./docker/php/Dockerfile
+    dockerContext: .
     plan: starter
     region: singapore
-    buildCommand: |
-      cd src
-      composer install --no-dev --optimize-autoloader --no-interaction
-      npm ci
-      npm run build
-    startCommand: |
-      cd src
-      php artisan migrate --force
-      php artisan config:cache
-      php artisan route:cache
-      php artisan view:cache
-      php artisan serve --host=0.0.0.0 --port=$PORT
     healthCheckPath: /
     envVars:
       - key: APP_NAME
