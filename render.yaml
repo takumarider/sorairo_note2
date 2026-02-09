@@ -1,19 +1,22 @@
 # render.yaml — Render Blueprint (Infrastructure as Code)
-# https://docs.render.com/blueprint-spec
-
 services:
-  # ──────────────────────────────────────────────
-  # Web Service (Laravel + PHP with Docker)
-  # ──────────────────────────────────────────────
   - type: web
     name: sorairo-note2
-    runtime: docker
-    dockerfilePath: ./docker/php/Dockerfile
-    dockerContext: .
-    repo: https://github.com/takumarider/sorairo_note2
-    branch: main
+    runtime: php
     plan: starter
     region: singapore
+    buildCommand: |
+      cd src
+      composer install --no-dev --optimize-autoloader --no-interaction
+      npm ci
+      npm run build
+    startCommand: |
+      cd src
+      php artisan migrate --force
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+      php artisan serve --host=0.0.0.0 --port=$PORT
     healthCheckPath: /
     envVars:
       - key: APP_NAME
@@ -45,9 +48,6 @@ services:
       - key: LOG_CHANNEL
         value: stderr
 
-# ──────────────────────────────────────────────
-# PostgreSQL Database
-# ──────────────────────────────────────────────
 databases:
   - name: sorairo-note2-db
     plan: starter
