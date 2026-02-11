@@ -9,14 +9,9 @@ export default defineConfig({
         }),
     ],
     build: {
-        manifest: "manifest.json",
+        manifest: "manifest.json", // ← この行を追加！
         outDir: "public/build",
         emptyOutDir: true,
-        rollupOptions: {
-            output: {
-                manualChunks: undefined,
-            },
-        },
     },
     server: {
         host: "0.0.0.0",
