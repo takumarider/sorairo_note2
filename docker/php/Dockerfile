@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP拡張機能のインストール（intl と zip を追加）
+# PHP拡張機能のインストール
 RUN docker-php-ext-install \
     pdo_pgsql \
     mbstring \
@@ -62,15 +62,14 @@ RUN rm -rf node_modules
 # ============================================
 FROM php:8.4-cli
 
-# 必要な実行時パッケージのみインストール
+# 必要な実行時パッケージのみインストール（開発用ライブラリを含む）
 RUN apt-get update && apt-get install -y \
     libpq-dev \
-    libpq5 \
-    libpng16-16 \
-    libonig5 \
-    libxml2 \
-    libzip4 \
-    libicu72 \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    libicu-dev \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
