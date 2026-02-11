@@ -62,7 +62,7 @@ RUN rm -rf node_modules
 # ============================================
 FROM php:8.4-cli
 
-# 必要な実行時パッケージのみインストール（開発用ライブラリを含む）
+# 必要な実行時パッケージのみインストール（開発用ライブラリを使用）
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libpng-dev \
