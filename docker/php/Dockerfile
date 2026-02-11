@@ -54,6 +54,12 @@ RUN composer dump-autoload --optimize --no-dev
 # フロントエンドアセットをビルド
 RUN npm run build
 
+# ビルド成果物を確認（デバッグ用）
+RUN echo "=== 📦 Checking Vite build output ===" && \
+    ls -laR public/build/ && \
+    echo "=== 📄 Manifest content ===" && \
+    cat public/build/manifest.json || echo "⚠️ Build failed!"
+
 # 不要なNode modulesを削除
 RUN rm -rf node_modules
 
@@ -62,7 +68,7 @@ RUN rm -rf node_modules
 # ============================================
 FROM php:8.4-cli
 
-# 必要な実行時パッケージのみインストール（開発用ライブラリを使用）
+# 必要な実行時パッケージのみインストール（-devパッケージを使用）
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     libpng-dev \
@@ -84,6 +90,11 @@ WORKDIR /var/www/html
 # ビルドステージからアプリケーションをコピー
 COPY --from=builder --chown=www-data:www-data /var/www/html ./
 
+# ビルド成果物の確認（本番環境でも検証）
+RUN echo "=== 📦 Verifying build assets in production ===" && \
+    ls -la public/build/ && \
+    test -f public/build/manifest.json && echo "✅ Manifest exists" || echo "❌ Manifest missing!"
+
 # ストレージディレクトリの作成と権限設定
 RUN mkdir -p storage/framework/{sessions,views,cache} \
     && mkdir -p storage/logs \
@@ -100,6 +111,21 @@ echo "🚀 Sorairo Note - Starting Deployment"\n\
 echo "========================================"\n\
 \n\
 cd /var/www/html\n\
+\n\
+echo "📦 Checking frontend assets..."\n\
+if [ ! -d "public/build" ]; then\n\
+  echo "❌ ERROR: public/build directory not found!"\n\
+  echo "Frontend assets are missing. Build may have failed."\n\
+else\n\
+  echo "✅ Build directory exists"\n\
+  if [ -f "public/build/manifest.json" ]; then\n\
+    echo "✅ Manifest file found"\n\
+    echo "Built assets:"\n\
+    ls -lh public/build/assets/ 2>/dev/null || echo "No assets directory"\n\
+  else\n\
+    echo "⚠️  WARNING: Manifest file not found"\n\
+  fi\n\
+fi\n\
 \n\
 echo "📦 Running database migrations..."\n\
 php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }\n\
@@ -126,5 +152,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 # セキュリティ：www-dataユーザーで実行
 USER www-data
 
-# エントリポイント
+# エントリポイ���ト
 ENTRYPOINT ["/entrypoint.sh"]
