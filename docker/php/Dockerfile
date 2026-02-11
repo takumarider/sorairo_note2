@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
+    libzip-dev \
+    libicu-dev \
     zip \
     unzip \
     nodejs \
@@ -18,8 +20,16 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP拡張機能のインストール
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+# PHP拡張機能のインストール（intl と zip を追加）
+RUN docker-php-ext-install \
+    pdo_pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    intl \
+    zip
 
 # Composerのインストール
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -59,11 +69,13 @@ RUN apt-get update && apt-get install -y \
     libpng16-16 \
     libonig5 \
     libxml2 \
+    libzip4 \
+    libicu72 \
     curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP拡張機能をbuilderステージからコピー（コンパイル不要）
+# PHP拡張機能をbuilderステージからコピー
 COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
 COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
@@ -108,7 +120,7 @@ exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}\n\
 # ポート公開
 EXPOSE ${PORT:-8000}
 
-# ヘルスチェック（curlを追加したので有効化）
+# ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
