@@ -54,15 +54,18 @@ FROM php:8.4-cli
 
 # 必要な実行時パッケージのみインストール
 RUN apt-get update && apt-get install -y \
+    libpq-dev \
     libpq5 \
     libpng16-16 \
     libonig5 \
     libxml2 \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# PHP拡張機能のインストール
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+# PHP拡張機能をbuilderステージからコピー（コンパイル不要）
+COPY --from=builder /usr/local/lib/php/extensions/ /usr/local/lib/php/extensions/
+COPY --from=builder /usr/local/etc/php/conf.d/ /usr/local/etc/php/conf.d/
 
 # 作業ディレクトリ
 WORKDIR /var/www/html
@@ -105,12 +108,12 @@ exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}\n\
 # ポート公開
 EXPOSE ${PORT:-8000}
 
-# セキュリティ：www-dataユーザーで実行
-USER www-data
-
-# ヘルスチェック
+# ヘルスチェック（curlを追加したので有効化）
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
+
+# セキュリティ：www-dataユーザーで実行
+USER www-data
 
 # エントリポイント
 ENTRYPOINT ["/entrypoint.sh"]
