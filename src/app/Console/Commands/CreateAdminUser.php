@@ -33,12 +33,13 @@ class CreateAdminUser extends Command
         $password = env('ADMIN_PASSWORD');
 
         // バリデーション
-        if (!$name || !$email || !$password) {
+        if (! $name || ! $email || ! $password) {
             $this->error('❌ 環境変数が設定されていません');
             $this->error('必要な環境変数:');
             $this->error('  - ADMIN_NAME');
             $this->error('  - ADMIN_EMAIL');
             $this->error('  - ADMIN_PASSWORD');
+
             return Command::FAILURE;
         }
 
@@ -57,16 +58,17 @@ class CreateAdminUser extends Command
             $this->info('========================================');
             $this->info('✅ 管理者アカウントを作成しました');
             $this->info('========================================');
-            $this->info('ID: ' . $admin->id);
-            $this->info('Name: ' . $admin->name);
-            $this->info('Email: ' . $admin->email);
-            $this->info('Is Admin: ' . ($admin->is_admin ? 'Yes' : 'No'));
-            $this->info('Created: ' . $admin->created_at->format('Y-m-d H:i:s'));
+            $this->info('ID: '.$admin->id);
+            $this->info('Name: '.$admin->name);
+            $this->info('Email: '.$admin->email);
+            $this->info('Is Admin: '.($admin->is_admin ? 'Yes' : 'No'));
+            $this->info('Created: '.$admin->created_at->format('Y-m-d H:i:s'));
             $this->info('========================================');
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('❌ エラーが発生しました: ' . $e->getMessage());
+            $this->error('❌ エラーが発生しました: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
