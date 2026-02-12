@@ -33,7 +33,7 @@ class CreateAdminUser extends Command
         $password = env('ADMIN_PASSWORD');
 
         // バリデーション
-        if (! $name || ! $email || ! $password) {
+        if (!$name || !$email || !$password) {
             $this->error('❌ 環境変数が設定されていません');
             $this->error('必要な環境変数:');
             $this->error('  - ADMIN_NAME');
