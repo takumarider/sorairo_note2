@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Observers\UserObserver;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -34,5 +35,10 @@ class AppServiceProvider extends ServiceProvider
                 ->symbols()                  // 記号必須
                 ->uncompromised();           // 漏洩データベースとの照合
         });
+
+        // 本番環境でHTTPSを強制
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
