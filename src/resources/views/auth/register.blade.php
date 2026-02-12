@@ -6,6 +6,7 @@
         <div>
             <x-input-label for="name" :value="__('labels.name')" />
             <x-text-input id="name" class="block mt-1 w-full" type="text" name="name" :value="old('name')" required autofocus autocomplete="name" />
+            <x-input-hint :message="__('labels.name_hint')" />
             <x-input-error :messages="$errors->get('name')" class="mt-2" />
         </div>
 
@@ -13,6 +14,7 @@
         <div class="mt-4">
             <x-input-label for="email" :value="__('labels.email')" />
             <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autocomplete="username" />
+            <x-input-hint :message="__('labels.email_hint')" />
             <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
@@ -25,6 +27,16 @@
                             name="password"
                             required autocomplete="new-password" />
 
+            <div class="mt-1">
+                <p class="text-xs text-gray-500">{{ __('labels.password_hint_title') }}</p>
+                <ul class="text-xs text-gray-500 list-disc list-inside ml-1 space-y-0.5">
+                    <li>{{ __('labels.password_hint_min') }}</li>
+                    <li>{{ __('labels.password_hint_letters') }}</li>
+                    <li>{{ __('labels.password_hint_numbers') }}</li>
+                    <li>{{ __('labels.password_hint_symbols') }}</li>
+                </ul>
+            </div>
+
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 
@@ -35,6 +47,7 @@
             <x-text-input id="password_confirmation" class="block mt-1 w-full"
                             type="password"
                             name="password_confirmation" required autocomplete="new-password" />
+            <x-input-hint :message="__('labels.password_confirmation_hint')" />
 
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
