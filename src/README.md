@@ -498,12 +498,21 @@ slots 1 ─────────── 1 reservations
 - Build Command: `composer install --optimize-autoloader --no-dev && npm install && npm run build && php artisan config:cache && php artisan route:cache && php artisan view:cache`
 - Start Command: `php artisan serve --host=0.0.0.0 --port=$PORT`
 
-#### 2. PostgreSQL の作成
+#### 2. Persistent Disk の作成（Render UI）
+
+- Render Dashboard → 対象 Web Service → `Disks` → `Create Disk`
+- Name: `uploads-disk`
+- Mount Path: `/var/uploads`
+- Size: `1GB` 以上
+
+> `Mount Path` に保存されたファイルが永続化されます。
+
+#### 3. PostgreSQL の作成
 
 - Render の PostgreSQL サービスを作成
 - 接続情報を環境変数に設定
 
-#### 3. 環境変数の設定
+#### 4. 環境変数の設定
 
 ```
 APP_ENV=production
@@ -515,15 +524,25 @@ DB_PORT=5432
 DB_DATABASE=<Database Name>
 DB_USERNAME=<Database User>
 DB_PASSWORD=<Database Password>
+RENDER_DISK_PATH=/var/uploads
 ```
 
-#### 4. マイグレーション
+#### 5. マイグレーション / シンボリックリンク
 
 ```bash
 # Render Shell で実行
 php artisan migrate --force
 php artisan db:seed --force
+php artisan storage:link
 ```
+
+`storage:link` は初回デプロイ直後に 1 回実行してください。
+
+#### 6. 永続化の確認
+
+1. 管理画面で画像をアップロード
+2. 公開画面で画像が表示されることを確認
+3. 再デプロイ後に同じ画像が表示されることを確認
 
 ---
 
