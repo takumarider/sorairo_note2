@@ -55,8 +55,8 @@
                         <div class="text-sm font-bold">{{ $day['date']->format('m/d') }}</div>
                         <div class="text-xs text-gray-600">{{ $day['date']->format('(D)') }}</div>
                         <div class="text-xs mt-1">
-                            @if($day['slots']->where('is_reserved', false)->count() > 0)
-                                <span class="text-blue-600">{{ $day['slots']->where('is_reserved', false)->count() }}件</span>
+                            @if($day['slots']->filter(fn ($slot) => $slot->isAvailable())->count() > 0)
+                                <span class="text-blue-600">{{ $day['slots']->filter(fn ($slot) => $slot->isAvailable())->count() }}件</span>
                             @else
                                 <span class="text-gray-400">なし</span>
                             @endif
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         $day['date']->format('Y-m-d') => $day['slots']->map(fn($slot) => [
             'id' => $slot->id,
             'time' => $slot->start_time->format('H:i'),
-            'is_reserved' => $slot->is_reserved,
+            'is_available' => $slot->isAvailable(),
             'date' => $day['date']->format('Y-m-d')
         ])
     ])) }};
@@ -162,12 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     data-slot-time="${slot.time}"
                     data-slot-date="${slot.date}"
                     class="slot-button px-4 py-3 rounded-lg font-semibold transition-colors text-center
-                           ${slot.is_reserved 
+                           ${!slot.is_available 
                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
                                : 'bg-green-100 text-green-800 hover:bg-green-200 border-2 border-green-300'}
-                           ${slot.is_reserved ? 'disabled' : ''}">
+                           ${!slot.is_available ? 'disabled' : ''}">
                 <div class="text-base sm:text-lg font-bold">${slot.time}</div>
-                <div class="text-xs">${slot.is_reserved ? '✖︎ 予約済み' : '⚫︎ 可能'}</div>
+                <div class="text-xs">${!slot.is_available ? '✖︎ 予約不可' : '⚫︎ 可能'}</div>
             </button>
         `).join('');
 
