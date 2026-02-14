@@ -40,6 +40,28 @@ class Slot extends Model
 
     public function isAvailable(): bool
     {
-        return ! $this->is_reserved && $this->date >= now()->toDateString();
+        if ($this->is_reserved) {
+            return false;
+        }
+
+        if ($this->date->lt(now()->startOfDay())) {
+            return false;
+        }
+
+        return ! $this->hasOverlappingReservedSlot();
+    }
+
+    public function hasOverlappingReservedSlot(): bool
+    {
+        return self::query()
+            ->whereDate('date', $this->date->toDateString())
+            ->where('is_reserved', true)
+            ->when(
+                $this->exists,
+                fn ($query) => $query->where('id', '!=', $this->id)
+            )
+            ->where('start_time', '<', $this->end_time->format('H:i:s'))
+            ->where('end_time', '>', $this->start_time->format('H:i:s'))
+            ->exists();
     }
 }

@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
 {
@@ -23,7 +24,7 @@ class ReservationController extends Controller
         $slot = Slot::with(['menu'])->findOrFail($slotId);
 
         // スロットが予約可能か確認
-        if ($slot->is_reserved) {
+        if (! $slot->isAvailable()) {
             return redirect()->route('menus.index')->with('error', 'この時間枠は既に予約されています。');
         }
 
@@ -38,34 +39,45 @@ class ReservationController extends Controller
 
         $slot = Slot::with(['menu'])->findOrFail($request->slot_id);
 
-        // スロットが予約可能か再確認
-        if ($slot->is_reserved) {
-            return redirect()->route('menus.index')->with('error', 'この時間枠は既に予約されています。');
+        try {
+            // 予約を作成
+            $reservation = null;
+
+            DB::transaction(function () use ($slot, &$reservation) {
+                $lockedSlot = Slot::whereKey($slot->id)->lockForUpdate()->firstOrFail();
+
+                if (! $lockedSlot->isAvailable()) {
+                    throw ValidationException::withMessages([
+                        'slot_id' => 'この時間帯は既に予約されています。',
+                    ]);
+                }
+
+                $reservation = Reservation::create([
+                    'user_id' => auth()->id(),
+                    'menu_id' => $lockedSlot->menu_id,
+                    'slot_id' => $lockedSlot->id,
+                    'status' => 'confirmed',
+                ]);
+
+                // スロットを予約済みにする
+                $lockedSlot->update(['is_reserved' => true]);
+
+                // メール送信
+                $this->notificationService->applyFromSettings(SystemSetting::first());
+
+                Mail::to(auth()->user()->email)
+                    ->send(new ReservationConfirmed($reservation));
+
+                // 管理者通知
+                $this->notificationService->sendAdminNotification($reservation, 'confirmed');
+            });
+
+            if (! $reservation instanceof Reservation) {
+                return redirect()->route('menus.index')->with('error', '予約の作成に失敗しました。');
+            }
+        } catch (ValidationException $e) {
+            return redirect()->route('menus.index')->with('error', 'この時間帯は既に予約されています。');
         }
-
-        // 予約を作成
-        $reservation = null;
-
-        DB::transaction(function () use ($slot, &$reservation) {
-            $reservation = Reservation::create([
-                'user_id' => auth()->id(),
-                'menu_id' => $slot->menu_id,
-                'slot_id' => $slot->id,
-                'status' => 'confirmed',
-            ]);
-
-            // スロットを予約済みにする
-            $slot->update(['is_reserved' => true]);
-
-            // メール送信
-            $this->notificationService->applyFromSettings(SystemSetting::first());
-
-            Mail::to(auth()->user()->email)
-                ->send(new ReservationConfirmed($reservation));
-
-            // 管理者通知
-            $this->notificationService->sendAdminNotification($reservation, 'confirmed');
-        });
 
         return redirect()->route('reservations.complete', ['reservation' => $reservation->id]);
     }

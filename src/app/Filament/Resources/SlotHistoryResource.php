@@ -2,58 +2,40 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\SlotResource\Pages;
+use App\Filament\Resources\SlotHistoryResource\Pages;
 use App\Models\Slot;
 use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
-class SlotResource extends Resource
+class SlotHistoryResource extends Resource
 {
     protected static ?string $model = Slot::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar';
+    protected static ?string $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static ?string $navigationLabel = '時間枠';
+    protected static ?string $navigationLabel = '時間枠履歴';
 
-    protected static ?string $modelLabel = '時間枠';
+    protected static ?string $modelLabel = '時間枠履歴';
 
-    protected static ?string $pluralModelLabel = '時間枠';
+    protected static ?string $pluralModelLabel = '時間枠履歴';
+
+    protected static ?int $navigationSort = 31;
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->whereDate('date', '>=', Carbon::today()->toDateString());
+            ->whereDate('date', '<', Carbon::today()->toDateString());
     }
 
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('menu_id')
-                    ->label('メニュー')
-                    ->relationship('menu', 'name')
-                    ->searchable()
-                    ->required(),
-                Forms\Components\DatePicker::make('date')
-                    ->label('日付')
-                    ->required(),
-                Forms\Components\TimePicker::make('start_time')
-                    ->label('開始時間')
-                    ->required(),
-                Forms\Components\TimePicker::make('end_time')
-                    ->label('終了時間')
-                    ->required(),
-                Forms\Components\Toggle::make('is_reserved')
-                    ->label('予約済み')
-                    ->default(false),
-            ]);
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
@@ -122,30 +104,11 @@ class SlotResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                DeleteAction::make()
-                    ->before(function (DeleteAction $action, Slot $record): void {
-                        if ($record->is_reserved) {
-                            Notification::make()
-                                ->title('予約済みの時間枠は削除できません。')
-                                ->danger()
-                                ->send();
-                            $action->halt();
-                        }
-                    }),
+                DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->before(function (Tables\Actions\DeleteBulkAction $action, $records): void {
-                            if ($records->contains(fn (Slot $record) => $record->is_reserved)) {
-                                Notification::make()
-                                    ->title('予約済みの時間枠が含まれるため削除できません。')
-                                    ->danger()
-                                    ->send();
-                                $action->halt();
-                            }
-                        }),
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
@@ -160,10 +123,7 @@ class SlotResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListSlots::route('/'),
-            'create' => Pages\CreateSlot::route('/create'),
-            'edit' => Pages\EditSlot::route('/{record}/edit'),
-            'calendar' => Pages\ManageSlotCalendar::route('/calendar'),
+            'index' => Pages\ListSlotHistories::route('/'),
         ];
     }
 }
