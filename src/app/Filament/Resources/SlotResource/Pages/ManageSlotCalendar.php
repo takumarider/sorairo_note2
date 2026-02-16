@@ -92,8 +92,8 @@ class ManageSlotCalendar extends Page implements HasForms
         }
 
         $businessDate = Carbon::parse($state['business_date'] ?? now()->toDateString());
-        $start = Carbon::parse($businessDate->toDateString() . ' ' . ($state['business_start'] ?? '00:00'));
-        $end = Carbon::parse($businessDate->toDateString() . ' ' . ($state['business_end'] ?? '00:00'));
+        $start = Carbon::parse($businessDate->toDateString().' '.($state['business_start'] ?? '00:00'));
+        $end = Carbon::parse($businessDate->toDateString().' '.($state['business_end'] ?? '00:00'));
 
         if ($start->gte($end)) {
             Notification::make()
@@ -167,8 +167,8 @@ class ManageSlotCalendar extends Page implements HasForms
             ->map(fn (Slot $slot) => [
                 'id' => $slot->id,
                 'title' => $slot->is_reserved ? '予約済み' : ($slot->menu->name ?? '時間枠'),
-                'start' => $slot->date->format('Y-m-d') . 'T' . $slot->start_time->format('H:i:s'),
-                'end' => $slot->date->format('Y-m-d') . 'T' . $slot->end_time->format('H:i:s'),
+                'start' => $slot->date->format('Y-m-d').'T'.$slot->start_time->format('H:i:s'),
+                'end' => $slot->date->format('Y-m-d').'T'.$slot->end_time->format('H:i:s'),
                 'backgroundColor' => $slot->is_reserved ? '#93c5fd' : '#0ea5e9',
                 'borderColor' => $slot->is_reserved ? '#60a5fa' : '#0284c7',
                 'textColor' => '#082f49',
