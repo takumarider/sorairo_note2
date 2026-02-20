@@ -48,7 +48,7 @@ class MenuResource extends Resource
                     ->label('画像')
                     ->image()
                     ->directory('menus')
-                    ->disk('public')
+                    ->disk('render')
                     ->imageEditor()
                     ->imagePreviewHeight('150')
                     ->columnSpanFull(),
