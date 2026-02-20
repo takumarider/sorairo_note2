@@ -125,18 +125,18 @@ cd /var/www/html\n\
 \n\
 echo "📦 Checking frontend assets..."\n\
 if [ ! -d "public/build" ]; then\n\
-  echo "❌ ERROR: public/build directory not found!"\n\
+echo "❌ ERROR: public/build directory not found!"\n\
 else\n\
-  echo "✅ Build directory exists"\n\
-  if [ -f "public/build/manifest.json" ]; then\n\
+echo "✅ Build directory exists"\n\
+if [ -f "public/build/manifest.json" ]; then\n\
     echo "✅ Manifest at root (Vite <5)"\n\
-  elif [ -f "public/build/.vite/manifest.json" ]; then\n\
+elif [ -f "public/build/.vite/manifest.json" ]; then\n\
     echo "✅ Manifest in .vite/ (Vite 5+)"\n\
-  else\n\
+else\n\
     echo "⚠️  WARNING: Manifest not found"\n\
-  fi\n\
-  echo "Built assets:"\n\
-  ls -lh public/build/assets/ 2>/dev/null || echo "No assets"\n\
+fi\n\
+echo "Built assets:"\n\
+ls -lh public/build/assets/ 2>/dev/null || echo "No assets"\n\
 fi\n\
 \n\
 echo "📦 Running database migrations..."\n\
@@ -146,6 +146,9 @@ echo "⚡ Caching configuration files..."\n\
 php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
+\n\
+echo "🔗 Creating storage symlink..."\
+php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\
 \n\
 echo "✅ Deployment complete!"\n\
 echo "🌐 Starting web server on port ${PORT:-8000}..."\n\
