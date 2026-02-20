@@ -50,7 +50,7 @@ class NoteResource extends Resource
                         ->directory('notes')
                         ->visibility('public')
                         ->maxSize(2048)
-                        ->disk('render'),
+                        ->disk('public'),
                 ])->columns(1),
                 Section::make('公開設定')->schema([
                     Toggle::make('is_published')

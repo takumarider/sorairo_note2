@@ -39,7 +39,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => rtrim(env('RENDER_DISK_PATH', storage_path('app')), '/').'/public',
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
+            'url' => rtrim(env('APP_URL'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
