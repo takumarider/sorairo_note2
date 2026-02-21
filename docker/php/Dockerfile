@@ -114,49 +114,69 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
     && chmod -R 775 storage bootstrap/cache
 
 # エントリポイントスクリプト
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "========================================"\n\
-echo "🚀 Sorairo Note - Starting Deployment"\n\
-echo "========================================"\n\
-\n\
-cd /var/www/html\n\
-\n\
-echo "📦 Checking frontend assets..."\n\
-if [ ! -d "public/build" ]; then\n\
-echo "❌ ERROR: public/build directory not found!"\n\
-else\n\
-echo "✅ Build directory exists"\n\
-if [ -f "public/build/manifest.json" ]; then\n\
-    echo "✅ Manifest at root (Vite <5)"\n\
-elif [ -f "public/build/.vite/manifest.json" ]; then\n\
-    echo "✅ Manifest in .vite/ (Vite 5+)"\n\
-else\n\
-    echo "⚠️  WARNING: Manifest not found"\n\
-fi\n\
-echo "Built assets:"\n\
-ls -lh public/build/assets/ 2>/dev/null || echo "No assets"\n\
-fi\n\
-\n\
-echo "📦 Running database migrations..."\n\
-php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }\n\
-\n\
-echo "⚡ Caching configuration files..."\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-\n\
-echo "🔗 Creating storage symlink..."\
-php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\
-\n\
-echo "✅ Deployment complete!"\n\
-echo "🌐 Starting web server on port ${PORT:-8000}..."\n\
-echo "========================================"\n\
-\n\
-exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+RUN echo '#!/bin/bash
+set -e
 
+echo "========================================"
+echo "🚀 Sorairo Note - Starting Deployment"
+echo "========================================"
+
+cd /var/www/html
+
+# ====== ここから 追記: アップロード用ディスクのパスを用意 ======
+# 永続ディスクのパス (Render の環境変数 RENDER_DISK_PATH を優先)
+UPLOADS_PATH="${RENDER_DISK_PATH:-/var/uploads}"
+UPLOADS_PUBLIC="${UPLOADS_PATH}/public"
+
+echo "📂 Ensuring uploads directory exists at: ${UPLOADS_PUBLIC}"
+
+mkdir -p "${UPLOADS_PUBLIC}"
+
+# www-data で実行している前提なので、sudo は不要
+chown -R www-data:www-data "${UPLOADS_PATH}" || echo "⚠️ chown failed (maybe not permitted)"
+chmod -R 775 "${UPLOADS_PATH}" || echo "⚠️ chmod failed (maybe not permitted)"
+
+# Laravel 側の設定:
+#   FILESYSTEM_DISK_ROOT=/var/uploads/public
+#   RENDER_DISK_PATH=/var/uploads
+# にしておくと、disk("public") と storage:link の両方がここを指す
+echo "📌 FILESYSTEM_DISK_ROOT=${FILESYSTEM_DISK_ROOT:-not set}"
+echo "📌 RENDER_DISK_PATH=${RENDER_DISK_PATH:-not set}"
+# ====== ここまで 追記 ======
+
+echo "📦 Checking frontend assets..."
+if [ ! -d "public/build" ]; then
+  echo "❌ ERROR: public/build directory not found!"
+else
+  echo "✅ Build directory exists"
+  if [ -f "public/build/manifest.json" ]; then
+    echo "✅ Manifest at root (Vite <5)"
+  elif [ -f "public/build/.vite/manifest.json" ]; then
+    echo "✅ Manifest in .vite/ (Vite 5+)"
+  else
+    echo "⚠️  WARNING: Manifest not found"
+  fi
+  echo "Built assets:"
+  ls -lh public/build/assets/ 2>/dev/null || echo "No assets"
+fi
+
+echo "📦 Running database migrations..."
+php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }
+
+echo "⚡ Caching configuration files..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+echo "🔗 Creating storage symlink..."
+php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"
+
+echo "✅ Deployment complete!"
+echo "🌐 Starting web server on port ${PORT:-8000}..."
+echo "========================================"
+
+exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+' > /entrypoint.sh && chmod +x /entrypoint.sh
 # ポート公開
 EXPOSE ${PORT:-8000}
 
