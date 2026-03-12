@@ -147,8 +147,25 @@ php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
 \n\
-echo "🔗 Creating storage symlink..."\
-php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\
+echo "🔗 Creating storage directory..."\n\
+UPLOAD_ROOT="${RENDER_DISK_PATH:-/var/www/html/storage/app}"\n\
+mkdir -p "${UPLOAD_ROOT}/public"\n\
+if [ ! -w "${UPLOAD_ROOT}/public" ]; then\n\
+  echo "❌ ERROR: Cannot write to ${UPLOAD_ROOT}/public"\n\
+  exit 1\n\
+fi\n\
+chmod -R 755 "${UPLOAD_ROOT}"\n\
+echo "✅ Upload directory ready: ${UPLOAD_ROOT}/public"\n\
+\n\
+echo "🔗 Creating storage symlink..."\n\
+php artisan storage:link --force || { echo "❌ storage:link failed"; exit 1; }\n\
+\n\
+if [ -L "public/storage" ]; then\n\
+  echo "✅ Symlink verified: public/storage -> ${UPLOAD_ROOT}/public"\n\
+else\n\
+  echo "❌ ERROR: Symlink verification failed"\n\
+  exit 1\n\
+fi\n\
 \n\
 echo "✅ Deployment complete!"\n\
 echo "🌐 Starting web server on port ${PORT:-8000}..."\n\

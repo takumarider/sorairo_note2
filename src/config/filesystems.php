@@ -38,9 +38,11 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => env('FILESYSTEM_DISK_ROOT', storage_path('app/public')),
-            'url' => env('APP_URL') . '/storage',
+            'root' => rtrim(env('RENDER_DISK_PATH', storage_path('app')), '/') . '/public',
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/') . '/storage',
             'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
         ],
 
         's3' => [
@@ -69,10 +71,8 @@ return [
     |
     */
 
-    public_path('storage') => rtrim(
-            env('RENDER_DISK_PATH', storage_path('app')),
-            '/'
-        ) . '/public',
-
+    'links' => [
+        public_path('storage') => rtrim(env('RENDER_DISK_PATH', storage_path('app')), '/') . '/public',
+    ],
 
 ];

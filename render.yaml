@@ -8,6 +8,10 @@ services:
     plan: starter
     region: singapore
     healthCheckPath: /
+    disks:
+      - name: uploads-disk
+        mountPath: /var/uploads
+        sizeGB: 1
     envVars:
       - key: APP_NAME
         value: "Sorairo Note"
@@ -37,6 +41,10 @@ services:
         value: sync
       - key: LOG_CHANNEL
         value: stderr
+      - key: RENDER_DISK_PATH
+        value: /var/uploads
+      - key: FILESYSTEM_DISK
+        value: public
 
 databases:
   - name: sorairo-note2-db
