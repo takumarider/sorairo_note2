@@ -37,6 +37,14 @@ services:
         value: sync
       - key: LOG_CHANNEL
         value: stderr
+      - key: RENDER_DISK_PATH
+        value: /var/www/html/storage/app
+      - key: FILESYSTEM_DISK_ROOT
+        value: /var/www/html/storage/app/public
+    disk:
+      name: uploads
+      mountPath: /var/www/html/storage/app
+      sizeGB: 1
 
 databases:
   - name: sorairo-note2-db

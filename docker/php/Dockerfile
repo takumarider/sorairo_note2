@@ -147,8 +147,9 @@ php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
 \n\
-echo "🔗 Creating storage symlink..."\
-php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\
+echo "🔗 Creating storage symlink..."\n\
+mkdir -p storage/app/public\n\
+php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\n\
 \n\
 echo "✅ Deployment complete!"\n\
 echo "🌐 Starting web server on port ${PORT:-8000}..."\n\
