@@ -69,10 +69,11 @@ return [
     |
     */
 
-    public_path('storage') => rtrim(
-            env('RENDER_DISK_PATH', storage_path('app')),
-            '/'
-        ) . '/public',
-
+    'links' => [
+        public_path('storage') => rtrim(
+                env('RENDER_DISK_PATH', storage_path('app')),
+                '/'
+            ) . '/public',
+    ],
 
 ];
