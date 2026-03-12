@@ -109,6 +109,7 @@ RUN echo "=== 📦 Verifying build assets in production ===" && \
 # ストレージディレクトリの作成と権限設定
 RUN mkdir -p storage/framework/{sessions,views,cache} \
     && mkdir -p storage/logs \
+    && mkdir -p storage/app/public \
     && mkdir -p bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
@@ -147,8 +148,9 @@ php artisan config:cache\n\
 php artisan route:cache\n\
 php artisan view:cache\n\
 \n\
-echo "🔗 Creating storage symlink..."\
-php artisan storage:link || echo "⚠️ storage:link failed (maybe already exists)"\
+echo "🔗 Creating storage symlink..."\n\
+mkdir -p storage/app/public\n\
+php artisan storage:link --force || echo "⚠️ storage:link failed"\n\
 \n\
 echo "✅ Deployment complete!"\n\
 echo "🌐 Starting web server on port ${PORT:-8000}..."\n\
