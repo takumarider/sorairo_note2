@@ -11,6 +11,7 @@ yarn-error.log
 /src/public/hot
 /src/public/storage
 /src/public/build
+/src/bootstrap/cache/
 
 # IDE
 .idea/

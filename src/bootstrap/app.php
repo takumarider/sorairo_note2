@@ -11,6 +11,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Renderのリバースプロキシを信頼（本番環境でのセキュアクッキー・HTTPS検出用）
+        $middleware->trustProxies(at: '*');
+        
         // セキュリティヘッダーを全リクエストに付与
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
