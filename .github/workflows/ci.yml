@@ -82,9 +82,9 @@ jobs:
 
       - name: Prepare environment
         run: |
-          cp .env.example .env || true
-          php artisan key:generate --force || true
-          touch database/database.sqlite
+          cp .env.example .env
+          php artisan key:generate --force
+          php artisan config:clear
 
       - name: Run PHPUnit tests
         run: php artisan test
@@ -123,6 +123,10 @@ jobs:
         run: |
           if [ ! -d "public/build" ]; then
             echo "::error::Build output directory not found"
+            exit 1
+          fi
+          if [ ! -f "public/build/manifest.json" ]; then
+            echo "::error::Build manifest not found"
             exit 1
           fi
           echo "✅ Frontend build successful"
