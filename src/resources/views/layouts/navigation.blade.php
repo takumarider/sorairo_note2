@@ -29,6 +29,14 @@
             </div>
             <!-- Settings Dropdown -->
             <div class="hidden sm:flex sm:items-center sm:ms-6">
+                @if(auth()->check() && auth()->user()->is_admin)
+                    <a href="{{ route('filament.admin.pages.dashboard') }}"
+                       class="inline-flex items-center px-4 py-2 me-3 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 text-white text-sm font-bold shadow hover:from-amber-500 hover:to-orange-600 transition"
+                       aria-label="管理画面へ切り替え">
+                        管理画面へ
+                    </a>
+                @endif
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-sky-200 text-sm leading-4 font-medium rounded-md text-sky-800 bg-white/80 hover:text-sky-900 hover:bg-white focus:outline-none transition ease-in-out duration-150 shadow-sm backdrop-blur">
@@ -96,7 +104,7 @@
             
             @if(auth()->check() && auth()->user()->is_admin)
                 <x-responsive-nav-link :href="route('filament.admin.pages.dashboard')" :active="request()->routeIs('filament.admin.*')">
-                    {{ __('管理画面') }}
+                    {{ __('管理画面へ切り替え') }}
                 </x-responsive-nav-link>
             @endif
         </div>

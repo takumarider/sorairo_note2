@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Menu;
+use App\Models\MenuOption;
 use App\Models\Reservation;
-use App\Models\Slot;
+use App\Services\AvailabilityService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -14,31 +18,63 @@ class ReservationApiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'slot_id' => 'required|exists:slots,id',
+            'menu_id' => 'required|exists:menus,id',
+            'date' => 'required|date_format:Y-m-d|after_or_equal:today',
+            'start_time' => 'required|date_format:H:i',
+            'options' => 'nullable|array',
+            'options.*' => 'exists:menu_options,id',
         ]);
 
-        $slot = Slot::with(['menu'])->findOrFail($validated['slot_id']);
+        $menu = Menu::findOrFail($validated['menu_id']);
+        $optionIds = $validated['options'] ?? [];
+        $options = ! empty($optionIds)
+            ? MenuOption::whereIn('id', $optionIds)->active()->get()
+            : collect();
+
+        $totalDuration = $menu->duration + $options->sum('duration');
+
+        $startDateTime = Carbon::createFromFormat(
+            'Y-m-d H:i',
+            $validated['date'].' '.$validated['start_time'],
+            'Asia/Tokyo'
+        );
+        $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
         try {
             $reservation = null;
 
-            DB::transaction(function () use ($slot, &$reservation) {
-                $lockedSlot = Slot::with(['menu'])->whereKey($slot->id)->lockForUpdate()->firstOrFail();
+            DB::transaction(function () use (&$reservation, $menu, $options, $optionIds, $startDateTime, $endDateTime) {
+                Reservation::where('date', $startDateTime->toDateString())
+                    ->where('status', 'confirmed')
+                    ->lockForUpdate()
+                    ->get();
 
-                if (! $lockedSlot->isAvailable()) {
+                $availabilityService = new AvailabilityService;
+                $availableTimes = $availabilityService->getAvailableTimes(
+                    $menu,
+                    $optionIds,
+                    $startDateTime->toDateString()
+                );
+
+                if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
                     throw ValidationException::withMessages([
-                        'slot_id' => 'この時間帯は既に予約されています。',
+                        'start_time' => 'この時間帯は既に予約されています。',
                     ]);
                 }
 
                 $reservation = Reservation::create([
-                    'user_id' => auth()->id(),
-                    'menu_id' => $lockedSlot->menu_id,
-                    'slot_id' => $lockedSlot->id,
+                    'user_id' => Auth::id(),
+                    'menu_id' => $menu->id,
+                    'slot_id' => null,
+                    'date' => $startDateTime->toDateString(),
+                    'start_time' => $startDateTime->format('H:i'),
+                    'end_time' => $endDateTime->format('H:i'),
                     'status' => 'confirmed',
                 ]);
 
-                $lockedSlot->update(['is_reserved' => true]);
+                if ($options->isNotEmpty()) {
+                    $reservation->options()->attach($options->pluck('id'));
+                }
             });
 
             if (! $reservation instanceof Reservation) {
@@ -48,7 +84,7 @@ class ReservationApiController extends Controller
                 ], 500);
             }
 
-            $reservation->loadMissing(['menu', 'slot']);
+            $reservation->loadMissing(['menu', 'options']);
 
             return response()->json([
                 'success' => true,
@@ -56,8 +92,9 @@ class ReservationApiController extends Controller
                 'reservation' => [
                     'id' => $reservation->id,
                     'menu_name' => $reservation->menu->name,
-                    'date' => $reservation->slot->date->format('Y-m-d'),
-                    'start_time' => $reservation->slot->start_time->format('H:i'),
+                    'date' => $reservation->date->format('Y-m-d'),
+                    'start_time' => $reservation->start_time->format('H:i'),
+                    'end_time' => $reservation->end_time->format('H:i'),
                 ],
             ]);
         } catch (ValidationException $e) {
@@ -75,7 +112,9 @@ class ReservationApiController extends Controller
 
     public function destroy(Reservation $reservation)
     {
-        if ($reservation->user_id !== auth()->id() && ! auth()->user()->is_admin) {
+        $user = Auth::user();
+
+        if (! $user || ($reservation->user_id !== $user->id && ! $user->is_admin)) {
             return response()->json([
                 'success' => false,
                 'message' => 'この予約をキャンセルする権限がありません。',

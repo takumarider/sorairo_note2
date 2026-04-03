@@ -36,6 +36,11 @@ class Menu extends Model
         return $this->hasMany(Reservation::class);
     }
 
+    public function options()
+    {
+        return $this->hasMany(MenuOption::class);
+    }
+
     public function availableSlots()
     {
         return $this->slots()

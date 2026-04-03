@@ -3,7 +3,6 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Reservation;
-use App\Models\Slot;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -37,11 +36,6 @@ class StatsOverview extends BaseWidget
                 ->description('総ユーザー数')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('warning'),
-
-            Stat::make('空きスロット', Slot::where('is_reserved', false)->where('date', '>=', now())->count())
-                ->description('予約可能な時間枠')
-                ->descriptionIcon('heroicon-m-clock')
-                ->color('success'),
         ];
     }
 }

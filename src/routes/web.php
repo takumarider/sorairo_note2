@@ -4,13 +4,11 @@ use App\Http\Controllers\MenuController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
-use App\Http\Controllers\SlotController;
+use App\Http\Controllers\WelcomeController;
 use App\Models\Note;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', WelcomeController::class)->name('welcome');
 
 Route::get('/dashboard', function () {
     $notes = Note::where('is_published', true)
@@ -30,8 +28,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/menus', [MenuController::class, 'index'])->name('menus.index');
     Route::get('/menus/{menu}', [MenuController::class, 'show'])->name('menus.show');
 
-    Route::get('/slots', [SlotController::class, 'index'])->name('slots.index');
-
+    Route::get('/reservations/calendar', [ReservationController::class, 'calendar'])->name('reservations.calendar');
+    Route::get('/reservations/times', [ReservationController::class, 'times'])->name('reservations.times');
     Route::get('/reservations/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
     Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
     Route::get('/reservations/{reservation}/complete', [ReservationController::class, 'complete'])->name('reservations.complete');

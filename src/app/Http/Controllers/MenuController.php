@@ -15,6 +15,9 @@ class MenuController extends Controller
 
     public function show(Menu $menu)
     {
+        // オプションを積極的にロード
+        $menu->load(['options' => fn ($query) => $query->active()]);
+
         return view('menus.show', compact('menu'));
     }
 }

@@ -32,30 +32,58 @@ class ReservationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->label('ユーザー')
-                    ->relationship('user', 'name')
-                    ->searchable()
-                    ->required(),
-                Forms\Components\Select::make('menu_id')
-                    ->label('メニュー')
-                    ->relationship('menu', 'name')
-                    ->searchable()
-                    ->required(),
-                Forms\Components\Select::make('slot_id')
-                    ->label('時間枠')
-                    ->relationship('slot', 'id')
-                    ->searchable()
-                    ->getOptionLabelFromRecordUsing(fn ($record) => sprintf('%s %s-%s', $record->date?->format('Y/m/d'), $record->start_time, $record->end_time))
-                    ->required(),
-                Forms\Components\Select::make('status')
-                    ->label('ステータス')
-                    ->options([
-                        'confirmed' => '確定',
-                        'canceled' => 'キャンセル',
-                        'completed' => '完了',
+                Forms\Components\Section::make('予約基本情報')
+                    ->schema([
+                        Forms\Components\Select::make('user_id')
+                            ->label('ユーザー')
+                            ->relationship('user', 'name')
+                            ->searchable()
+                            ->required(),
+                        Forms\Components\Select::make('menu_id')
+                            ->label('メニュー')
+                            ->relationship('menu', 'name')
+                            ->searchable()
+                            ->required(),
                     ])
-                    ->required(),
+                    ->columns(2),
+
+                Forms\Components\Section::make('予約日時')
+                    ->schema([
+                        Forms\Components\DatePicker::make('date')
+                            ->label('予約日')
+                            ->required(),
+                        Forms\Components\TimePicker::make('start_time')
+                            ->label('開始時刻')
+                            ->required()
+                            ->seconds(false),
+                        Forms\Components\TimePicker::make('end_time')
+                            ->label('終了時刻')
+                            ->required()
+                            ->seconds(false),
+                    ])
+                    ->columns(3),
+
+                Forms\Components\Section::make('旧スロット参照（互換性用）')
+                    ->schema([
+                        Forms\Components\Select::make('slot_id')
+                            ->label('スロット')
+                            ->relationship('slot', 'id')
+                            ->getOptionLabelFromRecordUsing(fn ($record) => sprintf('%s %s-%s', $record->date?->format('Y/m/d'), $record->start_time, $record->end_time))
+                            ->nullable()
+                            ->helperText('新方式ではslot_idは不要です。レガシーデータとの互換性のためのフィールドです。'),
+                    ]),
+
+                Forms\Components\Section::make('ステータス')
+                    ->schema([
+                        Forms\Components\Select::make('status')
+                            ->label('ステータス')
+                            ->options([
+                                'confirmed' => '確定',
+                                'canceled' => 'キャンセル',
+                                'completed' => '完了',
+                            ])
+                            ->required(),
+                    ]),
             ]);
     }
 
@@ -71,16 +99,16 @@ class ReservationResource extends Resource
                     ->label('メニュー')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('slot.date')
-                    ->label('日付')
-                    ->date()
+                Tables\Columns\TextColumn::make('date')
+                    ->label('予約日')
+                    ->date('Y/m/d')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('slot.start_time')
-                    ->label('開始時間')
+                Tables\Columns\TextColumn::make('start_time')
+                    ->label('開始時刻')
                     ->time('H:i')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('slot.end_time')
-                    ->label('終了時間')
+                Tables\Columns\TextColumn::make('end_time')
+                    ->label('終了時刻')
                     ->time('H:i')
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('status')
@@ -153,6 +181,7 @@ class ReservationResource extends Resource
             'index' => Pages\ListReservations::route('/'),
             'create' => Pages\CreateReservation::route('/create'),
             'edit' => Pages\EditReservation::route('/{record}/edit'),
+            'calendar' => Pages\ManageReservationCalendar::route('/calendar'),
         ];
     }
 }

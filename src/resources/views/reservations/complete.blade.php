@@ -27,12 +27,23 @@
                             <h3 class="text-sm text-gray-500 mb-1">メニュー</h3>
                             <p class="text-xl font-bold text-gray-900">{{ $reservation->menu->name }}</p>
                         </div>
+
+                        @if($reservation->options && $reservation->options->isNotEmpty())
+                        <div class="border-b pb-4">
+                            <h3 class="text-sm text-gray-500 mb-2">オプション</h3>
+                            <div class="space-y-1">
+                                @foreach($reservation->options as $option)
+                                    <p class="text-gray-700">{{ $option->name }}</p>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
                         
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">日時</h3>
                             <p class="text-xl font-bold text-gray-900">
-                                {{ $reservation->slot->date->isoFormat('Y年M月D日(ddd)') }}
-                                <span class="ml-2">{{ $reservation->slot->start_time->format('H:i') }} - {{ $reservation->slot->end_time->format('H:i') }}</span>
+                                {{ $reservation->date->isoFormat('Y年M月D日(dddd)') }}
+                                <span class="ml-2">{{ $reservation->start_time->format('H:i') }} - {{ $reservation->end_time->format('H:i') }}</span>
                             </p>
                         </div>
                         
@@ -55,7 +66,7 @@
                     </div>
                     
                     <div class="flex gap-4">
-                        <a href="{{ route('dashboard') }}" 
+                        <a href="{{ route('mypage') }}" 
                            class="flex-1 text-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold">
                             マイページへ
                         </a>
