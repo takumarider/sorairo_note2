@@ -139,7 +139,7 @@ class ReservationOverlapTest extends TestCase
     public function test_user_can_see_new_flow_reservation_on_mypage_after_booking(): void
     {
         $menu = Menu::factory()->create([
-            'name' => 'カット&カラー',
+            'name' => 'カットカラー',
             'duration' => 60,
         ]);
 
@@ -170,7 +170,7 @@ class ReservationOverlapTest extends TestCase
         $mypageResponse = $this->actingAs($user)->get(route('mypage'));
 
         $mypageResponse->assertOk();
-        $mypageResponse->assertSee('カット&カラー');
+        $mypageResponse->assertSee('カットカラー');
         $mypageResponse->assertSee('11:00 - 12:00');
     }
 }

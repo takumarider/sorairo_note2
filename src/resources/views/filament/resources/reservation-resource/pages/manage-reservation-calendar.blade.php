@@ -4,6 +4,7 @@
             <div class="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                 <div class="min-w-0">
                     <h2 class="text-lg font-semibold tracking-tight text-slate-900">予約状況カレンダー</h2>
+                    <p class="mt-0.5 text-xs text-slate-500">日・週・月で予約を確認</p>
                     <div class="mt-1 inline-flex w-fit items-center gap-2 rounded-lg border border-sky-200 bg-white px-2.5 py-1 text-xs font-medium text-sky-800 shadow-sm">
                         <span class="h-2 w-2 rounded-full bg-sky-500"></span>
                         <span id="calendar-current-range">{{ now('Asia/Tokyo')->startOfWeek()->format('Y年n月j日') }} - {{ now('Asia/Tokyo')->startOfWeek()->addDays(6)->format('n月j日') }}</span>

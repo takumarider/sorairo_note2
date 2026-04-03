@@ -42,7 +42,7 @@
             <div class="bg-white shadow-sm rounded-2xl p-4 sm:p-6">
                 @if($reservations->count() > 0)
                     <div id="mypage-calendar-data"
-                         data-reservations='@json($reservationPayload)'
+                         data-reservations='@json($reservationPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)'
                          data-csrf='{{ csrf_token() }}'
                          class="hidden"></div>
 
