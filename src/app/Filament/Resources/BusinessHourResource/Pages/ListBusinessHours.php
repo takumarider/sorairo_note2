@@ -51,20 +51,20 @@ class ListBusinessHours extends ListRecords
     {
         $month = Carbon::createFromFormat('Y-m', $this->selectedMonth ?: now()->format('Y-m'));
         $start = $month->clone()->startOfMonth();
-        $end   = $month->clone()->endOfMonth();
+        $end = $month->clone()->endOfMonth();
 
         $days = [];
         for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-            $d       = $date->copy();
+            $d = $date->copy();
             $setting = BusinessHour::getSettingForDate($d);
-            $source  = null;
+            $source = null;
             if ($setting) {
                 $source = $setting->specific_date !== null ? 'specific' : 'weekly';
             }
             $days[] = [
-                'date'    => $d,
+                'date' => $d,
                 'setting' => $setting,
-                'source'  => $source,
+                'source' => $source,
             ];
         }
 

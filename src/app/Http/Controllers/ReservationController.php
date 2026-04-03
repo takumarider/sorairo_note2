@@ -6,7 +6,6 @@ use App\Mail\ReservationConfirmed;
 use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
-use App\Models\Slot;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AvailabilityService;
@@ -47,7 +46,7 @@ class ReservationController extends Controller
             ? MenuOption::whereIn('id', $optionIds)->active()->get()
             : collect();
 
-        $availabilityService = new AvailabilityService();
+        $availabilityService = new AvailabilityService;
         $availableDates = $availabilityService->getAvailableDates($menu, $optionIds, $month);
         $availabilitySummary = $availabilityService->getMonthlyAvailabilitySummary($menu, $optionIds, $month);
 
@@ -90,7 +89,7 @@ class ReservationController extends Controller
             ? MenuOption::whereIn('id', $optionIds)->active()->get()
             : collect();
 
-        $availabilityService = new AvailabilityService();
+        $availabilityService = new AvailabilityService;
         $availability = $availabilityService->getAvailableTimesWithReason($menu, $optionIds, $date);
         $availableTimes = $availability['times'];
 
@@ -219,7 +218,7 @@ class ReservationController extends Controller
                     ->lockForUpdate()
                     ->get();
 
-                $availabilityService = new AvailabilityService();
+                $availabilityService = new AvailabilityService;
                 $dateCarbon = $startDateTime->clone()->startOfDay();
                 $reservedRanges = $availabilityService->getReservedRanges($dateCarbon);
 
@@ -284,4 +283,3 @@ class ReservationController extends Controller
         return view('reservations.complete', compact('reservation'));
     }
 }
-

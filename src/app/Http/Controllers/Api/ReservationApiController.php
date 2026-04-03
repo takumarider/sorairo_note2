@@ -49,7 +49,7 @@ class ReservationApiController extends Controller
                     ->lockForUpdate()
                     ->get();
 
-                $availabilityService = new AvailabilityService();
+                $availabilityService = new AvailabilityService;
                 $availableTimes = $availabilityService->getAvailableTimes(
                     $menu,
                     $optionIds,

@@ -29,9 +29,6 @@ class BusinessHour extends Model
 
     /**
      * 指定日付の営業時間設定を取得（休業設定を含む）
-     *
-     * @param Carbon $date
-     * @return self|null
      */
     public static function getSettingForDate(Carbon $date): ?self
     {
@@ -51,9 +48,6 @@ class BusinessHour extends Model
 
     /**
      * 指定日付の営業時間を取得（特定日優先）
-     *
-     * @param Carbon $date
-     * @return self|null
      */
     public static function getForDate(Carbon $date): ?self
     {
@@ -68,9 +62,6 @@ class BusinessHour extends Model
 
     /**
      * 指定日付が営業日かどうかを判定
-     *
-     * @param Carbon $date
-     * @return bool
      */
     public static function isOpenOnDate(Carbon $date): bool
     {

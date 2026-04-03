@@ -50,6 +50,20 @@ jobs:
   tests:
     name: Tests (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sorairo_test
+          POSTGRES_USER: sorairo
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sorairo -d sorairo_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
     defaults:
       run:
         working-directory: src
@@ -66,7 +80,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: pdo_sqlite, intl, zip, mbstring
+          extensions: pdo_pgsql, intl, zip, mbstring
           tools: composer:v2
           coverage: xdebug
 
@@ -86,12 +100,27 @@ jobs:
           php artisan key:generate --force
           php artisan config:clear
 
+      - name: Run migrations
+        run: php artisan migrate --force
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: sorairo_test
+          DB_USERNAME: sorairo
+          DB_PASSWORD: password
+
       - name: Run PHPUnit tests
         run: php artisan test
         env:
           APP_ENV: testing
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ":memory:"
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: sorairo_test
+          DB_USERNAME: sorairo
+          DB_PASSWORD: password
 
   # ──────────────────────────────────────────────
   # フロントエンドビルド検証

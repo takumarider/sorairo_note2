@@ -58,14 +58,14 @@ class ReservationOverlapTest extends TestCase
         $this->assertTrue(true, "Saved date: {$savedReservation->date}, start_time: {$savedReservation->start_time}, end_time: {$savedReservation->end_time}");
 
         // AvailabilityService で 10:30 が利用可能かどうかを確認
-        $availabilityService = new AvailabilityService();
+        $availabilityService = new AvailabilityService;
         $reservedRanges = $availabilityService->getReservedRanges(\Carbon\Carbon::createFromFormat('Y-m-d', $date)->startOfDay());
-        
+
         // reservedRanges が正しく取得できているか確認
         $this->assertGreaterThan(0, $reservedRanges->count(), 'Reserved ranges should not be empty');
 
         $availableTimes = $availabilityService->getAvailableTimes($menuB, [], $date);
-        
+
         // 10:30 は重複するので利用可能ではないはず
         $this->assertNotContains('10:30', $availableTimes, '10:30 should not be in available times due to overlap');
 
@@ -108,9 +108,9 @@ class ReservationOverlapTest extends TestCase
         ]);
 
         // AvailabilityService で 11:00 が利用可能かどうかを確認
-        $availabilityService = new AvailabilityService();
+        $availabilityService = new AvailabilityService;
         $availableTimes = $availabilityService->getAvailableTimes($menuB, [], $date);
-        
+
         // 11:00 は重複しないので利用可能のはず
         $this->assertContains('11:00', $availableTimes, '11:00 should be in available times as there is no overlap');
 

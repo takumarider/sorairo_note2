@@ -98,7 +98,7 @@ class AvailabilityService
         foreach ($candidates as $candidate) {
             $startDateTime = Carbon::createFromFormat(
                 'Y-m-d H:i',
-                $dateCarbon->toDateString() . ' ' . $candidate,
+                $dateCarbon->toDateString().' '.$candidate,
                 'Asia/Tokyo'
             );
             $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
@@ -117,9 +117,8 @@ class AvailabilityService
     /**
      * 指定日付の利用可能な開始時刻リストを返す
      *
-     * @param Menu $menu
-     * @param array $optionIds MenuOption IDs
-     * @param string $date YYYY-MM-DD 形式
+     * @param  array  $optionIds  MenuOption IDs
+     * @param  string  $date  YYYY-MM-DD 形式
      * @return array ['10:00', '10:30', '11:00', ...]
      */
     public function getAvailableTimes(Menu $menu, array $optionIds, string $date): array
@@ -175,8 +174,6 @@ class AvailabilityService
     /**
      * 営業時間内で30分刻みの開始時刻候補を生成
      *
-     * @param BusinessHour $bh
-     * @param int $durationMinutes
      * @return array ['10:00', '10:30', '11:00', ...]
      */
     private function buildCandidates(BusinessHour $bh, int $durationMinutes): array
@@ -184,8 +181,8 @@ class AvailabilityService
         $candidates = [];
 
         // TimeオブジェクトをCarbonに変換
-        $openTime = Carbon::parse('2000-01-01 ' . $bh->open_time);
-        $closeTime = Carbon::parse('2000-01-01 ' . $bh->close_time);
+        $openTime = Carbon::parse('2000-01-01 '.$bh->open_time);
+        $closeTime = Carbon::parse('2000-01-01 '.$bh->close_time);
 
         // 終了時刻がduration分を超えない最後の開始時刻を計算
         $lastStart = $closeTime->clone()->subMinutes($durationMinutes);
