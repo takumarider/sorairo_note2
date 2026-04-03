@@ -17,6 +17,9 @@ class Reservation extends Model
         'user_id',
         'menu_id',
         'slot_id',
+        'date',
+        'start_time',
+        'end_time',
         'status',
         'canceled_at',
     ];
@@ -24,6 +27,9 @@ class Reservation extends Model
     protected function casts(): array
     {
         return [
+            'date' => 'date',
+            'start_time' => 'datetime:H:i',
+            'end_time' => 'datetime:H:i',
             'canceled_at' => 'datetime',
         ];
     }
@@ -43,6 +49,11 @@ class Reservation extends Model
         return $this->belongsTo(Slot::class);
     }
 
+    public function options()
+    {
+        return $this->belongsToMany(MenuOption::class, 'reservation_options');
+    }
+
     public function cancel(): void
     {
         $this->update([
@@ -50,7 +61,10 @@ class Reservation extends Model
             'canceled_at' => now(),
         ]);
 
-        $this->slot()->update(['is_reserved' => false]);
+        // 旧スロット方式の場合のみslot_idを更新
+        if ($this->slot_id !== null) {
+            $this->slot()->update(['is_reserved' => false]);
+        }
 
         app(NotificationService::class)->applyFromSettings(SystemSetting::first());
 

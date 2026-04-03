@@ -9,7 +9,13 @@
 
 **メニュー:** {{ $reservation->menu->name }}
 
-**日時:** {{ $reservation->slot->date->format('Y年m月d日') }} {{ $reservation->slot->start_time->format('H:i') }} - {{ $reservation->slot->end_time->format('H:i') }}
+@php
+	$reservationDate = $reservation->date ?? $reservation->slot?->date;
+	$reservationStart = $reservation->start_time ?? $reservation->slot?->start_time;
+	$reservationEnd = $reservation->end_time ?? $reservation->slot?->end_time;
+@endphp
+
+**日時:** {{ $reservationDate?->format('Y年m月d日') }} {{ $reservationStart?->format('H:i') }} - {{ $reservationEnd?->format('H:i') }}
 
 またのご予約をお待ちしております。
 

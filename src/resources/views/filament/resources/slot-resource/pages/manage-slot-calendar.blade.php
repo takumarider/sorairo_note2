@@ -18,7 +18,36 @@
             <x-filament::button color="gray" wire:click="refreshCalendar" icon="heroicon-m-arrow-path">
                 カレンダーを再読み込み
             </x-filament::button>
+
+            <x-filament::button color="warning" wire:click="runIntegrityCheck" icon="heroicon-m-exclamation-triangle">
+                整合性チェック
+            </x-filament::button>
+
+            <x-filament::button color="danger" wire:click="deleteInvalidUnreservedSlots" icon="heroicon-m-trash">
+                未予約の不整合枠を削除
+            </x-filament::button>
         </div>
+
+        @if (! empty($this->integrityIssues))
+            <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <h3 class="text-sm font-semibold text-amber-900">整合性チェック結果</h3>
+                <p class="mt-1 text-sm text-amber-800">予約済みの時間枠は削除されません。未予約のみ一括削除できます。</p>
+
+                <div class="mt-4 space-y-2 text-sm text-slate-700">
+                    @foreach ($this->integrityIssues as $issue)
+                        <div class="rounded-lg border border-amber-200 bg-white px-3 py-2">
+                            <div class="font-semibold text-slate-900">
+                                {{ $issue['date'] }} {{ $issue['start'] }} - {{ $issue['end'] }}
+                                @if ($issue['is_reserved'])
+                                    <span class="ml-2 text-xs text-rose-600">予約済み</span>
+                                @endif
+                            </div>
+                            <div class="mt-1 text-amber-900">{{ implode(' / ', $issue['reasons']) }}</div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         <div class="bg-sky-50 rounded-xl shadow-sm border border-sky-200 p-4">
             <div id="slot-calendar" class="overflow-hidden" wire:ignore></div>

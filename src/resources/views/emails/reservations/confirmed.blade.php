@@ -10,7 +10,7 @@
 
 **メニュー:** {{ $reservation->menu->name }}
 
-**日時:** {{ $reservation->slot->date->format('Y年m月d日') }} {{ $reservation->slot->start_time->format('H:i') }} - {{ $reservation->slot->end_time->format('H:i') }}
+**日時:** {{ $reservation->date->format('Y年m月d日') }} {{ $reservation->start_time->format('H:i') }} - {{ $reservation->end_time->format('H:i') }}
 
 **料金:** ¥{{ number_format($reservation->menu->price) }}
 

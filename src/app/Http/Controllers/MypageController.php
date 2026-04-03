@@ -3,19 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservation;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class MypageController extends Controller
 {
     public function index()
     {
-        $reservations = auth()->user()
+        /** @var User $user */
+        $user = Auth::user();
+
+        $reservations = $user
             ->reservations()
             ->with(['menu', 'slot'])
-            ->whereHas('slot', function ($query) {
-                $query->where('date', '>=', now()->toDateString());
-            })
+            ->whereDate('date', '>=', now()->toDateString())
             ->where('status', 'confirmed')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date')
+            ->orderBy('start_time')
             ->get();
 
         return view('mypage', compact('reservations'));
@@ -23,7 +27,7 @@ class MypageController extends Controller
 
     public function cancel(Reservation $reservation)
     {
-        if ($reservation->user_id !== auth()->id()) {
+        if ($reservation->user_id !== Auth::id()) {
             abort(403, 'この予約をキャンセルする権限がありません。');
         }
 

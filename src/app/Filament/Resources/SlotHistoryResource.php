@@ -17,6 +17,8 @@ class SlotHistoryResource extends Resource
 {
     protected static ?string $model = Slot::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-archive-box';
 
     protected static ?string $navigationLabel = '時間枠履歴';
