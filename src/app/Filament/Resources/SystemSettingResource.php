@@ -219,15 +219,41 @@ class SystemSettingResource extends Resource
             return null;
         }
 
+        // Handle array (FileUpload internal format)
+        if (is_array($image)) {
+            if (isset($image['path'])) {
+                return Storage::disk('public')->url($image['path']);
+            }
+            if (isset($image[0])) {
+                return self::resolveImageUrl($image[0]);
+            }
+
+            return null;
+        }
+
         if ($image instanceof TemporaryUploadedFile) {
             try {
+                // Try to get temporary URL for preview during upload
                 return $image->temporaryUrl();
             } catch (\Exception) {
-                return null;
+                // Fallback to Livewire preview-file route
+                try {
+                    return route('livewire.preview-file', [
+                        'filename' => $image->getFilename(),
+                    ]);
+                } catch (\Exception) {
+                    return null;
+                }
             }
         }
 
-        if (is_string($image)) {
+        if (is_string($image) && ! empty($image)) {
+            // Check if it's already a full URL
+            if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
+                return $image;
+            }
+
+            // Otherwise treat as disk path
             return Storage::disk('public')->url($image);
         }
 
