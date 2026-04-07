@@ -227,6 +227,7 @@ class SystemSettingResource extends Resource
             if (isset($image[0])) {
                 return self::resolveImageUrl($image[0]);
             }
+
             return null;
         }
 
@@ -246,11 +247,12 @@ class SystemSettingResource extends Resource
             }
         }
 
-        if (is_string($image) && !empty($image)) {
+        if (is_string($image) && ! empty($image)) {
             // Check if it's already a full URL
             if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
                 return $image;
             }
+
             // Otherwise treat as disk path
             return Storage::disk('public')->url($image);
         }
