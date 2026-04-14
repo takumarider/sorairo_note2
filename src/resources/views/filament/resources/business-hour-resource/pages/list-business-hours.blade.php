@@ -29,6 +29,45 @@
         </x-filament::button>
     </div>
 
+    <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-slate-900">{{ \Carbon\Carbon::createFromFormat('Y-m', $this->selectedMonth)->isoFormat('YYYY年M月') }} の予約公開設定</h3>
+                <p class="text-xs text-slate-500">未設定の月は非公開です。必要な月を明示的に公開してください。</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                <label class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                    <input
+                        type="radio"
+                        value="1"
+                        wire:model.live="monthPublication"
+                        class="h-4 w-4 border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                    >
+                    公開
+                </label>
+
+                <label class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
+                    <input
+                        type="radio"
+                        value="0"
+                        wire:model.live="monthPublication"
+                        class="h-4 w-4 border-rose-300 text-rose-600 focus:ring-rose-500"
+                    >
+                    非公開
+                </label>
+
+                <x-filament::button
+                    wire:click="saveMonthPublication"
+                    color="primary"
+                    size="sm"
+                >
+                    保存
+                </x-filament::button>
+            </div>
+        </div>
+    </div>
+
     {{-- ===== 月別スケジュールプレビュー ===== --}}
     @php
         $days = $this->getMonthDays();
@@ -168,5 +207,4 @@
         </div>
         {{ $this->table }}
     </div>
-
 </x-filament-panels::page>

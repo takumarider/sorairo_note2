@@ -10,6 +10,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class ReservationResource extends Resource
 {
@@ -153,6 +154,15 @@ class ReservationResource extends Resource
                     ->requiresConfirmation()
                     ->visible(fn (Reservation $record) => $record->status === 'confirmed')
                     ->action(function (Reservation $record): void {
+                        if (! $record->canCancel()) {
+                            Notification::make()
+                                ->title($record->cancellationFailureReasonBy(Auth::user()))
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
                         $record->cancel();
 
                         Notification::make()

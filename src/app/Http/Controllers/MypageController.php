@@ -27,13 +27,16 @@ class MypageController extends Controller
 
     public function cancel(Reservation $reservation)
     {
-        if ($reservation->user_id !== Auth::id()) {
-            abort(403, 'この予約をキャンセルする権限がありません。');
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            return redirect()->route('login');
         }
 
-        if (! $reservation->canCancel()) {
+        if (! $reservation->canCancelBy($user)) {
             return redirect()->route('mypage')
-                ->with('error', 'この予約はキャンセルできません。');
+                ->with('error', $reservation->cancellationFailureReasonBy($user));
         }
 
         $reservation->cancel();

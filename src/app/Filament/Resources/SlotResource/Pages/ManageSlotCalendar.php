@@ -6,8 +6,10 @@ use App\Filament\Resources\SlotResource;
 use App\Models\BusinessHour;
 use App\Models\Menu;
 use App\Models\Slot;
+use App\Models\TimeBlock;
 use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
@@ -30,6 +32,10 @@ class ManageSlotCalendar extends Page implements HasForms
 
     public array $integrityIssues = [];
 
+    public string $operationMode = 'slot';
+
+    public string $blockReason = '';
+
     public function mount(): void
     {
         $this->form->fill([
@@ -51,32 +57,40 @@ class ManageSlotCalendar extends Page implements HasForms
                     ->options(fn () => Menu::pluck('name', 'id'))
                     ->searchable()
                     ->required()
+                    ->columnSpanFull()
                     ->afterStateUpdated(fn () => $this->dispatch('slot-calendar-refresh')),
-                DatePicker::make('business_date')
-                    ->label('対象日')
-                    ->required()
-                    ->closeOnDateSelection()
-                    ->afterStateUpdated(fn () => $this->dispatch('slot-calendar-refresh')),
-                DatePicker::make('business_end_date')
-                    ->label('対象終了日')
-                    ->required()
-                    ->closeOnDateSelection(),
-                Toggle::make('use_business_hours')
-                    ->label('営業時間マスタを優先する')
-                    ->default(true)
-                    ->helperText('有効時は営業時間マスタから開始・終了時刻を自動適用します。'),
-                TimePicker::make('business_start')
-                    ->label('営業開始時間')
-                    ->seconds(false)
-                    ->required()
-                    ->disabled(fn (callable $get): bool => (bool) $get('use_business_hours')),
-                TimePicker::make('business_end')
-                    ->label('営業終了時間')
-                    ->seconds(false)
-                    ->required()
-                    ->disabled(fn (callable $get): bool => (bool) $get('use_business_hours')),
+                Section::make('スロット自動生成設定')
+                    ->collapsible()
+                    ->collapsed()
+                    ->schema([
+                        DatePicker::make('business_date')
+                            ->label('対象日')
+                            ->required()
+                            ->closeOnDateSelection()
+                            ->afterStateUpdated(fn () => $this->dispatch('slot-calendar-refresh')),
+                        DatePicker::make('business_end_date')
+                            ->label('対象終了日')
+                            ->required()
+                            ->closeOnDateSelection(),
+                        Toggle::make('use_business_hours')
+                            ->label('営業時間マスタを優先する')
+                            ->default(true)
+                            ->helperText('有効時は営業時間マスタから開始・終了時刻を自動適用します。')
+                            ->columnSpanFull(),
+                        TimePicker::make('business_start')
+                            ->label('営業開始時間')
+                            ->seconds(false)
+                            ->required()
+                            ->disabled(fn (callable $get): bool => (bool) $get('use_business_hours')),
+                        TimePicker::make('business_end')
+                            ->label('営業終了時間')
+                            ->seconds(false)
+                            ->required()
+                            ->disabled(fn (callable $get): bool => (bool) $get('use_business_hours')),
+                    ])
+                    ->columns(2),
             ])
-            ->columns(2)
+            ->columns(1)
             ->statePath('data');
     }
 
@@ -243,6 +257,9 @@ class ManageSlotCalendar extends Page implements HasForms
             $reasons = [];
             $setting = BusinessHour::getSettingForDate($slot->date->copy());
 
+            $slotStart = Carbon::parse($slot->date->toDateString().' '.$slot->start_time->format('H:i:s'), 'Asia/Tokyo');
+            $slotEnd = Carbon::parse($slot->date->toDateString().' '.$slot->end_time->format('H:i:s'), 'Asia/Tokyo');
+
             if (! $setting) {
                 $reasons[] = '営業時間未設定';
             } elseif ($setting->is_closed) {
@@ -250,8 +267,6 @@ class ManageSlotCalendar extends Page implements HasForms
             } else {
                 $open = Carbon::parse($slot->date->toDateString().' '.$setting->open_time);
                 $close = Carbon::parse($slot->date->toDateString().' '.$setting->close_time);
-                $slotStart = Carbon::parse($slot->date->toDateString().' '.$slot->start_time->format('H:i:s'));
-                $slotEnd = Carbon::parse($slot->date->toDateString().' '.$slot->end_time->format('H:i:s'));
 
                 if ($slotStart->lt($open) || $slotEnd->gt($close)) {
                     $reasons[] = '営業時間外';
@@ -264,6 +279,16 @@ class ManageSlotCalendar extends Page implements HasForms
 
             if ($slot->start_time->diffInMinutes($slot->end_time) % 30 !== 0) {
                 $reasons[] = '30分単位以外';
+            }
+
+            $hasBlockConflict = TimeBlock::query()
+                ->where('is_active', true)
+                ->where('start_at', '<', $slotEnd)
+                ->where('end_at', '>', $slotStart)
+                ->exists();
+
+            if ($hasBlockConflict) {
+                $reasons[] = '時間帯ブロックと重複';
             }
 
             if ($reasons !== []) {
@@ -317,16 +342,28 @@ class ManageSlotCalendar extends Page implements HasForms
         $this->dispatch('slot-calendar-refresh');
     }
 
+    public function setOperationMode(string $mode): void
+    {
+        if (! in_array($mode, ['slot', 'block'], true)) {
+            return;
+        }
+
+        $this->operationMode = $mode;
+    }
+
     public function getCalendarEvents(string $rangeStart, string $rangeEnd, ?int $menuId): array
     {
         if (! $menuId) {
             return [];
         }
 
-        $startDate = Carbon::parse($rangeStart)->toDateString();
-        $endDate = Carbon::parse($rangeEnd)->subDay()->toDateString();
+        $startDate = Carbon::parse($rangeStart, 'Asia/Tokyo')->toDateString();
+        $endDate = Carbon::parse($rangeEnd, 'Asia/Tokyo')->subDay()->toDateString();
 
-        return Slot::with('menu')
+        $businessHourEvents = $this->getBusinessHourBackgroundEvents($startDate, $endDate);
+        $blockEvents = $this->getTimeBlockEvents($startDate, $endDate);
+
+        $slotEvents = Slot::with('menu')
             ->where('menu_id', $menuId)
             ->whereDate('date', '>=', now()->toDateString())
             ->whereBetween('date', [$startDate, $endDate])
@@ -334,7 +371,7 @@ class ManageSlotCalendar extends Page implements HasForms
             ->orderBy('start_time')
             ->get()
             ->map(fn (Slot $slot) => [
-                'id' => $slot->id,
+                'id' => 'slot-'.$slot->id,
                 'title' => $slot->is_reserved ? '予約済み' : ($slot->menu->name ?? '時間枠'),
                 'start' => $slot->date->format('Y-m-d').'T'.$slot->start_time->format('H:i:s'),
                 'end' => $slot->date->format('Y-m-d').'T'.$slot->end_time->format('H:i:s'),
@@ -344,7 +381,76 @@ class ManageSlotCalendar extends Page implements HasForms
                 'editable' => ! $slot->is_reserved,
                 'durationEditable' => ! $slot->is_reserved,
                 'extendedProps' => [
+                    'type' => 'slot',
+                    'slot_id' => $slot->id,
                     'is_reserved' => $slot->is_reserved,
+                ],
+            ])
+            ->all();
+
+        return array_merge($businessHourEvents, $blockEvents, $slotEvents);
+    }
+
+    private function getBusinessHourBackgroundEvents(string $startDate, string $endDate): array
+    {
+        $events = [];
+
+        $cursor = Carbon::parse($startDate, 'Asia/Tokyo')->startOfDay();
+        $end = Carbon::parse($endDate, 'Asia/Tokyo')->startOfDay();
+
+        while ($cursor->lte($end)) {
+            $setting = BusinessHour::getSettingForDate($cursor);
+
+            if ($setting && ! $setting->is_closed) {
+                $open = Carbon::parse($setting->open_time)->format('H:i:s');
+                $close = Carbon::parse($setting->close_time)->format('H:i:s');
+
+                $events[] = [
+                    'id' => 'business-hour-'.$cursor->format('Ymd'),
+                    'title' => '営業時間 '.substr($open, 0, 5).'-'.substr($close, 0, 5),
+                    'start' => $cursor->format('Y-m-d').'T'.$open,
+                    'end' => $cursor->format('Y-m-d').'T'.$close,
+                    'display' => 'background',
+                    'backgroundColor' => 'rgba(14, 165, 233, 0.12)',
+                    'borderColor' => 'rgba(14, 165, 233, 0.2)',
+                    'editable' => false,
+                    'durationEditable' => false,
+                    'extendedProps' => [
+                        'type' => 'business_hour',
+                    ],
+                ];
+            }
+
+            $cursor->addDay();
+        }
+
+        return $events;
+    }
+
+    private function getTimeBlockEvents(string $startDate, string $endDate): array
+    {
+        $start = Carbon::parse($startDate, 'Asia/Tokyo')->startOfDay();
+        $end = Carbon::parse($endDate, 'Asia/Tokyo')->endOfDay();
+
+        return TimeBlock::query()
+            ->where('is_active', true)
+            ->where('start_at', '<', $end)
+            ->where('end_at', '>', $start)
+            ->orderBy('start_at')
+            ->get()
+            ->map(fn (TimeBlock $block) => [
+                'id' => 'block-'.$block->id,
+                'title' => $block->reason ?: '時間帯ブロック',
+                'start' => $block->start_at->format('Y-m-d\\TH:i:s'),
+                'end' => $block->end_at->format('Y-m-d\\TH:i:s'),
+                'backgroundColor' => '#ef4444',
+                'borderColor' => '#dc2626',
+                'textColor' => '#ffffff',
+                'editable' => true,
+                'durationEditable' => true,
+                'extendedProps' => [
+                    'type' => 'block',
+                    'block_id' => $block->id,
                 ],
             ])
             ->all();
@@ -500,6 +606,100 @@ class ManageSlotCalendar extends Page implements HasForms
 
         Notification::make()
             ->title('時間枠を削除しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('slot-calendar-refresh');
+    }
+
+    public function createBlockFromCalendar(string $start, string $end): void
+    {
+        $startAt = Carbon::parse($start, 'Asia/Tokyo');
+        $endAt = Carbon::parse($end, 'Asia/Tokyo');
+
+        if ($startAt->gte($endAt) || $startAt->diffInMinutes($endAt) % 30 !== 0) {
+            Notification::make()
+                ->title('30分単位で正しい時間範囲を指定してください。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        TimeBlock::create([
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+            'reason' => filled($this->blockReason) ? $this->blockReason : null,
+            'is_active' => true,
+        ]);
+
+        Notification::make()
+            ->title('時間帯ブロックを作成しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('slot-calendar-refresh');
+    }
+
+    public function deleteBlockFromCalendar(int $blockId): void
+    {
+        $block = TimeBlock::find($blockId);
+
+        if (! $block) {
+            Notification::make()
+                ->title('時間帯ブロックが見つかりませんでした。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $block->delete();
+
+        Notification::make()
+            ->title('時間帯ブロックを削除しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('slot-calendar-refresh');
+    }
+
+    public function updateBlockFromCalendar(int $blockId, string $start, string $end): void
+    {
+        $block = TimeBlock::find($blockId);
+
+        if (! $block) {
+            Notification::make()
+                ->title('時間帯ブロックが見つかりませんでした。')
+                ->danger()
+                ->send();
+
+            $this->dispatch('slot-calendar-refresh');
+
+            return;
+        }
+
+        $startAt = Carbon::parse($start, 'Asia/Tokyo');
+        $endAt = Carbon::parse($end, 'Asia/Tokyo');
+
+        if ($startAt->gte($endAt) || $startAt->diffInMinutes($endAt) % 30 !== 0) {
+            Notification::make()
+                ->title('30分単位で正しい時間範囲を指定してください。')
+                ->danger()
+                ->send();
+
+            $this->dispatch('slot-calendar-refresh');
+
+            return;
+        }
+
+        $block->update([
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+        ]);
+
+        Notification::make()
+            ->title('時間帯ブロックを更新しました。')
             ->success()
             ->send();
 

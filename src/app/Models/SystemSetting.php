@@ -14,6 +14,7 @@ class SystemSetting extends Model
         'admin_notification_email',
         'notification_from_email',
         'notification_from_name',
+        'user_cancel_deadline_hours',
         'welcome_badge',
         'welcome_title',
         'welcome_subtitle',
@@ -29,6 +30,7 @@ class SystemSetting extends Model
     ];
 
     protected $casts = [
+        'user_cancel_deadline_hours' => 'integer',
         'welcome_body_blocks' => 'array',
     ];
 
@@ -46,4 +48,16 @@ class SystemSetting extends Model
     {
         return filled($this->admin_notification_email) && $this->hasNotificationFrom();
     }
+
+    public function userCancelDeadlineHours(): int
+    {
+        $hours = $this->user_cancel_deadline_hours;
+
+        if (! is_int($hours) || $hours < 0) {
+            return 24;
+        }
+
+        return $hours;
+    }
+
 }

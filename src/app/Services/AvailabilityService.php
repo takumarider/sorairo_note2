@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Models\BusinessHour;
 use App\Models\Menu;
 use App\Models\MenuOption;
+use App\Models\ReservationPublicationMonth;
 use App\Models\Reservation;
 use App\Models\Slot;
+use App\Models\TimeBlock;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -24,6 +26,10 @@ class AvailabilityService
         $end = $month->clone()->endOfMonth();
 
         for ($date = $start; $date->lte($end); $date->addDay()) {
+            if (! $this->isDatePublicForUsers($date)) {
+                continue;
+            }
+
             $setting = BusinessHour::getSettingForDate($date);
 
             if (! $setting) {
@@ -56,6 +62,12 @@ class AvailabilityService
         $end = $month->clone()->endOfMonth();
 
         for ($date = $start; $date->lte($end); $date->addDay()) {
+            if (! $this->isDatePublicForUsers($date)) {
+                $result[$date->toDateString()] = false;
+
+                continue;
+            }
+
             $result[$date->toDateString()] = ! empty(
                 $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']
             );
@@ -95,6 +107,7 @@ class AvailabilityService
         }
 
         $available = [];
+        $blockedByTimeBlock = false;
         foreach ($candidates as $candidate) {
             $startDateTime = Carbon::createFromFormat(
                 'Y-m-d H:i',
@@ -103,14 +116,20 @@ class AvailabilityService
             );
             $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
-            if (! $this->hasConflict($startDateTime, $endDateTime, $reservedRanges)) {
+            $conflict = $this->hasConflict($startDateTime, $endDateTime, $reservedRanges);
+
+            if (! $conflict) {
                 $available[] = $candidate;
+            } elseif ($this->isBlockedByTimeBlock($startDateTime, $endDateTime)) {
+                $blockedByTimeBlock = true;
             }
         }
 
         return [
             'times' => $available,
-            'reason' => empty($available) ? 'fully_booked' : 'available',
+            'reason' => empty($available)
+                ? ($blockedByTimeBlock ? 'blocked' : 'fully_booked')
+                : 'available',
         ];
     }
 
@@ -157,6 +176,8 @@ class AvailabilityService
     public function getReservedRanges(Carbon $date): Collection
     {
         $dateStr = $date->toDateString();
+        $dayStart = $date->copy()->startOfDay();
+        $dayEnd = $date->copy()->endOfDay();
 
         // 新方式：reservations テーブルのdate/start_time/end_time
         $newReservations = Reservation::whereDate('date', $dateStr)
@@ -168,7 +189,22 @@ class AvailabilityService
             ->where('is_reserved', true)
             ->get(['start_time', 'end_time']);
 
-        return $newReservations->concat($oldReservations);
+        $timeBlocks = TimeBlock::query()
+            ->where('is_active', true)
+            ->where('start_at', '<', $dayEnd)
+            ->where('end_at', '>', $dayStart)
+            ->get(['start_at', 'end_at'])
+            ->map(function (TimeBlock $block) use ($dayStart, $dayEnd): object {
+                $startAt = $block->start_at->greaterThan($dayStart) ? $block->start_at : $dayStart;
+                $endAt = $block->end_at->lessThan($dayEnd) ? $block->end_at : $dayEnd;
+
+                return (object) [
+                    'start_time' => $startAt->format('H:i'),
+                    'end_time' => $endAt->format('H:i'),
+                ];
+            });
+
+        return $newReservations->concat($oldReservations)->concat($timeBlocks);
     }
 
     /**
@@ -226,5 +262,24 @@ class AvailabilityService
         }
 
         return false;
+    }
+
+    private function isDatePublicForUsers(Carbon $date): bool
+    {
+        return $this->isMonthPublicForUsers($date);
+    }
+
+    public function isMonthPublicForUsers(Carbon $month): bool
+    {
+        return ReservationPublicationMonth::isPublishedForMonth($month);
+    }
+
+    private function isBlockedByTimeBlock(Carbon $start, Carbon $end): bool
+    {
+        return TimeBlock::query()
+            ->where('is_active', true)
+            ->where('start_at', '<', $end)
+            ->where('end_at', '>', $start)
+            ->exists();
     }
 }

@@ -24,8 +24,69 @@
                         <span class="h-2 w-2 rounded-full bg-rose-700"></span>
                         キャンセル
                     </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 py-1">
+                        <span class="h-2 w-2 rounded-full bg-red-600"></span>
+                        時間帯ブロック
+                    </span>
                 </div>
             </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex gap-2">
+                    <button
+                        type="button"
+                        wire:click="setOperationMode('reservation')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
+                            {{ $operationMode === 'reservation'
+                                ? 'border-sky-600 bg-sky-500 text-white shadow-sky-200 focus:ring-sky-400'
+                                : 'border-slate-300 bg-white text-slate-500 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:ring-sky-200' }}"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        予約を確認
+                        @if ($operationMode === 'reservation')
+                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
+                        @endif
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="setOperationMode('block')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
+                            {{ $operationMode === 'block'
+                                ? 'border-red-600 bg-red-500 text-white shadow-red-200 focus:ring-red-400'
+                                : 'border-slate-300 bg-white text-slate-500 hover:border-red-400 hover:bg-red-50 hover:text-red-700 focus:ring-red-200' }}"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                        </svg>
+                        ブロックを作成
+                        @if ($operationMode === 'block')
+                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
+                        @endif
+                    </button>
+                </div>
+
+                @if ($operationMode === 'block')
+                    <input
+                        wire:model.live="blockReason"
+                        type="text"
+                        maxlength="255"
+                        placeholder="ブロック理由（例: 研修・臨時休業）"
+                        class="min-w-52 flex-1 rounded-lg border border-red-200 px-3 py-2 text-sm focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400"
+                    >
+                @endif
+            </div>
+
+            <p class="mt-2 text-xs {{ $operationMode === 'block' ? 'text-red-700' : 'text-slate-500' }}">
+                @if ($operationMode === 'block')
+                    カレンダーをドラッグして予約不可の時間帯ブロックを作成できます。作成後はドラッグ・リサイズで調整、クリックで削除できます。
+                @else
+                    予約をクリックすると詳細モーダルを表示します。
+                @endif
+            </p>
         </section>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -170,13 +231,73 @@
         @endif
 
         <x-slot name="footer">
-            <div class="flex justify-end">
+            <div class="flex items-center justify-end gap-2">
+                @if ($selectedReservation && ($selectedReservation['status_label'] ?? null) === '確定')
+                    <x-filament::button
+                        color="danger"
+                        wire:click="cancelSelectedReservation"
+                        wire:confirm="この予約をキャンセルしますか？"
+                    >
+                        この予約をキャンセル
+                    </x-filament::button>
+                @endif
                 <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'reservation-calendar-detail' })">
                     閉じる
                 </x-filament::button>
             </div>
         </x-slot>
     </x-filament::modal>
+
+    {{-- 時間帯ブロック作成確認モーダル --}}
+    <x-filament::modal
+        id="block-create-confirm"
+        width="md"
+        icon="heroicon-o-clock"
+        icon-color="danger"
+    >
+        <x-slot name="heading">
+            時間帯ブロックの確認
+        </x-slot>
+
+        <x-slot name="description">
+            以下の内容でブロックを作成します。問題がなければ「作成する」を押してください。
+        </x-slot>
+
+        @if ($pendingBlockStart && $pendingBlockEnd)
+            <div class="space-y-3 py-1">
+                <div class="rounded-lg border border-red-100 bg-red-50 px-4 py-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-red-500">時間帯</p>
+                    <p class="mt-1 text-base font-semibold text-red-800">
+                        {{ \Carbon\Carbon::parse($pendingBlockStart)->timezone('Asia/Tokyo')->format('Y年n月j日 H:i') }}
+                        〜
+                        {{ \Carbon\Carbon::parse($pendingBlockEnd)->timezone('Asia/Tokyo')->format('H:i') }}
+                    </p>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">名目</p>
+                    <p class="mt-1 text-base font-semibold text-slate-800">
+                        {{ filled($blockReason) ? $blockReason : '（未設定）' }}
+                    </p>
+                </div>
+            </div>
+        @endif
+
+        <x-slot name="footerActions">
+            <x-filament::button
+                color="danger"
+                wire:click="confirmCreateBlock"
+            >
+                作成する
+            </x-filament::button>
+            <x-filament::button
+                color="gray"
+                x-on:click="$dispatch('close-modal', { id: 'block-create-confirm' })"
+            >
+                キャンセル
+            </x-filament::button>
+        </x-slot>
+    </x-filament::modal>
+
 </x-filament-panels::page>
 
 @push('styles')
@@ -630,6 +751,9 @@
                     initialView: 'timeGridWeek',
                     firstDay: 0,
                     nowIndicator: true,
+                    selectable: true,
+                    editable: true,
+                    selectMirror: true,
                     height: 'auto',
                     expandRows: true,
                     dayMaxEvents: true,
@@ -658,8 +782,63 @@
                             .then((events) => successCallback(events))
                             .catch(() => failureCallback());
                     },
+                    select: (info) => {
+                        const operationMode = livewireComponent.get('operationMode');
+
+                        if (operationMode !== 'block') {
+                            calendar.unselect();
+                            return;
+                        }
+
+                        livewireComponent
+                            .call('showBlockConfirmModal', info.startStr, info.endStr)
+                            .finally(() => calendar.unselect());
+                    },
+                    eventDrop: (info) => {
+                        const eventType = info.event.extendedProps && info.event.extendedProps.type;
+
+                        if (eventType !== 'block') {
+                            calendar.refetchEvents();
+                            return;
+                        }
+
+                        livewireComponent
+                            .call('updateBlockFromCalendar', Number(info.event.extendedProps.block_id), info.event.startStr, info.event.endStr)
+                            .then(() => calendar.refetchEvents())
+                            .catch(() => calendar.refetchEvents());
+                    },
+                    eventResize: (info) => {
+                        const eventType = info.event.extendedProps && info.event.extendedProps.type;
+
+                        if (eventType !== 'block') {
+                            calendar.refetchEvents();
+                            return;
+                        }
+
+                        livewireComponent
+                            .call('updateBlockFromCalendar', Number(info.event.extendedProps.block_id), info.event.startStr, info.event.endStr)
+                            .then(() => calendar.refetchEvents())
+                            .catch(() => calendar.refetchEvents());
+                    },
                     eventClick: (info) => {
-                        livewireComponent.call('openReservationModal', Number(info.event.id));
+                        const eventType = info.event.extendedProps && info.event.extendedProps.type;
+
+                        if (eventType === 'block') {
+                            if (window.confirm('この時間帯ブロックを削除しますか？')) {
+                                livewireComponent
+                                    .call('deleteBlockFromCalendar', Number(info.event.extendedProps.block_id))
+                                    .then(() => calendar.refetchEvents())
+                                    .catch(() => calendar.refetchEvents());
+                            }
+
+                            return;
+                        }
+
+                        if (eventType !== 'reservation') {
+                            return;
+                        }
+
+                        livewireComponent.call('openReservationModal', Number(info.event.extendedProps.reservation_id));
                     },
                     datesSet: (info) => {
                         updateRangeLabel(info.start, info.end);
@@ -668,6 +847,15 @@
 
                 calendar.render();
                 calendarEl.__reservationCalendar = calendar;
+
+                if (!calendarEl.__reservationRefetchBound) {
+                    window.addEventListener('reservation-calendar-refetch', () => {
+                        if (calendarEl.__reservationCalendar) {
+                            calendarEl.__reservationCalendar.refetchEvents();
+                        }
+                    });
+                    calendarEl.__reservationRefetchBound = true;
+                }
             };
 
             document.addEventListener('livewire:load', init);
