@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\BusinessHour;
 use App\Models\Menu;
 use App\Models\Reservation;
+use App\Models\ReservationPublicationMonth;
 use App\Models\User;
 use App\Services\AvailabilityService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,6 +30,12 @@ class ReservationOverlapTest extends TestCase
                 'is_closed' => false,
             ]);
         }
+
+        // 予約受付月を公開設定（テスト用の日付が予約可能になるよう設定）
+        ReservationPublicationMonth::create([
+            'year_month' => now()->addDay()->format('Y-m'),
+            'is_published' => true,
+        ]);
     }
 
     public function test_user_cannot_reserve_overlapping_time_on_different_menu(): void

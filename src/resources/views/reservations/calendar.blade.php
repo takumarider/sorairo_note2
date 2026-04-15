@@ -64,9 +64,11 @@
                         'business_hours_not_set' => '選択した日は営業時間が未設定です。管理者側で営業時間マスタを設定してください。',
                         'closed' => '選択した日は休業日です。別の日付を選択してください。',
                         'fully_booked' => '選択した日は予約可能な時間帯が埋まっています。別の日付をお試しください。',
+                        'blocked' => '選択した日は時間帯ブロックが設定されているため予約できません。別の日付を選択してください。',
                         'duration_too_long' => '選択したメニューの所要時間が営業時間内に収まりません。',
+                        'month_unpublished' => '選択した月の予約枠は現在非公開です。公開までお待ちください。',
                     ];
-                    $flashReason = session('availability_reason');
+                    $flashReason = session('availability_reason') ?? ($availabilityReason ?? null);
 
                     $start = $month->clone()->startOfMonth()->startOfWeek();
                     $end = $month->clone()->endOfMonth()->endOfWeek();
@@ -99,10 +101,16 @@
                         ← 前月
                     </a>
                     <h2 class="text-base font-bold text-slate-900 sm:text-lg">{{ $month->isoFormat('Y年M月') }}</h2>
-                          <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->addMonth()->format('Y-m') }}"
-                              class="rounded-xl border border-sky-600 !bg-sky-600 px-3 py-2 text-sm font-semibold !text-white shadow-sm transition hover:!bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
-                        翌月 →
-                    </a>
+                    @if(! ($canViewNextMonth ?? false))
+                        <span class="rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-500">
+                            次月は現在公開されていません
+                        </span>
+                    @else
+                        <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->addMonth()->format('Y-m') }}"
+                            class="rounded-xl border border-sky-600 !bg-sky-600 px-3 py-2 text-sm font-semibold !text-white shadow-sm transition hover:!bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                            翌月 →
+                        </a>
+                    @endif
                 </div>
 
                 <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-mobile">

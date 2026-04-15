@@ -4,8 +4,10 @@ namespace App\Models;
 
 use App\Mail\ReservationCanceled;
 use App\Services\NotificationService;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 
 class Reservation extends Model
@@ -76,14 +78,85 @@ class Reservation extends Model
 
     public function canCancel(): bool
     {
-        if (! auth()->check()) {
+        /** @var User|null $actor */
+        $actor = Auth::user();
+
+        return $this->canCancelBy($actor);
+    }
+
+    public function canCancelBy(?User $actor): bool
+    {
+        if (! $actor) {
             return false;
         }
 
-        if ($this->user_id !== auth()->id() && ! auth()->user()->is_admin) {
+        if ($this->status !== 'confirmed') {
             return false;
         }
 
-        return $this->status === 'confirmed';
+        if ($actor->is_admin) {
+            return true;
+        }
+
+        if ($this->user_id !== $actor->id) {
+            return false;
+        }
+
+        $startAt = $this->resolveStartDateTime();
+
+        if (! $startAt) {
+            return false;
+        }
+
+        $settings = SystemSetting::getSingleton();
+        $deadlineHours = $settings->userCancelDeadlineHours();
+        $deadlineAt = $startAt->copy()->subHours($deadlineHours);
+
+        return now('Asia/Tokyo')->lessThanOrEqualTo($deadlineAt);
+    }
+
+    public function cancellationFailureReasonBy(?User $actor): string
+    {
+        if (! $actor) {
+            return '認証情報を確認できませんでした。再度ログインしてください。';
+        }
+
+        if ($this->status !== 'confirmed') {
+            return 'この予約はキャンセルできません。';
+        }
+
+        if (! $actor->is_admin && $this->user_id !== $actor->id) {
+            return 'この予約をキャンセルする権限がありません。';
+        }
+
+        if ($actor->is_admin) {
+            return 'この予約はキャンセルできません。';
+        }
+
+        $startAt = $this->resolveStartDateTime();
+
+        if (! $startAt) {
+            return '予約日時を確認できないため、キャンセルできません。';
+        }
+
+        $hours = SystemSetting::getSingleton()->userCancelDeadlineHours();
+
+        return sprintf('この予約は開始%1$d時間前を過ぎたためキャンセルできません。', $hours);
+    }
+
+    protected function resolveStartDateTime(): ?Carbon
+    {
+        $date = $this->date ?? $this->slot?->date;
+        $time = $this->start_time ?? $this->slot?->start_time;
+
+        if (! $date || ! $time) {
+            return null;
+        }
+
+        return Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $date->toDateString().' '.$time->format('H:i:s'),
+            'Asia/Tokyo'
+        );
     }
 }

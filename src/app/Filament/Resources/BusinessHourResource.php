@@ -144,6 +144,7 @@ class BusinessHourResource extends Resource
     {
         return [
             'index' => Pages\ListBusinessHours::route('/'),
+            'calendar' => Pages\ManageBusinessHourCalendar::route('/calendar'),
             'create' => Pages\CreateBusinessHour::route('/create'),
             'edit' => Pages\EditBusinessHour::route('/{record}/edit'),
         ];

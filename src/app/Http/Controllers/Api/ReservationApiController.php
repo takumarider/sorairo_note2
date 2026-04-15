@@ -8,6 +8,7 @@ use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Services\AvailabilityService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,54 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationApiController extends Controller
 {
+    public function events(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user) {
+            return response()->json([
+                'success' => false,
+                'message' => '認証情報を確認できません。',
+            ], 401);
+        }
+
+        $query = Reservation::query()
+            ->with('menu')
+            ->where('status', 'confirmed')
+            ->where(function (Builder $subQuery): void {
+                $today = now('Asia/Tokyo')->toDateString();
+
+                $subQuery
+                    ->whereDate('date', '>=', $today)
+                    ->orWhereHas('slot', fn (Builder $slotQuery) => $slotQuery->whereDate('date', '>=', $today));
+            })
+            ->orderBy('date')
+            ->orderBy('start_time');
+
+        if (! $user->is_admin) {
+            $query->where('user_id', $user->id);
+        }
+
+        $reservations = $query->get();
+
+        return response()->json([
+            'success' => true,
+            'reservations' => $reservations->map(function (Reservation $reservation): array {
+                return [
+                    'id' => $reservation->id,
+                    'number' => str_pad((string) $reservation->id, 6, '0', STR_PAD_LEFT),
+                    'date' => $reservation->date?->format('Y-m-d'),
+                    'date_label' => $reservation->date?->locale('ja')->isoFormat('Y年M月D日(ddd)') ?? '日付未設定',
+                    'time_label' => sprintf('%s - %s', $reservation->start_time?->format('H:i') ?? '--:--', $reservation->end_time?->format('H:i') ?? '--:--'),
+                    'menu_name' => $reservation->menu?->name ?? 'メニュー未設定',
+                    'price_label' => '¥'.number_format((int) ($reservation->menu?->price ?? 0)),
+                    'cancel_url' => route('reservations.cancel', $reservation),
+                    'api_cancel_url' => url('/api/reservations/'.$reservation->id),
+                ];
+            })->values(),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -122,9 +171,11 @@ class ReservationApiController extends Controller
         }
 
         if (! $reservation->canCancel()) {
+            $reason = $reservation->cancellationFailureReasonBy($user);
+
             return response()->json([
                 'success' => false,
-                'message' => 'この予約はキャンセルできません。',
+                'message' => $reason,
             ], 422);
         }
 

@@ -4,11 +4,13 @@ namespace App\Filament\Resources\ReservationResource\Pages;
 
 use App\Filament\Resources\ReservationResource;
 use App\Models\Reservation;
+use App\Models\TimeBlock;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class ManageReservationCalendar extends Page
 {
@@ -20,6 +22,14 @@ class ManageReservationCalendar extends Page
 
     public ?array $selectedReservation = null;
 
+    public string $operationMode = 'reservation';
+
+    public string $blockReason = '';
+
+    public ?string $pendingBlockStart = null;
+
+    public ?string $pendingBlockEnd = null;
+
     protected function getHeaderActions(): array
     {
         return [
@@ -27,11 +37,6 @@ class ManageReservationCalendar extends Page
                 ->label('一覧へ戻る')
                 ->icon('heroicon-m-list-bullet')
                 ->url(ReservationResource::getUrl()),
-            Action::make('create')
-                ->label('予約を追加')
-                ->icon('heroicon-m-plus')
-                ->color('primary')
-                ->url(ReservationResource::getUrl('create')),
         ];
     }
 
@@ -44,7 +49,7 @@ class ManageReservationCalendar extends Page
             $endDate = $startDate->copy();
         }
 
-        return Reservation::query()
+        $reservationEvents = Reservation::query()
             ->with(['user', 'menu', 'options', 'slot'])
             ->where(function (Builder $query) use ($startDate, $endDate): void {
                 $query
@@ -59,6 +64,131 @@ class ManageReservationCalendar extends Page
             ->sortBy('start')
             ->values()
             ->all();
+
+        $blockEvents = $this->getTimeBlockEvents($startDate, $endDate);
+
+        return array_merge($blockEvents, $reservationEvents);
+    }
+
+    public function setOperationMode(string $mode): void
+    {
+        if (! in_array($mode, ['reservation', 'block'], true)) {
+            return;
+        }
+
+        $this->operationMode = $mode;
+    }
+
+    public function showBlockConfirmModal(string $start, string $end): void
+    {
+        $this->pendingBlockStart = $start;
+        $this->pendingBlockEnd = $end;
+        $this->dispatch('open-modal', id: 'block-create-confirm');
+    }
+
+    public function confirmCreateBlock(): void
+    {
+        if ($this->pendingBlockStart && $this->pendingBlockEnd) {
+            $this->createBlockFromCalendar($this->pendingBlockStart, $this->pendingBlockEnd);
+        }
+
+        $this->pendingBlockStart = null;
+        $this->pendingBlockEnd = null;
+        $this->dispatch('close-modal', id: 'block-create-confirm');
+    }
+
+    public function createBlockFromCalendar(string $start, string $end): void
+    {
+        $startAt = Carbon::parse($start, 'Asia/Tokyo');
+        $endAt = Carbon::parse($end, 'Asia/Tokyo');
+
+        if ($startAt->gte($endAt) || $startAt->diffInMinutes($endAt) % 30 !== 0) {
+            Notification::make()
+                ->title('30分単位で正しい時間範囲を指定してください。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        TimeBlock::create([
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+            'reason' => filled($this->blockReason) ? $this->blockReason : null,
+            'is_active' => true,
+        ]);
+
+        Notification::make()
+            ->title('時間帯ブロックを作成しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('reservation-calendar-refetch');
+    }
+
+    public function updateBlockFromCalendar(int $blockId, string $start, string $end): void
+    {
+        $block = TimeBlock::find($blockId);
+
+        if (! $block) {
+            Notification::make()
+                ->title('時間帯ブロックが見つかりませんでした。')
+                ->danger()
+                ->send();
+
+            $this->dispatch('reservation-calendar-refetch');
+
+            return;
+        }
+
+        $startAt = Carbon::parse($start, 'Asia/Tokyo');
+        $endAt = Carbon::parse($end, 'Asia/Tokyo');
+
+        if ($startAt->gte($endAt) || $startAt->diffInMinutes($endAt) % 30 !== 0) {
+            Notification::make()
+                ->title('30分単位で正しい時間範囲を指定してください。')
+                ->danger()
+                ->send();
+
+            $this->dispatch('reservation-calendar-refetch');
+
+            return;
+        }
+
+        $block->update([
+            'start_at' => $startAt,
+            'end_at' => $endAt,
+        ]);
+
+        Notification::make()
+            ->title('時間帯ブロックを更新しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('reservation-calendar-refetch');
+    }
+
+    public function deleteBlockFromCalendar(int $blockId): void
+    {
+        $block = TimeBlock::find($blockId);
+
+        if (! $block) {
+            Notification::make()
+                ->title('時間帯ブロックが見つかりませんでした。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $block->delete();
+
+        Notification::make()
+            ->title('時間帯ブロックを削除しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('reservation-calendar-refetch');
     }
 
     public function openReservationModal(int $reservationId): void
@@ -91,6 +221,47 @@ class ManageReservationCalendar extends Page
         $this->dispatch('open-modal', id: 'reservation-calendar-detail');
     }
 
+    public function cancelSelectedReservation(): void
+    {
+        if (! $this->selectedReservation || ! isset($this->selectedReservation['id'])) {
+            return;
+        }
+
+        $reservation = Reservation::query()->with(['user', 'menu', 'options', 'slot'])->find((int) $this->selectedReservation['id']);
+
+        if (! $reservation) {
+            Notification::make()
+                ->title('予約情報を取得できませんでした。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        if (! $reservation->canCancel()) {
+            Notification::make()
+                ->title($reservation->cancellationFailureReasonBy(Auth::user()))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $reservation->cancel();
+
+        $payload = $this->buildReservationPayload($reservation->fresh(['user', 'menu', 'options', 'slot']));
+        if ($payload) {
+            $this->selectedReservation = $payload;
+        }
+
+        $this->dispatch('reservation-calendar-refetch');
+
+        Notification::make()
+            ->title('予約をキャンセルしました。')
+            ->success()
+            ->send();
+    }
+
     protected function buildCalendarEvent(Reservation $reservation): ?array
     {
         $startAt = $this->resolveReservationDateTime($reservation, 'start');
@@ -112,7 +283,11 @@ class ManageReservationCalendar extends Page
             'backgroundColor' => $status['background'],
             'borderColor' => $status['border'],
             'textColor' => $status['text'],
+            'editable' => false,
+            'durationEditable' => false,
             'extendedProps' => [
+                'type' => 'reservation',
+                'reservation_id' => $reservation->id,
                 'statusLabel' => $status['label'],
                 'customerName' => $customerName,
                 'menuName' => $menuName,
@@ -212,6 +387,36 @@ class ManageReservationCalendar extends Page
                 'badge' => 'bg-slate-100 text-slate-700 ring-slate-200',
             ],
         };
+    }
+
+    protected function getTimeBlockEvents(Carbon $startDate, Carbon $endDate): array
+    {
+        $start = $startDate->copy()->startOfDay();
+        $end = $endDate->copy()->endOfDay();
+
+        return TimeBlock::query()
+            ->where('is_active', true)
+            ->where('start_at', '<', $end)
+            ->where('end_at', '>', $start)
+            ->orderBy('start_at')
+            ->get()
+            ->map(fn (TimeBlock $block) => [
+                'id' => 'block-'.$block->id,
+                'title' => $block->reason ?: '時間帯ブロック',
+                'start' => $block->start_at->format('Y-m-d\TH:i:s'),
+                'end' => $block->end_at->format('Y-m-d\TH:i:s'),
+                'backgroundColor' => '#ef4444',
+                'borderColor' => '#dc2626',
+                'textColor' => '#ffffff',
+                'editable' => true,
+                'durationEditable' => true,
+                'extendedProps' => [
+                    'type' => 'block',
+                    'block_id' => $block->id,
+                ],
+            ])
+            ->values()
+            ->all();
     }
 
     protected function formatPrice(int $price): string

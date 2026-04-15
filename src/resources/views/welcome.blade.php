@@ -51,11 +51,13 @@
                         </div>
                         @if (filled($settings->welcome_main_image_path))
                             <div class="lg:w-[320px] w-full">
-                                <img
-                                    src="{{ Storage::url($settings->welcome_main_image_path) }}"
-                                    alt="店舗イメージ"
-                                    class="w-full h-56 object-cover rounded-2xl shadow-lg"
-                                >
+                                <div class="w-full overflow-hidden rounded-2xl bg-slate-100 p-2 shadow-lg">
+                                    <img
+                                        src="{{ Storage::url($settings->welcome_main_image_path) }}"
+                                        alt="店舗イメージ"
+                                        class="h-auto max-h-[420px] w-full object-contain"
+                                    >
+                                </div>
                             </div>
                         @endif
                     </div>  
@@ -77,7 +79,9 @@
                                             </div>
                                         </div>
                                         @if (filled(data_get($block, 'image_path')))
-                                            <img src="{{ Storage::url(data_get($block, 'image_path') ?? '') }}" alt="セクション画像" class="w-full h-44 object-cover rounded-xl">
+                                            <div class="w-full overflow-hidden rounded-xl bg-slate-100 p-2">
+                                                <img src="{{ Storage::url(data_get($block, 'image_path') ?? '') }}" alt="セクション画像" class="h-auto max-h-[360px] w-full object-contain">
+                                            </div>
                                         @endif
                                     </article>
                                 @endforeach
@@ -134,7 +138,9 @@
                                                 </div>
                                             </div>
                                             @if (filled(data_get($block, 'image_path')))
-                                                <img src="{{ Storage::url(data_get($block, 'image_path') ?? '') }}" alt="セクション画像" class="w-full h-44 object-cover rounded-xl">
+                                                <div class="w-full overflow-hidden rounded-xl bg-slate-100 p-2">
+                                                    <img src="{{ Storage::url(data_get($block, 'image_path') ?? '') }}" alt="セクション画像" class="h-auto max-h-[360px] w-full object-contain">
+                                                </div>
                                             @endif
                                         </article>
                                     @endforeach

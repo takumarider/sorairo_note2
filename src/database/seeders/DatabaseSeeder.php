@@ -17,13 +17,13 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(SystemSettingSeeder::class);
 
-        if (! User::where('email', env('ADMIN_EMAIL'))->exists()) {
-            User::create([
+        User::updateOrCreate(
+            ['email' => env('ADMIN_EMAIL', 'admin@example.com')],
+            [
                 'name' => env('ADMIN_NAME', 'izumi'),
-                'email' => env('ADMIN_EMAIL', 'admin@example.com'),
                 'password' => env('ADMIN_PASSWORD', 'sorairo_admin'),
                 'is_admin' => true,
-            ]);
-        }
+            ]
+        );
     }
 }

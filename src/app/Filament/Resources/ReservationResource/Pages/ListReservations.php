@@ -20,7 +20,6 @@ class ListReservations extends ListRecords
                 ->label('カレンダーで確認')
                 ->icon('heroicon-m-calendar-days')
                 ->url(ReservationResource::getUrl('calendar')),
-            Actions\CreateAction::make(),
         ];
     }
 

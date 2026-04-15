@@ -35,6 +35,7 @@
                         'menu_name' => $reservation->menu->name,
                         'price_label' => '¥'.number_format($reservation->menu->price),
                         'cancel_url' => route('reservations.cancel', $reservation),
+                        'api_cancel_url' => url('/api/reservations/'.$reservation->id),
                     ];
                 })->values();
             @endphp
@@ -44,6 +45,7 @@
                     <div id="mypage-calendar-data"
                          data-reservations='@json($reservationPayload, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE)'
                          data-csrf='{{ csrf_token() }}'
+                        data-events-url='{{ url('/api/reservations/events') }}'
                          class="hidden"></div>
 
                     <div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
@@ -210,8 +212,9 @@
                     return;
                 }
 
-                const reservations = JSON.parse(dataNode.dataset.reservations || '[]');
+                let reservations = JSON.parse(dataNode.dataset.reservations || '[]');
                 const csrfToken = dataNode.dataset.csrf || '';
+                const eventsUrl = dataNode.dataset.eventsUrl || '';
 
                 const selectedDateLabel = $('#selected-date-label');
                 const dailyReservations = $('#daily-reservations');
@@ -219,6 +222,32 @@
 
                 let selectedDate = reservations.length > 0 ? reservations[0].date : null;
                 let selectedReservationId = reservations.length > 0 ? reservations[0].id : null;
+                let calendar = null;
+
+                const loadReservations = async () => {
+                    if (!eventsUrl) {
+                        return;
+                    }
+
+                    const response = await fetch(eventsUrl, {
+                        method: 'GET',
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                        credentials: 'same-origin',
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('予約データの取得に失敗しました。');
+                    }
+
+                    const payload = await response.json();
+                    reservations = Array.isArray(payload.reservations) ? payload.reservations : [];
+
+                    if (!selectedDate && reservations.length > 0) {
+                        selectedDate = reservations[0].date;
+                    }
+                };
 
                 const formatDateLabel = (dateStr) => {
                     const date = new Date(dateStr + 'T00:00:00');
@@ -248,7 +277,6 @@
                     const form = $('<form>', {
                         method: 'POST',
                         action: reservation.cancel_url,
-                        onsubmit: 'return confirm("この予約をキャンセルしますか？");',
                         class: 'mt-4',
                     });
 
@@ -263,11 +291,53 @@
                     form.append(
                         $('<button>', {
                             type: 'submit',
+                            id: 'cancel-button-' + reservation.id,
                             class: 'w-full rounded-xl border-2 border-rose-800 bg-rose-600 px-4 py-3 text-base font-bold text-white shadow-lg hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2',
                             style: 'background-color:#e11d48;color:#ffffff;',
                             text: 'この予約をキャンセル',
                         })
                     );
+
+                    form.on('submit', async function (event) {
+                        event.preventDefault();
+
+                        if (!window.confirm('この予約をキャンセルしますか？')) {
+                            return;
+                        }
+
+                        const submitButton = $('#cancel-button-' + reservation.id);
+                        submitButton.prop('disabled', true).text('キャンセル中...');
+
+                        try {
+                            const response = await fetch(reservation.api_cancel_url, {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': csrfToken,
+                                    Accept: 'application/json',
+                                },
+                                credentials: 'same-origin',
+                            });
+
+                            const payload = await response.json();
+                            if (!response.ok || !payload.success) {
+                                throw new Error(payload.message || 'キャンセルに失敗しました。');
+                            }
+
+                            await loadReservations();
+
+                            if (calendar) {
+                                calendar.refetchEvents();
+                            }
+
+                            if (selectedDate) {
+                                renderReservationList(selectedDate);
+                            }
+                        } catch (error) {
+                            window.alert(error instanceof Error ? error.message : 'キャンセルに失敗しました。');
+                        } finally {
+                            submitButton.prop('disabled', false).text('この予約をキャンセル');
+                        }
+                    });
 
                     wrapper.append(form);
                     reservationDetail.empty().append(wrapper);
@@ -310,21 +380,7 @@
                     renderDetail(selected);
                 };
 
-                const calendarEvents = reservations.map((reservation) => {
-                    return {
-                        id: String(reservation.id),
-                        title: reservation.menu_name,
-                        start: reservation.date,
-                        allDay: true,
-                        extendedProps: {
-                            reservationId: reservation.id,
-                            timeLabel: reservation.time_label,
-                            menuName: reservation.menu_name,
-                        },
-                    };
-                });
-
-                const calendar = new FullCalendar.Calendar(document.getElementById('mypage-calendar'), {
+                calendar = new FullCalendar.Calendar(document.getElementById('mypage-calendar'), {
                     locale: 'ja',
                     initialView: 'dayGridMonth',
                     firstDay: 0,
@@ -339,7 +395,25 @@
                         today: '今月',
                     },
                     eventColor: '#0ea5e9',
-                    events: calendarEvents,
+                    events: function (_info, successCallback, failureCallback) {
+                        try {
+                            const calendarEvents = reservations.map((reservation) => ({
+                                id: String(reservation.id),
+                                title: reservation.menu_name,
+                                start: reservation.date,
+                                allDay: true,
+                                extendedProps: {
+                                    reservationId: reservation.id,
+                                    timeLabel: reservation.time_label,
+                                    menuName: reservation.menu_name,
+                                },
+                            }));
+
+                            successCallback(calendarEvents);
+                        } catch (_error) {
+                            failureCallback();
+                        }
+                    },
                     eventContent: function (arg) {
                         const wrapper = document.createElement('div');
                         wrapper.className = 'mypage-calendar-event';
@@ -370,9 +444,21 @@
 
                 calendar.render();
 
-                if (selectedDate) {
-                    renderReservationList(selectedDate);
-                }
+                loadReservations()
+                    .then(() => {
+                        if (calendar) {
+                            calendar.refetchEvents();
+                        }
+
+                        if (selectedDate) {
+                            renderReservationList(selectedDate);
+                        }
+                    })
+                    .catch(() => {
+                        if (selectedDate) {
+                            renderReservationList(selectedDate);
+                        }
+                    });
             });
         </script>
     @endif

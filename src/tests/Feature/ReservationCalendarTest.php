@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\BusinessHour;
 use App\Models\Menu;
+use App\Models\ReservationPublicationMonth;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +25,11 @@ class ReservationCalendarTest extends TestCase
                 'is_closed' => false,
             ]);
         }
+
+        ReservationPublicationMonth::create([
+            'year_month' => now('Asia/Tokyo')->format('Y-m'),
+            'is_published' => true,
+        ]);
     }
 
     public function test_menu_show_contains_hidden_menu_id_and_calendar_form_action(): void
@@ -95,5 +101,94 @@ class ReservationCalendarTest extends TestCase
 
         $response->assertOk();
         $response->assertViewHas('availabilityReason', 'closed');
+    }
+
+    public function test_current_month_hides_next_month_link_when_unpublished(): void
+    {
+        ReservationPublicationMonth::updateOrCreate([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+        ], [
+            'is_published' => false,
+        ]);
+
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => now('Asia/Tokyo')->format('Y-m'),
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('次月は現在公開されていません');
+    }
+
+    public function test_next_month_calendar_redirects_when_unpublished(): void
+    {
+        ReservationPublicationMonth::updateOrCreate([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+        ], [
+            'is_published' => false,
+        ]);
+
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+        $nextMonth = now('Asia/Tokyo')->addMonth()->format('Y-m');
+
+        $response = $this->actingAs($user)->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => $nextMonth,
+        ]));
+
+        $response->assertRedirect(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => now('Asia/Tokyo')->format('Y-m'),
+        ]));
+        $response->assertSessionHas('availability_reason', 'month_unpublished');
+    }
+
+    public function test_times_redirects_when_next_month_is_unpublished(): void
+    {
+        ReservationPublicationMonth::updateOrCreate([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+        ], [
+            'is_published' => false,
+        ]);
+
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+        $nextMonthDate = now('Asia/Tokyo')->addMonth()->startOfMonth()->addDays(1)->toDateString();
+
+        $response = $this->actingAs($user)->get(route('reservations.times', [
+            'menu_id' => $menu->id,
+            'date' => $nextMonthDate,
+        ]));
+
+        $response->assertRedirect(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => now('Asia/Tokyo')->format('Y-m'),
+        ]));
+        $response->assertSessionHas('availability_reason', 'month_unpublished');
+    }
+
+    public function test_next_month_calendar_is_available_after_publication(): void
+    {
+        ReservationPublicationMonth::updateOrCreate([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+        ], [
+            'is_published' => true,
+        ]);
+
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+        $nextMonth = now('Asia/Tokyo')->addMonth();
+
+        $response = $this->actingAs($user)->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => $nextMonth->format('Y-m'),
+        ]));
+
+        $response->assertOk();
+        $response->assertSee($nextMonth->isoFormat('Y年M月'));
     }
 }

@@ -6,6 +6,7 @@ use App\Mail\ReservationConfirmed;
 use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
+use App\Models\ReservationPublicationMonth;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AvailabilityService;
@@ -19,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
 {
+    private const MONTH_UNPUBLISHED_REASON = 'month_unpublished';
+
     public function __construct(
         private NotificationService $notificationService
     ) {}
@@ -38,8 +41,23 @@ class ReservationController extends Controller
         $menuId = $validated['menu_id'];
         $optionIds = $validated['options'] ?? [];
         $month = ! empty($validated['month'])
-            ? Carbon::createFromFormat('Y-m', $validated['month'])
-            : now();
+            ? Carbon::createFromFormat('Y-m', $validated['month'], 'Asia/Tokyo')->startOfMonth()
+            : now('Asia/Tokyo')->startOfMonth();
+        $availabilityReason = null;
+
+        if (! $this->isMonthVisibleToUsers($month)) {
+            $fallbackMonth = $this->resolveFallbackPublishedMonth();
+
+            if ($fallbackMonth && ! $fallbackMonth->isSameMonth($month)) {
+                return redirect()->route('reservations.calendar', [
+                    'menu_id' => $menuId,
+                    'options' => $optionIds,
+                    'month' => $fallbackMonth->format('Y-m'),
+                ])->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+            }
+
+            $availabilityReason = self::MONTH_UNPUBLISHED_REASON;
+        }
 
         $menu = Menu::findOrFail($menuId);
         $options = ! empty($optionIds)
@@ -67,6 +85,8 @@ class ReservationController extends Controller
             'month' => $month,
             'totalDuration' => $totalDuration,
             'totalPrice' => $totalPrice,
+            'canViewNextMonth' => $this->isMonthVisibleToUsers($month->clone()->addMonth()),
+            'availabilityReason' => $availabilityReason,
         ]);
     }
 
@@ -83,6 +103,14 @@ class ReservationController extends Controller
         $menuId = $request->input('menu_id');
         $optionIds = $request->input('options', []);
         $date = $request->input('date');
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return redirect()->route('reservations.calendar', [
+                'menu_id' => $menuId,
+                'options' => $optionIds,
+                'month' => now('Asia/Tokyo')->format('Y-m'),
+            ])->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+        }
 
         $menu = Menu::findOrFail($menuId);
         $options = ! empty($optionIds)
@@ -128,6 +156,14 @@ class ReservationController extends Controller
         $optionIds = $request->input('options', []);
         $date = $request->input('date');
         $startTime = $request->input('start_time');
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return redirect()->route('reservations.calendar', [
+                'menu_id' => $menuId,
+                'options' => $optionIds,
+                'month' => now('Asia/Tokyo')->format('Y-m'),
+            ])->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+        }
 
         $menu = Menu::findOrFail($menuId);
         $options = ! empty($optionIds)
@@ -180,6 +216,14 @@ class ReservationController extends Controller
         $optionIds = $request->input('options', []);
         $date = $request->input('date');
         $startTime = $request->input('start_time');
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return redirect()->route('reservations.calendar', [
+                'menu_id' => $menuId,
+                'options' => $optionIds,
+                'month' => now('Asia/Tokyo')->format('Y-m'),
+            ])->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+        }
 
         $menu = Menu::findOrFail($menuId);
         $options = ! empty($optionIds)
@@ -281,5 +325,33 @@ class ReservationController extends Controller
         $reservation->load(['menu', 'options']);
 
         return view('reservations.complete', compact('reservation'));
+    }
+
+    private function isDateReservableForUsers(string $date): bool
+    {
+        $targetDate = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Tokyo')->startOfDay();
+
+        return $this->isMonthVisibleToUsers($targetDate);
+    }
+
+    private function isMonthVisibleToUsers(Carbon $month): bool
+    {
+        $availabilityService = new AvailabilityService;
+
+        return $availabilityService->isMonthPublicForUsers($month);
+    }
+
+    private function resolveFallbackPublishedMonth(): ?Carbon
+    {
+        $yearMonth = ReservationPublicationMonth::query()
+            ->where('is_published', true)
+            ->orderBy('year_month')
+            ->value('year_month');
+
+        if (! is_string($yearMonth)) {
+            return null;
+        }
+
+        return Carbon::createFromFormat('Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
     }
 }
