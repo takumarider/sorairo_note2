@@ -8,11 +8,11 @@ use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Services\AvailabilityService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\Eloquent\Builder;
 
 class ReservationApiController extends Controller
 {

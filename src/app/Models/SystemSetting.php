@@ -59,5 +59,4 @@ class SystemSetting extends Model
 
         return $hours;
     }
-
 }
