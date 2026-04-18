@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\ReservationConfirmed;
 use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Models\ReservationPublicationMonth;
-use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
@@ -15,7 +13,6 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
@@ -289,19 +286,14 @@ class ReservationController extends Controller
                 if ($options->isNotEmpty()) {
                     $reservation->options()->attach($options->pluck('id'));
                 }
-
-                // メール送信
-                $this->notificationService->applyFromSettings(SystemSetting::first());
-                Mail::to($user->email)
-                    ->send(new ReservationConfirmed($reservation));
-
-                // 管理者通知
-                $this->notificationService->sendAdminNotification($reservation, 'confirmed');
             });
 
             if (! $reservation instanceof Reservation) {
                 return redirect()->route('menus.index')->with('error', '予約の作成に失敗しました。');
             }
+
+            $this->notificationService->sendReservationConfirmedToUser($reservation);
+            $this->notificationService->sendAdminNotification($reservation, 'confirmed');
 
             return redirect()->route('reservations.complete', ['reservation' => $reservation->id]);
         } catch (ValidationException $e) {

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,5 +36,26 @@ class WelcomePageTest extends TestCase
         $response->assertSee('本文見出し1');
         $response->assertSee('10:00〜20:00');
         $response->assertSee('https://www.instagram.com/test_account', false);
+    }
+
+    public function test_welcome_page_shows_dashboard_link_for_authenticated_user(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertOk();
+        $response->assertSee('ダッシュボード');
+        $response->assertDontSee('ログイン');
+    }
+
+    public function test_welcome_page_shows_login_links_for_guest(): void
+    {
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('ログイン');
+        $response->assertSee('新規登録');
+        $response->assertDontSee('ダッシュボード');
     }
 }

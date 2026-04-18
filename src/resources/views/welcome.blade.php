@@ -16,13 +16,15 @@
         <header class="w-full lg:max-w-5xl max-w-[340px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex justify-end items-center gap-4 flex-wrap">
-                    @guest
+                    @auth
+                        <a href="{{ route('dashboard') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ダッシュボード</a>
+                    @else
                         <a href="{{ route('login') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ログイン</a>
 
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">新規登録</a>
                         @endif
-                    @endguest
+                    @endauth
                     <a
                         href="{{ $settings->welcome_instagram_url ?: 'https://www.instagram.com/06sorairo30' }}"
                         class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-sky-200 text-sky-800 font-semibold shadow hover:bg-white transition"

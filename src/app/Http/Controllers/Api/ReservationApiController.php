@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Services\AvailabilityService;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -16,6 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReservationApiController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
     public function events(Request $request)
     {
         $user = Auth::user();
@@ -133,6 +138,9 @@ class ReservationApiController extends Controller
                 ], 500);
             }
 
+            $this->notificationService->sendReservationConfirmedToUser($reservation);
+            $this->notificationService->sendAdminNotification($reservation, 'confirmed');
+
             $reservation->loadMissing(['menu', 'options']);
 
             return response()->json([
@@ -181,6 +189,8 @@ class ReservationApiController extends Controller
 
         try {
             $reservation->cancel();
+            $this->notificationService->sendReservationCanceledToUser($reservation);
+            $this->notificationService->sendAdminNotification($reservation, 'canceled');
 
             return response()->json([
                 'success' => true,

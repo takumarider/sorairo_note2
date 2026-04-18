@@ -114,45 +114,46 @@ RUN mkdir -p storage/framework/{sessions,views,cache} \
     && chmod -R 775 storage bootstrap/cache
 
 # エントリポイントスクリプト
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\n\
-echo "========================================"\n\
-echo "🚀 Sorairo Note - Starting Deployment"\n\
-echo "========================================"\n\
-\n\
-cd /var/www/html\n\
-\n\
-echo "📦 Checking frontend assets..."\n\
-if [ ! -d "public/build" ]; then\n\
-  echo "❌ ERROR: public/build directory not found!"\n\
-else\n\
-  echo "✅ Build directory exists"\n\
-  if [ -f "public/build/manifest.json" ]; then\n\
-    echo "✅ Manifest at root (Vite <5)"\n\
-  elif [ -f "public/build/.vite/manifest.json" ]; then\n\
-    echo "✅ Manifest in .vite/ (Vite 5+)"\n\
-  else\n\
-    echo "⚠️  WARNING: Manifest not found"\n\
-  fi\n\
-  echo "Built assets:"\n\
-  ls -lh public/build/assets/ 2>/dev/null || echo "No assets"\n\
-fi\n\
-\n\
-echo "📦 Running database migrations..."\n\
-php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }\n\
-\n\
-echo "⚡ Caching configuration files..."\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-\n\
-echo "✅ Deployment complete!"\n\
-echo "🌐 Starting web server on port ${PORT:-8000}..."\n\
-echo "========================================"\n\
-\n\
-exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+RUN cat > /entrypoint.sh <<'EOF' && chmod +x /entrypoint.sh
+#!/bin/bash
+set -e
+
+echo "========================================"
+echo "🚀 Sorairo Note - Starting Deployment"
+echo "========================================"
+
+cd /var/www/html
+
+echo "📦 Checking frontend assets..."
+if [ ! -d "public/build" ]; then
+  echo "❌ ERROR: public/build directory not found!"
+else
+  echo "✅ Build directory exists"
+  if [ -f "public/build/manifest.json" ]; then
+    echo "✅ Manifest at root (Vite <5)"
+  elif [ -f "public/build/.vite/manifest.json" ]; then
+    echo "✅ Manifest in .vite/ (Vite 5+)"
+  else
+    echo "⚠️  WARNING: Manifest not found"
+  fi
+  echo "Built assets:"
+  ls -lh public/build/assets/ 2>/dev/null || echo "No assets"
+fi
+
+echo "📦 Running database migrations..."
+php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }
+
+echo "⚡ Caching configuration files..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+echo "✅ Deployment complete!"
+echo "🌐 Starting web server on port ${PORT:-8000}..."
+echo "========================================"
+
+exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+EOF
 
 # ポート公開
 EXPOSE ${PORT:-8000}
