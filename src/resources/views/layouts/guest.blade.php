@@ -11,9 +11,9 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @livewireScripts
+        <!-- Scripts / Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
     </head>
     <body class="font-sans antialiased min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-100 text-slate-800">
         <div class="min-h-screen flex items-center justify-center px-4 py-10 lg:py-12">
@@ -21,5 +21,7 @@
                 {{ $slot }}
             </div>
         </div>
+
+        @livewireScripts
     </body>
 </html>
