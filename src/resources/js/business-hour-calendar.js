@@ -44,21 +44,32 @@ import timeGridPlugin from "@fullcalendar/timegrid";
             },
             events: (fetchInfo, successCallback, failureCallback) => {
                 livewireComponent
-                    .call("getCalendarEvents", fetchInfo.startStr, fetchInfo.endStr)
+                    .call(
+                        "getCalendarEvents",
+                        fetchInfo.startStr,
+                        fetchInfo.endStr,
+                    )
                     .then((events) => successCallback(events))
                     .catch(() => failureCallback());
             },
             dateClick: (info) => {
-                livewireComponent.call("openCreateSpecificDateModal", info.dateStr);
+                livewireComponent.call(
+                    "openCreateSpecificDateModal",
+                    info.dateStr,
+                );
             },
             eventClick: (info) => {
                 const source =
                     info.event.extendedProps && info.event.extendedProps.source;
                 const clickedDate =
-                    info.event.extendedProps.date || info.event.startStr.slice(0, 10);
+                    info.event.extendedProps.date ||
+                    info.event.startStr.slice(0, 10);
 
                 if (source !== "specific") {
-                    livewireComponent.call("openCreateSpecificDateModal", clickedDate);
+                    livewireComponent.call(
+                        "openCreateSpecificDateModal",
+                        clickedDate,
+                    );
                     return;
                 }
 
@@ -70,7 +81,10 @@ import timeGridPlugin from "@fullcalendar/timegrid";
                     return;
                 }
 
-                livewireComponent.call("openEditSpecificDateModal", businessHourId);
+                livewireComponent.call(
+                    "openEditSpecificDateModal",
+                    businessHourId,
+                );
             },
         });
 
@@ -82,13 +96,16 @@ import timeGridPlugin from "@fullcalendar/timegrid";
             calendar.refetchEvents();
         });
 
-        livewireComponent.on("business-hour-calendar-month-updated", (payload) => {
-            if (payload && payload.month) {
-                calendar.gotoDate(payload.month + "-01");
-            }
+        livewireComponent.on(
+            "business-hour-calendar-month-updated",
+            (payload) => {
+                if (payload && payload.month) {
+                    calendar.gotoDate(payload.month + "-01");
+                }
 
-            calendar.refetchEvents();
-        });
+                calendar.refetchEvents();
+            },
+        );
 
         calendar.render();
         calendarEl.__businessHourCalendar = calendar;

@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\Auth;
 
 class MypageController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
     public function index()
     {
         /** @var User $user */
@@ -40,6 +45,8 @@ class MypageController extends Controller
         }
 
         $reservation->cancel();
+        $this->notificationService->sendReservationCanceledToUser($reservation);
+        $this->notificationService->sendAdminNotification($reservation, 'canceled');
 
         return redirect()->route('mypage')
             ->with('success', '予約をキャンセルしました。');

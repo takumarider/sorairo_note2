@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use App\Mail\ReservationCanceled;
-use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 
 class Reservation extends Model
 {
@@ -67,13 +64,6 @@ class Reservation extends Model
         if ($this->slot_id !== null) {
             $this->slot()->update(['is_reserved' => false]);
         }
-
-        app(NotificationService::class)->applyFromSettings(SystemSetting::first());
-
-        Mail::to($this->user->email)
-            ->send(new ReservationCanceled($this));
-
-        app(NotificationService::class)->sendAdminNotification($this, 'canceled');
     }
 
     public function canCancel(): bool
