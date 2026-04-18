@@ -32,7 +32,7 @@ class BusinessHour extends Model
      */
     public static function getSettingForDate(Carbon $date): ?self
     {
-        $specific = self::where('specific_date', $date->toDateString())
+        $specific = self::whereDate('specific_date', $date->toDateString())
             ->first();
 
         if ($specific) {
