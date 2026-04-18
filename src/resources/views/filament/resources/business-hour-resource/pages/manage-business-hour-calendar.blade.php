@@ -39,7 +39,7 @@
                     <input
                         type="radio"
                         value="1"
-                        wire:model.live="monthPublication"
+                        wire:model="monthPublication"
                         class="h-4 w-4 border-emerald-300 text-emerald-600 focus:ring-emerald-500"
                     >
                     公開
@@ -49,7 +49,7 @@
                     <input
                         type="radio"
                         value="0"
-                        wire:model.live="monthPublication"
+                        wire:model="monthPublication"
                         class="h-4 w-4 border-rose-300 text-rose-600 focus:ring-rose-500"
                     >
                     非公開
@@ -114,7 +114,7 @@
             <label class="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700">
                 <input
                     type="checkbox"
-                    wire:model.live="calendarModalIsClosed"
+                    wire:model="calendarModalIsClosed"
                     class="h-4 w-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500"
                 >
                 この日を休業日にする
@@ -125,7 +125,7 @@
                     <span class="mb-1 block font-semibold text-slate-700">開始時刻</span>
                     <input
                         type="time"
-                        wire:model.live="calendarModalOpenTime"
+                        wire:model="calendarModalOpenTime"
                         step="300"
                         @disabled($this->calendarModalIsClosed)
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400 disabled:bg-slate-100 disabled:text-slate-400"
@@ -136,7 +136,7 @@
                     <span class="mb-1 block font-semibold text-slate-700">終了時刻</span>
                     <input
                         type="time"
-                        wire:model.live="calendarModalCloseTime"
+                        wire:model="calendarModalCloseTime"
                         step="300"
                         @disabled($this->calendarModalIsClosed)
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400 disabled:bg-slate-100 disabled:text-slate-400"
