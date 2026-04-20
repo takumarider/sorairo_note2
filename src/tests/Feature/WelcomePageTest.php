@@ -13,7 +13,7 @@ class WelcomePageTest extends TestCase
 
     public function test_welcome_page_uses_system_settings_content(): void
     {
-        SystemSetting::create([
+        SystemSetting::getSingleton()->update([
             'welcome_title' => 'テストタイトル',
             'welcome_lead' => 'テストリード文',
             'welcome_instagram_url' => 'https://www.instagram.com/test_account',
