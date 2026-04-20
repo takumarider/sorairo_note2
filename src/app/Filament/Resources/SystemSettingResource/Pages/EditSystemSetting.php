@@ -12,10 +12,9 @@ class EditSystemSetting extends EditRecord
 
     public function mount(int|string|null $record = null): void
     {
-        $this->record = SystemSetting::getSingleton();
+        $singleton = SystemSetting::getSingleton();
 
-        $this->authorizeAccess();
-        $this->fillForm();
+        parent::mount((string) $singleton->getKey());
         $this->previousUrl = url()->previous();
     }
 

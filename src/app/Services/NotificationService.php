@@ -19,7 +19,7 @@ class NotificationService
     public function sendReservationConfirmedToUser(Reservation $reservation): void
     {
         try {
-            $settings = SystemSetting::first();
+            $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
             Mail::to($reservation->user->email)
@@ -38,7 +38,7 @@ class NotificationService
     public function sendReservationCanceledToUser(Reservation $reservation): void
     {
         try {
-            $settings = SystemSetting::first();
+            $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
             Mail::to($reservation->user->email)
@@ -57,7 +57,7 @@ class NotificationService
     public function sendAdminNotification(Reservation $reservation, string $type): void
     {
         try {
-            $settings = SystemSetting::first();
+            $settings = SystemSetting::getSingleton();
 
             if (! $this->isAdminNotificationConfigured($settings)) {
                 Log::warning('管理者通知設定が未設定のため送信をスキップしました', [

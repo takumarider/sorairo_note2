@@ -12,9 +12,9 @@ class SystemSettingsAlert extends Widget
 
     protected int|string|array $columnSpan = 'full';
 
-    public function shouldRender(): bool
+    public static function canView(): bool
     {
-        $settings = SystemSetting::first();
+        $settings = SystemSetting::getSingleton();
 
         return ! ($settings && $settings->hasAdminNotificationSettings());
     }

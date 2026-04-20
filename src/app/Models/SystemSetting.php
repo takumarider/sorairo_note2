@@ -36,7 +36,25 @@ class SystemSetting extends Model
 
     public static function getSingleton(): self
     {
-        return static::firstOrCreate([]);
+        $singleton = static::query()->find(1);
+
+        if ($singleton) {
+            return $singleton;
+        }
+
+        $legacy = static::query()->orderBy('id')->first();
+
+        if ($legacy) {
+            if ($legacy->id !== 1) {
+                static::query()->whereKey($legacy->id)->update(['id' => 1]);
+
+                return static::query()->findOrFail(1);
+            }
+
+            return $legacy;
+        }
+
+        return static::query()->forceCreate(['id' => 1]);
     }
 
     public function hasNotificationFrom(): bool
