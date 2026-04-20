@@ -12,6 +12,6 @@ class SystemSettingSeeder extends Seeder
      */
     public function run(): void
     {
-        SystemSetting::firstOrCreate([]);
+        SystemSetting::getSingleton();
     }
 }
