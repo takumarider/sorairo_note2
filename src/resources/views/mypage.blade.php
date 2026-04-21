@@ -301,7 +301,7 @@
                     form.on('submit', async function (event) {
                         event.preventDefault();
 
-                        if (!window.confirm('この予約をキャンセルしますか？')) {
+                        if (!window.confirm('この予約をキャンセルしますか？\nキャンセルが完了すると、キャンセル確定メールをお送りします。')) {
                             return;
                         }
 
@@ -332,6 +332,8 @@
                             if (selectedDate) {
                                 renderReservationList(selectedDate);
                             }
+
+                            window.alert('予約をキャンセルしました。キャンセル確定メールをお送りしますので、ご確認ください。');
                         } catch (error) {
                             window.alert(error instanceof Error ? error.message : 'キャンセルに失敗しました。');
                         } finally {

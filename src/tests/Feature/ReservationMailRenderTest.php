@@ -7,8 +7,11 @@ use App\Mail\ReservationCanceled;
 use App\Mail\ReservationConfirmed;
 use App\Models\Menu;
 use App\Models\Reservation;
+use App\Models\SystemSetting;
 use App\Models\User;
+use App\Services\NotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class ReservationMailRenderTest extends TestCase
@@ -96,5 +99,49 @@ class ReservationMailRenderTest extends TestCase
         $this->assertStringContainsString('予約キャンセルのお知らせ', $rendered);
         $this->assertStringContainsString('2026年04月03日', $rendered);
         $this->assertStringContainsString('14:00 - 15:30', $rendered);
+    }
+
+    public function test_notification_service_applies_custom_user_confirmed_template(): void
+    {
+        Mail::fake();
+
+        SystemSetting::getSingleton()->update([
+            'notification_from_email' => 'info@example.com',
+            'notification_from_name' => 'Sorairo Note',
+            'mail_user_confirmed_subject' => 'ご予約ありがとうございます {{user_name}} 様',
+            'mail_user_confirmed_body' => "## {{user_name}} 様\nご予約日: {{reservation_date}}\n開始: {{reservation_start_time}}\nメニュー: {{menu_name}}\nマイページ: {{mypage_url}}",
+        ]);
+
+        $user = User::factory()->create([
+            'name' => '差し込み確認ユーザー',
+            'email' => 'template-user@example.com',
+        ]);
+        $menu = Menu::factory()->create([
+            'name' => 'テンプレートカット',
+            'price' => 6000,
+            'duration' => 60,
+        ]);
+
+        $reservation = Reservation::create([
+            'user_id' => $user->id,
+            'menu_id' => $menu->id,
+            'slot_id' => null,
+            'date' => '2026-04-10',
+            'start_time' => '13:00',
+            'end_time' => '14:00',
+            'status' => 'confirmed',
+        ])->load(['user', 'menu']);
+
+        app(NotificationService::class)->sendReservationConfirmedToUser($reservation);
+
+        Mail::assertSent(ReservationConfirmed::class, function (ReservationConfirmed $mail) use ($user): bool {
+            $rendered = $mail->render();
+
+            return $mail->hasTo($user->email)
+                && $mail->subject === 'ご予約ありがとうございます 差し込み確認ユーザー 様'
+                && str_contains($rendered, '差し込み確認ユーザー 様')
+                && str_contains($rendered, '2026年04月10日')
+                && str_contains($rendered, 'テンプレートカット');
+        });
     }
 }

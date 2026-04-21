@@ -133,15 +133,23 @@ class WelcomePageSettingResource extends Resource
                 ->rows(3)
                 ->maxLength(500)
                 ->live(onBlur: true),
-            Forms\Components\TextInput::make('welcome_business_hours')
-                ->label('営業時間')
+            Forms\Components\Textarea::make('welcome_business_hours')
+                ->label('営業時間（平日・土曜は改行して入力）')
+                ->rows(2)
                 ->maxLength(120)
-                ->placeholder('10:00〜20:00')
+                ->placeholder("平日 10:00〜20:00\n土曜 10:00〜18:00")
+                ->helperText('1行目に平日、2行目に土曜の営業時間を入力してください。')
                 ->live(onBlur: true),
             Forms\Components\TextInput::make('welcome_regular_holiday')
                 ->label('定休日')
                 ->maxLength(120)
                 ->placeholder('不定休')
+                ->live(onBlur: true),
+            Forms\Components\TextInput::make('welcome_contact_number')
+                ->label('お問い合わせ番号')
+                ->tel()
+                ->maxLength(50)
+                ->placeholder('03-1234-5678')
                 ->live(onBlur: true),
             Forms\Components\Textarea::make('welcome_business_note')
                 ->label('営業補足')
@@ -179,6 +187,7 @@ class WelcomePageSettingResource extends Resource
             'shop_description' => $state['welcome_shop_description'] ?? null,
             'shop_hours' => $state['welcome_business_hours'] ?? null,
             'shop_holiday' => $state['welcome_regular_holiday'] ?? null,
+            'shop_contact_number' => $state['welcome_contact_number'] ?? null,
             'shop_note' => $state['welcome_business_note'] ?? null,
             'instagram_url' => $state['welcome_instagram_url'] ?? null,
         ];

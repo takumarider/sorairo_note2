@@ -24,7 +24,7 @@ class WelcomePageTest extends TestCase
                     'image_path' => null,
                 ],
             ],
-            'welcome_business_hours' => '10:00〜20:00',
+            'welcome_business_hours' => "平日 10:00〜20:00\n土曜 10:00〜18:00",
             'welcome_regular_holiday' => '不定休',
         ]);
 
@@ -34,7 +34,8 @@ class WelcomePageTest extends TestCase
         $response->assertSee('テストタイトル');
         $response->assertSee('テストリード文');
         $response->assertSee('本文見出し1');
-        $response->assertSee('10:00〜20:00');
+        $response->assertSee('平日 10:00〜20:00');
+        $response->assertSee('土曜 10:00〜18:00');
         $response->assertSee('https://www.instagram.com/test_account', false);
     }
 

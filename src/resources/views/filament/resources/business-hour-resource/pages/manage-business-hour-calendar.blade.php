@@ -173,7 +173,9 @@
     </x-filament::modal>
 </x-filament-panels::page>
 
-@vite('resources/js/business-hour-calendar.js')
+@push('scripts')
+    @vite('resources/js/business-hour-calendar.js')
+@endpush
 
 @push('styles')
     <style>

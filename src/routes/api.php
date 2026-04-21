@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\ReservationApiController;
 use App\Http\Controllers\Api\TimeBlockApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['web', 'auth:web'])->group(function () {
     Route::get('/reservations/events', [ReservationApiController::class, 'events']);
     Route::post('/reservations', [ReservationApiController::class, 'store']);
     Route::delete('/reservations/{reservation}', [ReservationApiController::class, 'destroy']);

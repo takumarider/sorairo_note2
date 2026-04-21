@@ -13,16 +13,25 @@ class AdminReservationNotification extends Mailable
 
     public function __construct(
         public Reservation $reservation,
-        public string $type
+        public string $type,
+        public ?string $customSubject = null,
+        public ?string $customBody = null
     ) {}
 
     public function build()
     {
-        $subject = $this->type === 'confirmed'
+        $defaultSubject = $this->type === 'confirmed'
             ? '【Sorairo Note】新規予約通知'
             : '【Sorairo Note】予約キャンセル通知';
 
-        return $this->subject($subject)
-            ->markdown('emails.admin.reservation-notification');
+        $mail = $this->subject($this->customSubject ?: $defaultSubject);
+
+        if (filled($this->customBody)) {
+            return $mail->markdown('emails.custom-template', [
+                'body' => $this->customBody,
+            ]);
+        }
+
+        return $mail->markdown('emails.admin.reservation-notification');
     }
 }
