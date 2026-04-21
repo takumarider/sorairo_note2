@@ -145,7 +145,7 @@
                     <p class="whitespace-pre-line">{{ $shop_description }}</p>
                 @endif
 
-                <p>
+                <p class="whitespace-pre-line">
                     <span class="font-semibold text-slate-900">営業時間:</span>
                     {{ $shop_hours ?? '未設定' }}
                 </p>
@@ -153,6 +153,11 @@
                 <p>
                     <span class="font-semibold text-slate-900">定休日:</span>
                     {{ $shop_holiday ?? '未設定' }}
+                </p>
+
+                <p>
+                    <span class="font-semibold text-slate-900">お問い合わせ:</span>
+                    {{ $shop_contact_number ?? '未設定' }}
                 </p>
 
                 @if ($shop_note ?? null)

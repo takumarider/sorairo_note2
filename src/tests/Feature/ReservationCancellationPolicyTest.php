@@ -24,6 +24,7 @@ class ReservationCancellationPolicyTest extends TestCase
 
         SystemSetting::getSingleton()->update([
             'user_cancel_deadline_hours' => 24,
+            'welcome_contact_number' => '03-1234-5678',
         ]);
 
         $reservation = Reservation::create([
@@ -40,7 +41,7 @@ class ReservationCancellationPolicyTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
-        $response->assertJsonPath('message', 'この予約は開始24時間前を過ぎたためキャンセルできません。');
+        $response->assertJsonPath('message', 'キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせ番号（03-1234-5678）をご確認ください。');
         $this->assertSame('confirmed', $reservation->fresh()->status);
 
         Carbon::setTestNow();
@@ -81,6 +82,8 @@ class ReservationCancellationPolicyTest extends TestCase
 
     public function test_events_api_returns_only_confirmed_reservations_for_user(): void
     {
+        Carbon::setTestNow(Carbon::create(2026, 4, 19, 10, 0, 0, 'Asia/Tokyo'));
+
         $user = User::factory()->create();
         $otherUser = User::factory()->create();
         $menu = Menu::factory()->create(['name' => 'カット', 'price' => 5000]);
@@ -118,5 +121,7 @@ class ReservationCancellationPolicyTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonCount(1, 'reservations');
         $response->assertJsonPath('reservations.0.menu_name', 'カット');
+
+        Carbon::setTestNow();
     }
 }

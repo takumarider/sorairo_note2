@@ -12,12 +12,21 @@ class ReservationCanceled extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public Reservation $reservation
+        public Reservation $reservation,
+        public ?string $customSubject = null,
+        public ?string $customBody = null
     ) {}
 
     public function build()
     {
-        return $this->subject('【Sorairo Note】予約キャンセルのお知らせ')
-            ->markdown('emails.reservations.canceled');
+        $mail = $this->subject($this->customSubject ?: '【Sorairo Note】予約キャンセルのお知らせ');
+
+        if (filled($this->customBody)) {
+            return $mail->markdown('emails.custom-template', [
+                'body' => $this->customBody,
+            ]);
+        }
+
+        return $mail->markdown('emails.reservations.canceled');
     }
 }

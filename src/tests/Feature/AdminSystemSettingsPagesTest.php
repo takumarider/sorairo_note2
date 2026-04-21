@@ -38,4 +38,19 @@ class AdminSystemSettingsPagesTest extends TestCase
         $response->assertSee('確認');
         $response->assertDontSee('管理者通知先メールアドレス');
     }
+
+    public function test_admin_can_open_mail_template_settings_page(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->get('/admin/mail-template-settings');
+
+        $response->assertOk();
+        $response->assertSee('メール文章作成');
+        $response->assertSee('予約確定メール（ユーザー向け）');
+        $response->assertSee('管理者通知メール（新規予約）');
+        $response->assertSee('お任せテンプレート');
+    }
 }

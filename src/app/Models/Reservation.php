@@ -129,9 +129,14 @@ class Reservation extends Model
             return '予約日時を確認できないため、キャンセルできません。';
         }
 
-        $hours = SystemSetting::getSingleton()->userCancelDeadlineHours();
+        $settings = SystemSetting::getSingleton();
+        $contactNumber = trim((string) ($settings->welcome_contact_number ?? ''));
 
-        return sprintf('この予約は開始%1$d時間前を過ぎたためキャンセルできません。', $hours);
+        if ($contactNumber !== '') {
+            return sprintf('キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせ番号（%s）をご確認ください。', $contactNumber);
+        }
+
+        return 'キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせ番号をご確認ください。';
     }
 
     protected function resolveStartDateTime(): ?Carbon
