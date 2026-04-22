@@ -72,7 +72,10 @@
                 </div>
 
                 <!-- 予約ボタン -->
-                <form method="POST" action="{{ route('reservations.store') }}">
+                <form method="POST"
+                        action="{{ route('reservations.store') }}"
+                        x-data="{ submitting: false }"
+                        @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
                     @csrf
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     <input type="hidden" name="date" value="{{ $date }}">
@@ -83,10 +86,14 @@
 
                     <div class="flex gap-4">
                         <button type="submit"
-                                class="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-center">
-                            予約を確定する
+                                :disabled="submitting"
+                                :class="submitting ? 'bg-blue-500 cursor-not-allowed opacity-70' : 'bg-blue-600 hover:bg-blue-700'"
+                                class="flex-1 px-6 py-3 text-white rounded-lg transition font-semibold text-center">
+                            <span x-show="!submitting">予約を確定する</span>
+                            <span x-show="submitting" x-cloak>確定中...</span>
                         </button>
                         <a href="{{ route('reservations.calendar', ['menu_id' => $menu->id]) }}"
+                           :class="submitting ? 'pointer-events-none opacity-50' : ''"
                            class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
                             戻る
                         </a>

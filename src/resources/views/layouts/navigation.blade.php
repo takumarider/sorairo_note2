@@ -85,6 +85,29 @@
                 </button>
             </div>
         </div>
+
+        <div class="grid grid-cols-2 gap-2 pb-2 sm:hidden">
+            <a href="{{ route('menus.index') }}"
+               class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
+                      transition-all duration-150 ease-out
+                      active:scale-95 active:brightness-90
+                      {{ request()->routeIs('menus.*')
+                          ? 'bg-sky-600 text-white shadow-sky-300 shadow-md'
+                          : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
+               aria-label="メニュー">
+                メニュー
+            </a>
+            <a href="{{ route('mypage') }}"
+               class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
+                      transition-all duration-150 ease-out
+                      active:scale-95 active:brightness-90
+                      {{ request()->routeIs('mypage')
+                          ? 'bg-sky-600 text-white shadow-sky-300 shadow-md'
+                          : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
+               aria-label="マイページ">
+                マイページ
+            </a>
+        </div>
     </div>
 
     <!-- Responsive Navigation Menu -->
@@ -92,14 +115,6 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('お知らせ') }}
-            </x-responsive-nav-link>
-
-            <x-responsive-nav-link :href="route('menus.index')" :active="request()->routeIs('menus.*')">
-                メニュー
-            </x-responsive-nav-link>
-
-            <x-responsive-nav-link :href="route('mypage')" :active="request()->routeIs('mypage')">
-                マイページ
             </x-responsive-nav-link>
             
             @if(auth()->check() && auth()->user()->is_admin)
