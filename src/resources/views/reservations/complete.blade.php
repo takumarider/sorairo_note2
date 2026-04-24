@@ -7,12 +7,15 @@
 
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                <div class="bg-green-600 text-white p-6 text-center">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden reservation-complete-card">
+                <div class="reservation-complete-hero {{ $reservation->menu->is_event ? 'reservation-complete-hero--event' : 'reservation-complete-hero--standard' }}">
                     <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    <h2 class="text-3xl font-bold">予約が完了しました！</h2>
+                    <h2 class="text-3xl font-bold">{{ $reservation->menu->is_event ? 'イベント参加予約が完了しました！' : '予約が完了しました！' }}</h2>
+                    <span class="reservation-complete-chip {{ $reservation->menu->is_event ? 'reservation-complete-chip--event' : 'reservation-complete-chip--standard' }}">
+                        {{ $reservation->menu->is_event ? 'EVENT' : 'RESERVATION' }}
+                    </span>
                 </div>
                 
                 <div class="p-8">
@@ -25,10 +28,15 @@
                     <div class="space-y-6 mb-8">
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">メニュー</h3>
-                            <p class="text-xl font-bold text-gray-900">{{ $reservation->menu->name }}</p>
+                            <p class="text-xl font-bold text-gray-900">
+                                {{ $reservation->menu->name }}
+                                <span class="reservation-complete-inline-chip {{ $reservation->menu->is_event ? 'reservation-complete-inline-chip--event' : 'reservation-complete-inline-chip--standard' }}">
+                                    {{ $reservation->menu->is_event ? 'EVENT' : 'BOOKED' }}
+                                </span>
+                            </p>
                         </div>
 
-                        @if($reservation->options && $reservation->options->isNotEmpty())
+                        @if(!$reservation->menu->is_event && $reservation->options && $reservation->options->isNotEmpty())
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-2">オプション</h3>
                             <div class="space-y-1">
@@ -40,7 +48,7 @@
                         @endif
                         
                         <div class="border-b pb-4">
-                            <h3 class="text-sm text-gray-500 mb-1">日時</h3>
+                            <h3 class="text-sm text-gray-500 mb-1">{{ $reservation->menu->is_event ? 'イベント開催日時' : '日時' }}</h3>
                             <p class="text-xl font-bold text-gray-900">
                                 {{ $reservation->date->isoFormat('Y年M月D日(dddd)') }}
                                 <span class="ml-2">{{ $reservation->start_time->format('H:i') }} - {{ $reservation->end_time->format('H:i') }}</span>

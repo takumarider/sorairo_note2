@@ -15,6 +15,7 @@ class Slot extends Model
         'date',
         'start_time',
         'end_time',
+        'capacity',
         'is_reserved',
     ];
 
@@ -24,6 +25,7 @@ class Slot extends Model
             'date' => 'date',
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
+            'capacity' => 'integer',
             'is_reserved' => 'boolean',
         ];
     }
@@ -38,13 +40,50 @@ class Slot extends Model
         return $this->hasOne(Reservation::class);
     }
 
+    public function reservations()
+    {
+        return $this->hasMany(Reservation::class);
+    }
+
+    public function confirmedReservations()
+    {
+        return $this->reservations()->where('status', 'confirmed');
+    }
+
+    public function confirmedCount(): int
+    {
+        if (array_key_exists('confirmed_reservations_count', $this->attributes)) {
+            return (int) $this->attributes['confirmed_reservations_count'];
+        }
+
+        return $this->confirmedReservations()->count();
+    }
+
+    public function remainingCapacity(): ?int
+    {
+        if ($this->capacity === null) {
+            return null;
+        }
+
+        return max($this->capacity - $this->confirmedCount(), 0);
+    }
+
+    public function isEventSlot(): bool
+    {
+        return (bool) ($this->menu?->is_event ?? false);
+    }
+
     public function isAvailable(): bool
     {
-        if ($this->is_reserved) {
+        if ($this->date->lt(now()->startOfDay())) {
             return false;
         }
 
-        if ($this->date->lt(now()->startOfDay())) {
+        if ($this->isEventSlot()) {
+            return $this->capacity !== null && $this->remainingCapacity() > 0;
+        }
+
+        if ($this->is_reserved) {
             return false;
         }
 

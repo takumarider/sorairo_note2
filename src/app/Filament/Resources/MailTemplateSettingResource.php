@@ -81,6 +81,54 @@ class MailTemplateSettingResource extends Resource
                             ->columnSpanFull(),
                     ])
                     ->columns(1),
+                Section::make('【イベント】予約確定メール（ユーザー向け）')
+                    ->schema([
+                        Forms\Components\TextInput::make('mail_event_user_confirmed_subject')
+                            ->label('件名')
+                            ->maxLength(255)
+                            ->helperText('未入力の場合は既定の件名を使用します。'),
+                        Forms\Components\MarkdownEditor::make('mail_event_user_confirmed_body')
+                            ->label('本文（Markdown）')
+                            ->helperText('未入力の場合は既定の本文を使用します。')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+                Section::make('【イベント】予約キャンセルメール（ユーザー向け）')
+                    ->schema([
+                        Forms\Components\TextInput::make('mail_event_user_canceled_subject')
+                            ->label('件名')
+                            ->maxLength(255)
+                            ->helperText('未入力の場合は既定の件名を使用します。'),
+                        Forms\Components\MarkdownEditor::make('mail_event_user_canceled_body')
+                            ->label('本文（Markdown）')
+                            ->helperText('未入力の場合は既定の本文を使用します。')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+                Section::make('【イベント】管理者通知メール（新規予約）')
+                    ->schema([
+                        Forms\Components\TextInput::make('mail_event_admin_confirmed_subject')
+                            ->label('件名')
+                            ->maxLength(255)
+                            ->helperText('未入力の場合は既定の件名を使用します。'),
+                        Forms\Components\MarkdownEditor::make('mail_event_admin_confirmed_body')
+                            ->label('本文（Markdown）')
+                            ->helperText('未入力の場合は既定の本文を使用します。')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
+                Section::make('【イベント】管理者通知メール（キャンセル）')
+                    ->schema([
+                        Forms\Components\TextInput::make('mail_event_admin_canceled_subject')
+                            ->label('件名')
+                            ->maxLength(255)
+                            ->helperText('未入力の場合は既定の件名を使用します。'),
+                        Forms\Components\MarkdownEditor::make('mail_event_admin_canceled_body')
+                            ->label('本文（Markdown）')
+                            ->helperText('未入力の場合は既定の本文を使用します。')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(1),
             ]);
     }
 

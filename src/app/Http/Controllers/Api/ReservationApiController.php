@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
+use App\Models\Slot;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -74,57 +75,122 @@ class ReservationApiController extends Controller
         $validated = $request->validate([
             'menu_id' => 'required|exists:menus,id',
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
-            'start_time' => 'required|date_format:H:i',
+            'start_time' => 'nullable|date_format:H:i',
+            'slot_id' => 'nullable|exists:slots,id',
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
         ]);
 
         $menu = Menu::findOrFail($validated['menu_id']);
+
+        if (! $menu->is_event && empty($validated['start_time'])) {
+            throw ValidationException::withMessages([
+                'start_time' => '開始時刻を選択してください。',
+            ]);
+        }
+
         $optionIds = $validated['options'] ?? [];
-        $options = ! empty($optionIds)
+        $options = ! $menu->is_event && ! empty($optionIds)
             ? MenuOption::whereIn('id', $optionIds)->active()->get()
             : collect();
-
-        $totalDuration = $menu->duration + $options->sum('duration');
-
-        $startDateTime = Carbon::createFromFormat(
-            'Y-m-d H:i',
-            $validated['date'].' '.$validated['start_time'],
-            'Asia/Tokyo'
-        );
-        $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
         try {
             $reservation = null;
 
-            DB::transaction(function () use (&$reservation, $menu, $options, $optionIds, $startDateTime, $endDateTime) {
-                Reservation::where('date', $startDateTime->toDateString())
-                    ->where('status', 'confirmed')
-                    ->lockForUpdate()
-                    ->get();
-
+            DB::transaction(function () use (&$reservation, $menu, $options, $optionIds, $validated) {
                 $availabilityService = new AvailabilityService;
-                $availableTimes = $availabilityService->getAvailableTimes(
-                    $menu,
-                    $optionIds,
-                    $startDateTime->toDateString()
-                );
+                if ($menu->is_event) {
+                    $alreadyReserved = Reservation::query()
+                        ->where('user_id', Auth::id())
+                        ->where('menu_id', $menu->id)
+                        ->whereDate('date', $validated['date'])
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->exists();
 
-                if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
-                    throw ValidationException::withMessages([
-                        'start_time' => 'この時間帯は既に予約されています。',
+                    if ($alreadyReserved) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '同じイベントは1日につき1回まで予約できます。',
+                        ]);
+                    }
+
+                    $slot = Slot::query()
+                        ->whereKey($validated['slot_id'] ?? null)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $slot && ! empty($validated['start_time'])) {
+                        $slot = Slot::query()
+                            ->where('menu_id', $menu->id)
+                            ->whereDate('date', $validated['date'])
+                            ->where('start_time', $validated['start_time'])
+                            ->lockForUpdate()
+                            ->first();
+                    }
+
+                    if (! $slot || $slot->menu_id !== $menu->id || $slot->date->toDateString() !== $validated['date']) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '選択したイベント枠を確認できませんでした。',
+                        ]);
+                    }
+
+                    $confirmedCount = Reservation::query()
+                        ->where('slot_id', $slot->id)
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->get(['id'])
+                        ->count();
+
+                    if ($slot->capacity === null || $confirmedCount >= $slot->capacity) {
+                        throw ValidationException::withMessages([
+                            'start_time' => 'このイベント枠は満席です。',
+                        ]);
+                    }
+
+                    $reservation = Reservation::create([
+                        'user_id' => Auth::id(),
+                        'menu_id' => $menu->id,
+                        'slot_id' => $slot->id,
+                        'date' => $slot->date->toDateString(),
+                        'start_time' => $slot->start_time->format('H:i'),
+                        'end_time' => $slot->end_time->format('H:i'),
+                        'status' => 'confirmed',
+                    ]);
+                } else {
+                    $startDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $validated['date'].' '.$validated['start_time'],
+                        'Asia/Tokyo'
+                    );
+                    $endDateTime = $startDateTime->clone()->addMinutes($menu->duration + $options->sum('duration'));
+
+                    Reservation::where('date', $startDateTime->toDateString())
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $availableTimes = $availabilityService->getAvailableTimes(
+                        $menu,
+                        $optionIds,
+                        $startDateTime->toDateString()
+                    );
+
+                    if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
+                        throw ValidationException::withMessages([
+                            'start_time' => 'この時間帯は既に予約されています。',
+                        ]);
+                    }
+
+                    $reservation = Reservation::create([
+                        'user_id' => Auth::id(),
+                        'menu_id' => $menu->id,
+                        'slot_id' => null,
+                        'date' => $startDateTime->toDateString(),
+                        'start_time' => $startDateTime->format('H:i'),
+                        'end_time' => $endDateTime->format('H:i'),
+                        'status' => 'confirmed',
                     ]);
                 }
-
-                $reservation = Reservation::create([
-                    'user_id' => Auth::id(),
-                    'menu_id' => $menu->id,
-                    'slot_id' => null,
-                    'date' => $startDateTime->toDateString(),
-                    'start_time' => $startDateTime->format('H:i'),
-                    'end_time' => $endDateTime->format('H:i'),
-                    'status' => 'confirmed',
-                ]);
 
                 if ($options->isNotEmpty()) {
                     $reservation->options()->attach($options->pluck('id'));
@@ -157,7 +223,7 @@ class ReservationApiController extends Controller
         } catch (ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'この時間帯は既に予約されています。',
+                'message' => collect($e->errors())->flatten()->first() ?? '予約内容を確認できませんでした。',
             ], 422);
         } catch (\Exception $e) {
             return response()->json([

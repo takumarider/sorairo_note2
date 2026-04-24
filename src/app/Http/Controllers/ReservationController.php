@@ -6,6 +6,7 @@ use App\Models\Menu;
 use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Models\ReservationPublicationMonth;
+use App\Models\Slot;
 use App\Models\User;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
@@ -57,8 +58,9 @@ class ReservationController extends Controller
         }
 
         $menu = Menu::findOrFail($menuId);
+
         $options = ! empty($optionIds)
-            ? MenuOption::whereIn('id', $optionIds)->active()->get()
+            ? $this->resolveOptions($menu, $optionIds)
             : collect();
 
         $availabilityService = new AvailabilityService;
@@ -66,7 +68,7 @@ class ReservationController extends Controller
         $availabilitySummary = $availabilityService->getMonthlyAvailabilitySummary($menu, $optionIds, $month);
 
         // 合計所要時間・合計料金を計算
-        $totalDuration = $menu->duration;
+        $totalDuration = $menu->is_event ? 0 : $menu->duration;
         $totalPrice = $menu->price;
         foreach ($options as $option) {
             $totalDuration += $option->duration;
@@ -110,8 +112,9 @@ class ReservationController extends Controller
         }
 
         $menu = Menu::findOrFail($menuId);
+
         $options = ! empty($optionIds)
-            ? MenuOption::whereIn('id', $optionIds)->active()->get()
+            ? $this->resolveOptions($menu, $optionIds)
             : collect();
 
         $availabilityService = new AvailabilityService;
@@ -119,7 +122,7 @@ class ReservationController extends Controller
         $availableTimes = $availability['times'];
 
         // 合計所要時間・合計料金
-        $totalDuration = $menu->duration;
+        $totalDuration = $menu->is_event ? 0 : $menu->duration;
         $totalPrice = $menu->price;
         foreach ($options as $option) {
             $totalDuration += $option->duration;
@@ -133,6 +136,7 @@ class ReservationController extends Controller
             'date' => Carbon::createFromFormat('Y-m-d', $date),
             'availableTimes' => $availableTimes,
             'availabilityReason' => $availability['reason'],
+            'eventSlotDetails' => $availability['slot_details'] ?? [],
             'totalDuration' => $totalDuration,
             'totalPrice' => $totalPrice,
         ]);
@@ -146,7 +150,7 @@ class ReservationController extends Controller
         $request->validate([
             'menu_id' => 'required|exists:menus,id',
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
-            'start_time' => 'required|date_format:H:i',
+            'start_time' => 'nullable|date_format:H:i',
         ]);
 
         $menuId = $request->input('menu_id');
@@ -163,24 +167,65 @@ class ReservationController extends Controller
         }
 
         $menu = Menu::findOrFail($menuId);
-        $options = ! empty($optionIds)
-            ? MenuOption::whereIn('id', $optionIds)->active()->get()
-            : collect();
 
-        // 開始時刻と所要時間から終了時刻を計算
-        $totalDuration = $menu->duration;
-        $totalPrice = $menu->price;
-        foreach ($options as $option) {
-            $totalDuration += $option->duration;
-            $totalPrice += $option->price;
+        if (! $menu->is_event && ! $startTime) {
+            throw ValidationException::withMessages([
+                'start_time' => '開始時刻を選択してください。',
+            ]);
         }
 
-        $startDateTime = Carbon::createFromFormat(
-            'Y-m-d H:i',
-            "$date $startTime",
-            'Asia/Tokyo'
-        );
-        $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
+        $options = ! empty($optionIds)
+            ? $this->resolveOptions($menu, $optionIds)
+            : collect();
+
+        $availabilityService = new AvailabilityService;
+        $slotId = null;
+
+        if ($menu->is_event) {
+            if (! $startTime) {
+                abort(422);
+            }
+
+            $slot = $availabilityService->findReservableEventSlot($menu, $date, $startTime);
+
+            if (! $slot) {
+                return redirect()->route('reservations.times', [
+                    'menu_id' => $menuId,
+                    'date' => $date,
+                ] + ($optionIds !== [] ? ['options' => $optionIds] : []))->withErrors([
+                    'start_time' => '選択したイベント枠は現在予約できません。',
+                ]);
+            }
+
+            $slotId = $slot->id;
+            $startDateTime = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                $date.' '.$slot->start_time->format('H:i'),
+                'Asia/Tokyo'
+            );
+            $endDateTime = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                $date.' '.$slot->end_time->format('H:i'),
+                'Asia/Tokyo'
+            );
+            $startTime = $slot->start_time->format('H:i');
+            $totalDuration = $startDateTime->diffInMinutes($endDateTime);
+            $totalPrice = $menu->price;
+        } else {
+            $totalDuration = $menu->duration;
+            $totalPrice = $menu->price;
+            foreach ($options as $option) {
+                $totalDuration += $option->duration;
+                $totalPrice += $option->price;
+            }
+
+            $startDateTime = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                "$date $startTime",
+                'Asia/Tokyo'
+            );
+            $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
+        }
 
         return view('reservations.confirm', [
             'menu' => $menu,
@@ -188,6 +233,7 @@ class ReservationController extends Controller
             'date' => $startDateTime->toDateString(),
             'startTime' => $startTime,
             'endTime' => $endDateTime->format('H:i'),
+            'slotId' => $slotId,
             'totalDuration' => $totalDuration,
             'totalPrice' => $totalPrice,
         ]);
@@ -204,7 +250,8 @@ class ReservationController extends Controller
         $request->validate([
             'menu_id' => 'required|exists:menus,id',
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
-            'start_time' => 'required|date_format:H:i',
+            'start_time' => 'nullable|date_format:H:i',
+            'slot_id' => 'nullable|exists:slots,id',
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
         ]);
@@ -213,6 +260,7 @@ class ReservationController extends Controller
         $optionIds = $request->input('options', []);
         $date = $request->input('date');
         $startTime = $request->input('start_time');
+        $requestedSlotId = $request->input('slot_id');
 
         if (! $this->isDateReservableForUsers($date)) {
             return redirect()->route('reservations.calendar', [
@@ -224,22 +272,8 @@ class ReservationController extends Controller
 
         $menu = Menu::findOrFail($menuId);
         $options = ! empty($optionIds)
-            ? MenuOption::whereIn('id', $optionIds)->active()
-                ->get()
+            ? $this->resolveOptions($menu, $optionIds)
             : collect();
-
-        // 合計所要時間を計算
-        $totalDuration = $menu->duration;
-        foreach ($options as $option) {
-            $totalDuration += $option->duration;
-        }
-
-        $startDateTime = Carbon::createFromFormat(
-            'Y-m-d H:i',
-            "$date $startTime",
-            'Asia/Tokyo'
-        );
-        $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
         try {
             $reservation = null;
@@ -249,40 +283,108 @@ class ReservationController extends Controller
                 $menu,
                 $options,
                 $optionIds,
-                $startDateTime,
-                $endDateTime,
+                $date,
+                $startTime,
+                $requestedSlotId,
                 $user,
             ) {
-                // 二重予約防止：その日時の予約をロック
-                $conflictReservations = Reservation::where('date', $startDateTime->toDateString())
-                    ->where('status', 'confirmed')
-                    ->lockForUpdate()
-                    ->get();
-
                 $availabilityService = new AvailabilityService;
-                $dateCarbon = $startDateTime->clone()->startOfDay();
-                $reservedRanges = $availabilityService->getReservedRanges($dateCarbon);
+                if ($menu->is_event) {
+                    $alreadyReserved = Reservation::query()
+                        ->where('user_id', $user->id)
+                        ->where('menu_id', $menu->id)
+                        ->whereDate('date', $date)
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->exists();
 
-                // 再度確認：重複チェック
-                $availableTimes = $availabilityService->getAvailableTimes($menu, $optionIds, $dateCarbon->toDateString());
-                if (! in_array($startDateTime->format('H:i'), $availableTimes)) {
-                    throw ValidationException::withMessages([
-                        'start_time' => 'この時間帯は既に予約されています。',
+                    if ($alreadyReserved) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '同じイベントは1日につき1回まで予約できます。',
+                        ]);
+                    }
+
+                    $slot = Slot::query()
+                        ->with('menu')
+                        ->whereKey($requestedSlotId)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $slot && $startTime) {
+                        $slot = Slot::query()
+                            ->with('menu')
+                            ->where('menu_id', $menu->id)
+                            ->whereDate('date', $date)
+                            ->where('start_time', $startTime)
+                            ->lockForUpdate()
+                            ->first();
+                    }
+
+                    if (! $slot || $slot->menu_id !== $menu->id || $slot->date->toDateString() !== $date) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '選択したイベント枠を確認できませんでした。',
+                        ]);
+                    }
+
+                    $confirmedCount = Reservation::query()
+                        ->where('slot_id', $slot->id)
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->get(['id'])
+                        ->count();
+
+                    if ($slot->capacity === null || $confirmedCount >= $slot->capacity) {
+                        throw ValidationException::withMessages([
+                            'start_time' => 'このイベント枠は満席です。',
+                        ]);
+                    }
+
+                    $reservation = Reservation::create([
+                        'user_id' => $user->id,
+                        'menu_id' => $menu->id,
+                        'slot_id' => $slot->id,
+                        'date' => $slot->date->toDateString(),
+                        'start_time' => $slot->start_time->format('H:i'),
+                        'end_time' => $slot->end_time->format('H:i'),
+                        'status' => 'confirmed',
+                    ]);
+                } else {
+                    $startDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        "$date $startTime",
+                        'Asia/Tokyo'
+                    );
+
+                    $totalDuration = $menu->duration;
+                    foreach ($options as $option) {
+                        $totalDuration += $option->duration;
+                    }
+
+                    $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
+
+                    Reservation::where('date', $startDateTime->toDateString())
+                        ->where('status', 'confirmed')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $availableTimes = $availabilityService->getAvailableTimes($menu, $optionIds, $startDateTime->toDateString());
+                    if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
+                        throw ValidationException::withMessages([
+                            'start_time' => 'この時間帯は既に予約されています。',
+                        ]);
+                    }
+
+                    $reservation = Reservation::create([
+                        'user_id' => $user->id,
+                        'menu_id' => $menu->id,
+                        'slot_id' => null,
+                        'date' => $startDateTime->toDateString(),
+                        'start_time' => $startDateTime->format('H:i'),
+                        'end_time' => $endDateTime->format('H:i'),
+                        'status' => 'confirmed',
                     ]);
                 }
 
-                // 予約を作成
-                $reservation = Reservation::create([
-                    'user_id' => $user->id,
-                    'menu_id' => $menu->id,
-                    'slot_id' => null, // 新方式ではslot_idは不要
-                    'date' => $startDateTime->toDateString(),
-                    'start_time' => $startDateTime->format('H:i'),
-                    'end_time' => $endDateTime->format('H:i'),
-                    'status' => 'confirmed',
-                ]);
-
-                // オプションを関連付け
                 if ($options->isNotEmpty()) {
                     $reservation->options()->attach($options->pluck('id'));
                 }
@@ -345,5 +447,14 @@ class ReservationController extends Controller
         }
 
         return Carbon::createFromFormat('Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
+    }
+
+    private function resolveOptions(Menu $menu, array $optionIds)
+    {
+        if ($menu->is_event || $optionIds === []) {
+            return collect();
+        }
+
+        return MenuOption::whereIn('id', $optionIds)->active()->get();
     }
 }

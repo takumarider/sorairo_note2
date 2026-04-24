@@ -17,9 +17,9 @@ class EditSlot extends EditRecord
         return [
             Actions\DeleteAction::make()
                 ->before(function (Actions\DeleteAction $action, Slot $record): void {
-                    if ($record->is_reserved) {
+                    if ($record->is_reserved || $record->confirmedReservations()->exists()) {
                         Notification::make()
-                            ->title('予約済みの時間枠は削除できません。')
+                            ->title('予約に使用されているイベント枠は削除できません。')
                             ->danger()
                             ->send();
                         $action->halt();

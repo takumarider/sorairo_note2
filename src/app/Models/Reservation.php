@@ -60,9 +60,13 @@ class Reservation extends Model
             'canceled_at' => now(),
         ]);
 
-        // 旧スロット方式の場合のみslot_idを更新
+        // 旧スロット方式の施術予約のみ予約済みフラグを戻す
         if ($this->slot_id !== null) {
-            $this->slot()->update(['is_reserved' => false]);
+            $slot = $this->slot()->with('menu')->first();
+
+            if ($slot && ! ($slot->menu?->is_event ?? false)) {
+                $slot->update(['is_reserved' => false]);
+            }
         }
     }
 

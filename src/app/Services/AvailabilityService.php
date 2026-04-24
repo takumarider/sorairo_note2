@@ -10,6 +10,7 @@ use App\Models\ReservationPublicationMonth;
 use App\Models\Slot;
 use App\Models\TimeBlock;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
 
 class AvailabilityService
@@ -95,6 +96,10 @@ class AvailabilityService
             ];
         }
 
+        if ($menu->is_event) {
+            return $this->getEventAvailableTimesWithReason($menu, $dateCarbon);
+        }
+
         $totalDuration = $this->getTotalDuration($menu, $optionIds);
         $reservedRanges = $this->getReservedRanges($dateCarbon);
         $candidates = $this->buildCandidates($businessSetting, $totalDuration);
@@ -130,6 +135,7 @@ class AvailabilityService
             'reason' => empty($available)
                 ? ($blockedByTimeBlock ? 'blocked' : 'fully_booked')
                 : 'available',
+            'slot_details' => [],
         ];
     }
 
@@ -158,6 +164,10 @@ class AvailabilityService
      */
     private function getTotalDuration(Menu $menu, array $optionIds): int
     {
+        if ($menu->is_event) {
+            return 0;
+        }
+
         $duration = $menu->duration;
 
         if (! empty($optionIds)) {
@@ -168,6 +178,109 @@ class AvailabilityService
         }
 
         return $duration;
+    }
+
+    public function findReservableEventSlot(Menu $menu, string $date, string $startTime): ?Slot
+    {
+        if (! $menu->is_event) {
+            return null;
+        }
+
+        $userId = Auth::id();
+        if ($userId && $this->hasConfirmedEventReservationOnDate($menu, $date, (int) $userId)) {
+            return null;
+        }
+
+        $slot = Slot::query()
+            ->with('menu')
+            ->withCount([
+                'reservations as confirmed_reservations_count' => fn ($query) => $query->where('status', 'confirmed'),
+            ])
+            ->where('menu_id', $menu->id)
+            ->whereDate('date', $date)
+            ->where('start_time', $startTime)
+            ->first();
+
+        if (! $slot || ! $slot->isAvailable()) {
+            return null;
+        }
+
+        return $slot;
+    }
+
+    private function getEventAvailableTimesWithReason(Menu $menu, Carbon $dateCarbon): array
+    {
+        $slots = Slot::query()
+            ->with('menu')
+            ->withCount([
+                'reservations as confirmed_reservations_count' => fn ($query) => $query->where('status', 'confirmed'),
+            ])
+            ->where('menu_id', $menu->id)
+            ->whereDate('date', $dateCarbon->toDateString())
+            ->orderBy('start_time')
+            ->get();
+
+        if ($slots->isEmpty()) {
+            return [
+                'times' => [],
+                'reason' => 'fully_booked',
+                'slot_details' => [],
+            ];
+        }
+
+        $userId = Auth::id();
+        $userAlreadyReserved = $userId
+            ? $this->hasConfirmedEventReservationOnDate($menu, $dateCarbon->toDateString(), (int) $userId)
+            : false;
+
+        $allSlotDetails = [];
+        $availableTimes = [];
+
+        foreach ($slots as $slot) {
+            $time = $slot->start_time->format('H:i');
+
+            if ($userAlreadyReserved) {
+                $status = 'user_already_reserved';
+            } elseif (! $slot->isAvailable()) {
+                $status = 'fully_booked';
+            } else {
+                $status = 'available';
+                $availableTimes[] = $time;
+            }
+
+            $allSlotDetails[$time] = [
+                'id' => $slot->id,
+                'capacity' => $slot->capacity,
+                'confirmed_count' => $slot->confirmedCount(),
+                'remaining_capacity' => $slot->remainingCapacity(),
+                'end_time' => $slot->end_time->format('H:i'),
+                'status' => $status,
+            ];
+        }
+
+        if ($userAlreadyReserved) {
+            $reason = 'user_already_reserved';
+        } elseif (empty($availableTimes)) {
+            $reason = 'fully_booked';
+        } else {
+            $reason = 'available';
+        }
+
+        return [
+            'times' => $availableTimes,
+            'reason' => $reason,
+            'slot_details' => $allSlotDetails,
+        ];
+    }
+
+    private function hasConfirmedEventReservationOnDate(Menu $menu, string $date, int $userId): bool
+    {
+        return Reservation::query()
+            ->where('user_id', $userId)
+            ->where('menu_id', $menu->id)
+            ->whereDate('date', $date)
+            ->where('status', 'confirmed')
+            ->exists();
     }
 
     /**

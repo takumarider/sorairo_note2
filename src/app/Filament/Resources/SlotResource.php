@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\SlotResource\Pages;
+use App\Models\Menu;
 use App\Models\Slot;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -18,19 +19,20 @@ class SlotResource extends Resource
 {
     protected static ?string $model = Slot::class;
 
-    protected static bool $shouldRegisterNavigation = false;
+    protected static bool $shouldRegisterNavigation = true;
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
-    protected static ?string $navigationLabel = '時間枠';
+    protected static ?string $navigationLabel = 'イベント枠';
 
-    protected static ?string $modelLabel = '時間枠';
+    protected static ?string $modelLabel = 'イベント枠';
 
-    protected static ?string $pluralModelLabel = '時間枠';
+    protected static ?string $pluralModelLabel = 'イベント枠';
 
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
+            ->whereHas('menu', fn (Builder $query) => $query->where('is_event', true))
             ->whereDate('date', '>=', Carbon::today()->toDateString());
     }
 
@@ -39,9 +41,10 @@ class SlotResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('menu_id')
-                    ->label('メニュー')
-                    ->relationship('menu', 'name')
+                    ->label('イベントメニュー')
+                    ->options(fn () => Menu::query()->where('is_event', true)->orderBy('name')->pluck('name', 'id'))
                     ->searchable()
+                    ->preload()
                     ->required(),
                 Forms\Components\DatePicker::make('date')
                     ->label('日付')
@@ -52,9 +55,18 @@ class SlotResource extends Resource
                 Forms\Components\TimePicker::make('end_time')
                     ->label('終了時間')
                     ->required(),
+                Forms\Components\TextInput::make('capacity')
+                    ->label('定員')
+                    ->numeric()
+                    ->minValue(1)
+                    ->default(1)
+                    ->required()
+                    ->helperText('イベント枠ごとの定員です。'),
                 Forms\Components\Toggle::make('is_reserved')
                     ->label('予約済み')
-                    ->default(false),
+                    ->default(false)
+                    ->hidden()
+                    ->dehydrated(false),
             ]);
     }
 
@@ -63,7 +75,7 @@ class SlotResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('menu.name')
-                    ->label('メニュー')
+                    ->label('イベントメニュー')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('date')
@@ -78,13 +90,18 @@ class SlotResource extends Resource
                     ->label('終了時間')
                     ->time('H:i')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('capacity')
+                    ->label('定員')
+                    ->placeholder('-')
+                    ->sortable(),
                 Tables\Columns\BadgeColumn::make('is_reserved')
                     ->label('予約状況')
                     ->formatStateUsing(fn (bool $state): string => $state ? '予約済み' : '空き')
                     ->colors([
                         'danger' => true,
                         'success' => false,
-                    ]),
+                    ])
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('作成日')
                     ->dateTime()
@@ -98,13 +115,8 @@ class SlotResource extends Resource
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('menu_id')
-                    ->label('メニュー')
-                    ->relationship('menu', 'name'),
-                Tables\Filters\TernaryFilter::make('is_reserved')
-                    ->label('予約状況')
-                    ->trueLabel('予約済み')
-                    ->falseLabel('空き')
-                    ->nullable(),
+                    ->label('イベントメニュー')
+                    ->relationship('menu', 'name', fn (Builder $query) => $query->where('is_event', true)),
                 Tables\Filters\Filter::make('date_range')
                     ->label('日付範囲')
                     ->form([
@@ -127,9 +139,9 @@ class SlotResource extends Resource
                 Tables\Actions\EditAction::make(),
                 DeleteAction::make()
                     ->before(function (DeleteAction $action, Slot $record): void {
-                        if ($record->is_reserved) {
+                        if ($record->is_reserved || $record->confirmedReservations()->exists()) {
                             Notification::make()
-                                ->title('予約済みの時間枠は削除できません。')
+                                ->title('予約に使用されている時間枠は削除できません。')
                                 ->danger()
                                 ->send();
                             $action->halt();
@@ -140,9 +152,9 @@ class SlotResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
                         ->before(function (Tables\Actions\DeleteBulkAction $action, $records): void {
-                            if ($records->contains(fn (Slot $record) => $record->is_reserved)) {
+                            if ($records->contains(fn (Slot $record) => $record->is_reserved || $record->confirmedReservations()->exists())) {
                                 Notification::make()
-                                    ->title('予約済みの時間枠が含まれるため削除できません。')
+                                    ->title('予約に使用されている時間枠が含まれるため削除できません。')
                                     ->danger()
                                     ->send();
                                 $action->halt();

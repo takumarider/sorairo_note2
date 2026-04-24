@@ -33,6 +33,7 @@
                         'date_label' => $reservation->date->isoFormat('Y年M月D日(ddd)'),
                         'time_label' => $reservation->start_time->format('H:i').' - '.$reservation->end_time->format('H:i'),
                         'menu_name' => $reservation->menu->name,
+                        'is_event' => (bool) $reservation->menu->is_event,
                         'price_label' => '¥'.number_format($reservation->menu->price),
                         'cancel_url' => route('reservations.cancel', $reservation),
                         'api_cancel_url' => url('/api/reservations/'.$reservation->id),
@@ -266,12 +267,14 @@
                     }
 
                     const wrapper = $('<div>').addClass('space-y-3');
-                    wrapper.append(
-                        $('<p>').addClass('text-sm text-slate-500').html('予約番号 <span class="font-semibold text-slate-900">#' + reservation.number + '</span>')
-                    );
-                    wrapper.append($('<p>').addClass('text-lg font-bold text-slate-900').text(reservation.menu_name));
+                    wrapper.append($('<p>').addClass('text-sm text-slate-500').html('予約番号 <span class="font-semibold text-slate-900">#' + reservation.number + '</span>'));
+                    const menuNameEl = $('<p>').addClass('text-lg font-bold text-slate-900').text(reservation.menu_name);
+                    if (reservation.is_event) {
+                        menuNameEl.append($('<span>').addClass('ml-2 inline-block rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700').text('EVENT'));
+                    }
+                    wrapper.append(menuNameEl);
                     wrapper.append($('<p>').addClass('text-sm text-slate-700').text(reservation.date_label));
-                    wrapper.append($('<p>').addClass('text-sm text-slate-700').text(reservation.time_label));
+                    wrapper.append($('<p>').addClass('text-sm text-slate-700').text((reservation.is_event ? '開催時間: ' : '') + reservation.time_label));
                     wrapper.append($('<p>').addClass('text-sm font-semibold text-sky-700').text(reservation.price_label));
 
                     const form = $('<form>', {
@@ -368,7 +371,11 @@
                         });
 
                         btn.append($('<p>').addClass('text-sm font-bold text-slate-900').text(reservation.time_label));
-                        btn.append($('<p>').addClass('text-xs text-slate-600').text(reservation.menu_name));
+                        const menuLabel = $('<p>').addClass('text-xs text-slate-600').text(reservation.menu_name);
+                        if (reservation.is_event) {
+                            menuLabel.append($('<span>').addClass('ml-1 inline-block rounded bg-violet-100 px-1.5 py-0.5 text-xs font-semibold text-violet-700').text('EVENT'));
+                        }
+                        btn.append(menuLabel);
                         btn.on('click', function () {
                             selectedReservationId = reservation.id;
                             renderReservationList(dateStr);
@@ -404,10 +411,12 @@
                                 title: reservation.menu_name,
                                 start: reservation.date,
                                 allDay: true,
+                                color: reservation.is_event ? '#7c3aed' : '#0ea5e9',
                                 extendedProps: {
                                     reservationId: reservation.id,
                                     timeLabel: reservation.time_label,
                                     menuName: reservation.menu_name,
+                                    isEvent: reservation.is_event,
                                 },
                             }));
 

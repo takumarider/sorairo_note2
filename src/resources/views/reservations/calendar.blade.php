@@ -37,8 +37,8 @@
                             <div class="font-bold text-cyan-700">¥{{ number_format($totalPrice) }}</div>
                         </div>
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
-                            <span class="text-xs text-slate-500">所要時間</span>
-                            <div class="font-bold text-slate-900">{{ $totalDuration }}分</div>
+                            <span class="text-xs text-slate-500">{{ $menu->is_event ? '時間枠' : '所要時間' }}</span>
+                            <div class="font-bold text-slate-900">{{ $menu->is_event ? '各開催時間でご案内' : $totalDuration . '分' }}</div>
                         </div>
                     </div>
 

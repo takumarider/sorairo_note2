@@ -80,6 +80,9 @@
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     <input type="hidden" name="date" value="{{ $date }}">
                     <input type="hidden" name="start_time" value="{{ $startTime }}">
+                    @if(!empty($slotId))
+                        <input type="hidden" name="slot_id" value="{{ $slotId }}">
+                    @endif
                     @foreach($options ?? [] as $option)
                         <input type="hidden" name="options[]" value="{{ $option->id }}">
                     @endforeach

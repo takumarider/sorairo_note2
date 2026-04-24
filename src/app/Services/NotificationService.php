@@ -22,7 +22,9 @@ class NotificationService
             $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
-            $template = $this->resolveTemplateContent($settings, $reservation, 'user_confirmed');
+            $isEvent = $reservation->menu->is_event;
+            $templateType = $isEvent ? 'event_user_confirmed' : 'user_confirmed';
+            $template = $this->resolveTemplateContent($settings, $reservation, $templateType);
 
             Mail::to($reservation->user->email)
                 ->send(new ReservationConfirmed($reservation, $template['subject'], $template['body']));
@@ -43,7 +45,9 @@ class NotificationService
             $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
-            $template = $this->resolveTemplateContent($settings, $reservation, 'user_canceled');
+            $isEvent = $reservation->menu->is_event;
+            $templateType = $isEvent ? 'event_user_canceled' : 'user_canceled';
+            $template = $this->resolveTemplateContent($settings, $reservation, $templateType);
 
             Mail::to($reservation->user->email)
                 ->send(new ReservationCanceled($reservation, $template['subject'], $template['body']));
@@ -74,7 +78,13 @@ class NotificationService
 
             $this->applyFromSettings($settings);
 
-            $templateType = $type === 'canceled' ? 'admin_canceled' : 'admin_confirmed';
+            $isEvent = $reservation->menu->is_event;
+            $templateType = match (true) {
+                $type === 'canceled' && $isEvent => 'event_admin_canceled',
+                $type === 'canceled' => 'admin_canceled',
+                $isEvent => 'event_admin_confirmed',
+                default => 'admin_confirmed',
+            };
             $template = $this->resolveTemplateContent($settings, $reservation, $templateType);
 
             Mail::to($settings->admin_notification_email)
@@ -132,6 +142,22 @@ class NotificationService
             'admin_canceled' => [
                 'subject' => $settings->mail_admin_canceled_subject,
                 'body' => $settings->mail_admin_canceled_body,
+            ],
+            'event_user_confirmed' => [
+                'subject' => $settings->mail_event_user_confirmed_subject,
+                'body' => $settings->mail_event_user_confirmed_body,
+            ],
+            'event_user_canceled' => [
+                'subject' => $settings->mail_event_user_canceled_subject,
+                'body' => $settings->mail_event_user_canceled_body,
+            ],
+            'event_admin_confirmed' => [
+                'subject' => $settings->mail_event_admin_confirmed_subject,
+                'body' => $settings->mail_event_admin_confirmed_body,
+            ],
+            'event_admin_canceled' => [
+                'subject' => $settings->mail_event_admin_canceled_subject,
+                'body' => $settings->mail_event_admin_canceled_body,
             ],
         ];
 

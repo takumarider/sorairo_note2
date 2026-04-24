@@ -5,8 +5,8 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 sm:py-10"
-         x-data="menuOptionSelector({{ $menu->price }}, {{ $menu->duration }})"
+        <div class="py-6 sm:py-10"
+            x-data="menuOptionSelector({{ $menu->price }}, {{ $menu->is_event ? 0 : $menu->duration }})"
          x-init="init()"
          data-requested-options='@json(array_map("intval", (array) request("options", [])))'>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 sm:pb-6">
@@ -23,6 +23,9 @@
 
                 <div class="p-5 sm:p-8">
                     <p class="text-xs font-semibold tracking-wide text-sky-700">STEP 0 / 2</p>
+                    @if($menu->is_event)
+                        <p class="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">EVENT MENU</p>
+                    @endif
                     <h1 class="text-2xl sm:text-3xl font-bold text-sky-950 mt-1 mb-4">{{ $menu->name }}</h1>
 
                     <div class="grid grid-cols-2 gap-3 mb-6">
@@ -37,12 +40,16 @@
                         </div>
 
                         <div class="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
-                            <p class="text-xs text-sky-700 font-semibold">合計所要時間</p>
+                            <p class="text-xs text-sky-700 font-semibold">{{ $menu->is_event ? '時間枠' : '合計所要時間' }}</p>
                             <div class="flex items-center gap-2 mt-1">
                                 <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="text-xl font-bold text-sky-900" x-text="totalDurationValue + '分'"></span>
+                                @if($menu->is_event)
+                                    <span class="text-xl font-bold text-sky-900">各開催時間でご案内</span>
+                                @else
+                                    <span class="text-xl font-bold text-sky-900" x-text="totalDurationValue + '分'"></span>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -52,7 +59,13 @@
                         <p class="text-slate-700 leading-relaxed">{{ $menu->description }}</p>
                     </div>
 
-                    @if($menu->options && $menu->options->isNotEmpty())
+                    @if($menu->is_event)
+                        <div class="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                            イベントメニューです。日時ごとの枠と定員に応じて予約を受け付けます。
+                        </div>
+                    @endif
+
+                    @if(! $menu->is_event && $menu->options && $menu->options->isNotEmpty())
                         <div class="mb-8">
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-lg sm:text-xl font-bold text-sky-950">オプション</h2>
@@ -129,7 +142,7 @@
                         <div class="hidden sm:flex gap-3">
                             <button type="submit"
                                     class="flex-1 text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2 transition">
-                                日時を選択して予約へ進む
+                                {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
                             <a href="{{ route('menus.index') }}"
                                class="px-5 py-3.5 rounded-xl bg-sky-50 text-sky-800 font-semibold border border-sky-200 hover:bg-sky-100 transition">
@@ -144,7 +157,7 @@
                             </div>
                             <button type="submit"
                                     class="w-full text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm active:scale-[0.99] hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 transition">
-                                日時を選択して予約へ進む
+                                {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
                         </div>
                     </form>
