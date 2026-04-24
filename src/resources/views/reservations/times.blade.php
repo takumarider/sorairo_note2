@@ -21,8 +21,8 @@
                             <div class="font-bold text-cyan-700">¥{{ number_format($totalPrice) }}</div>
                         </div>
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
-                            <span class="text-xs text-slate-500">所要時間</span>
-                            <div class="font-bold text-slate-900">{{ $totalDuration }}分</div>
+                            <span class="text-xs text-slate-500">{{ $menu->is_event ? '時間枠' : '所要時間' }}</span>
+                            <div class="font-bold text-slate-900">{{ $menu->is_event ? '各開催時間でご案内' : $totalDuration . '分' }}</div>
                         </div>
                     </div>
 
@@ -58,7 +58,10 @@
                         'evening' => ['label' => '夕方以降', 'range' => '17:00 - 22:00', 'times' => []],
                     ];
 
-                    foreach ($availableTimes as $time) {
+                    // イベントは disabled 枠も含む全スロットをバケットへ入れる
+                    $allTimesForBuckets = $menu->is_event ? array_keys($eventSlotDetails) : $availableTimes;
+
+                    foreach ($allTimesForBuckets as $time) {
                         $hour = (int) substr($time, 0, 2);
                         if ($hour < 12) {
                             $timeBuckets['morning']['times'][] = $time;
@@ -82,19 +85,25 @@
                         <p class="mt-1 text-xs text-slate-500">ボタンをタップすると確認画面へ進みます</p>
                     </div>
 
-                    @if(empty($availableTimes))
+                    @if($menu->is_event ? empty($eventSlotDetails) : empty($availableTimes))
                             <div class="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
                                 <p>{{ $reasonMessages[$availabilityReason] ?? 'この日に利用可能な時間がありません。別の日付でお試しください。' }}</p>
                             </div>
                     @else
+                        @if(!$menu->is_event || !empty($availableTimes))
                         <button type="submit"
                                 name="start_time"
                                 value="{{ $availableTimes[0] }}"
                                 class="w-full rounded-2xl border border-sky-300 bg-sky-50 px-4 py-3 text-left ring-1 ring-sky-100 transition hover:bg-sky-100 active:scale-[0.99]">
                             <p class="text-xs font-semibold text-sky-700">最短で予約できる時間</p>
                             <p class="mt-1 text-2xl font-bold text-slate-900">{{ $availableTimes[0] }}</p>
-                            <p class="mt-1 text-xs text-slate-600">終了予定 {{ \Carbon\Carbon::createFromFormat('H:i', $availableTimes[0])->addMinutes($totalDuration)->format('H:i') }}</p>
+                            <p class="mt-1 text-xs text-slate-600">
+                                {{ $menu->is_event
+                                    ? '終了 ' . data_get($eventSlotDetails, $availableTimes[0] . '.end_time', '--:--') . ' / 残り ' . data_get($eventSlotDetails, $availableTimes[0] . '.remaining_capacity', '-') . '席'
+                                    : '終了予定 ' . \Carbon\Carbon::createFromFormat('H:i', $availableTimes[0])->addMinutes($totalDuration)->format('H:i') }}
+                            </p>
                         </button>
+                        @endif
 
                         @foreach($timeBuckets as $bucket)
                             @if(!empty($bucket['times']))
@@ -105,13 +114,37 @@
                                     </div>
                                     <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                         @foreach($bucket['times'] as $time)
-                                            <button type="submit"
-                                                    name="start_time"
-                                                    value="{{ $time }}"
-                                                    class="rounded-xl border border-sky-300 bg-sky-50 px-2 py-2.5 text-center transition hover:border-sky-500 hover:bg-sky-100 active:scale-[0.99]">
-                                                <span class="block text-base font-bold text-slate-900">{{ $time }}</span>
-                                                <span class="block text-[11px] text-slate-500">終了 {{ \Carbon\Carbon::createFromFormat('H:i', $time)->addMinutes($totalDuration)->format('H:i') }}</span>
-                                            </button>
+                                            @php
+                                                $slotStatus = $menu->is_event
+                                                    ? data_get($eventSlotDetails, $time . '.status', 'available')
+                                                    : 'available';
+                                            @endphp
+                                            @if($slotStatus === 'user_already_reserved')
+                                                {{-- 同日予約済み：感謝メッセージで非活性表示 --}}
+                                                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2.5 text-center cursor-default">
+                                                    <span class="block text-base font-bold text-emerald-700">{{ $time }}</span>
+                                                    <span class="block text-[11px] font-semibold text-emerald-600 leading-tight mt-0.5">ご予約ありがとうございます。</span>
+                                                </div>
+                                            @elseif($slotStatus === 'fully_booked')
+                                                {{-- 定員いっぱい：満席表示で非活性 --}}
+                                                <div class="rounded-xl border border-slate-200 bg-slate-100 px-2 py-2.5 text-center cursor-default">
+                                                    <span class="block text-base font-bold text-slate-400">{{ $time }}</span>
+                                                    <span class="block text-[11px] font-semibold text-slate-400 mt-0.5">定員になりました</span>
+                                                </div>
+                                            @else
+                                                {{-- 予約可能：通常ボタン --}}
+                                                <button type="submit"
+                                                        name="start_time"
+                                                        value="{{ $time }}"
+                                                        class="rounded-xl border border-sky-300 bg-sky-50 px-2 py-2.5 text-center transition hover:border-sky-500 hover:bg-sky-100 active:scale-[0.99]">
+                                                    <span class="block text-base font-bold text-slate-900">{{ $time }}</span>
+                                                    <span class="block text-[11px] text-slate-500">
+                                                        {{ $menu->is_event
+                                                            ? '終了 ' . data_get($eventSlotDetails, $time . '.end_time', '--:--') . ' / 残り ' . data_get($eventSlotDetails, $time . '.remaining_capacity', '-') . '席'
+                                                            : '終了 ' . \Carbon\Carbon::createFromFormat('H:i', $time)->addMinutes($totalDuration)->format('H:i') }}
+                                                    </span>
+                                                </button>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </section>

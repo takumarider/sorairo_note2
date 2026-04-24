@@ -14,10 +14,6 @@ class ListSlots extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('calendar')
-                ->label('カレンダーで管理')
-                ->icon('heroicon-m-calendar')
-                ->url(SlotResource::getUrl('calendar')),
             Actions\Action::make('history')
                 ->label('履歴')
                 ->icon('heroicon-m-archive-box')

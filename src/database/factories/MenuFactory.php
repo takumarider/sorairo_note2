@@ -21,6 +21,7 @@ class MenuFactory extends Factory
             'description' => fake()->sentence(),
             'price' => fake()->numberBetween(3000, 10000),
             'duration' => fake()->randomElement([30, 60, 90, 120]),
+            'is_event' => false,
             'is_active' => true,
         ];
     }

@@ -2,6 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+    .reservation-complete-card {
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+    }
+
+    .reservation-complete-hero {
+        padding: 1.75rem 1.5rem;
+        color: #fff;
+        text-align: center;
+    }
+
+    .reservation-complete-hero--standard {
+        background:
+            radial-gradient(
+                circle at top,
+                rgba(255, 255, 255, 0.24),
+                transparent 42%
+            ),
+            linear-gradient(135deg, #0f4c81 0%, #0ea5e9 54%, #38bdf8 100%);
+    }
+
+    .reservation-complete-hero--event {
+        background:
+            radial-gradient(
+                circle at top,
+                rgba(255, 255, 255, 0.24),
+                transparent 42%
+            ),
+            linear-gradient(135deg, #7c3aed 0%, #db2777 58%, #f97316 100%);
+    }
+
+    .reservation-complete-chip {
+        display: inline-block;
+        margin-top: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 9999px;
+        padding: 0.35rem 0.9rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        backdrop-filter: blur(6px);
+    }
+
+    .reservation-complete-chip--standard {
+        background: rgba(239, 246, 255, 0.16);
+        color: #eff6ff;
+        box-shadow: 0 10px 30px rgba(3, 105, 161, 0.28);
+    }
+
+    .reservation-complete-chip--event {
+        background: rgba(255, 255, 255, 0.18);
+        color: #fff7ed;
+        box-shadow: 0 10px 30px rgba(76, 29, 149, 0.28);
+    }
+
+    .reservation-complete-inline-chip {
+        display: inline-block;
+        margin-left: 0.5rem;
+        border-radius: 9999px;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        vertical-align: middle;
+    }
+
+    .reservation-complete-inline-chip--standard {
+        background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+        color: #0369a1;
+    }
+
+    .reservation-complete-inline-chip--event {
+        background: linear-gradient(135deg, #ede9fe 0%, #fae8ff 100%);
+        color: #7c3aed;
+    }
+}
+
 /*動作確認用のカスタムファイル*/
 .test-vite-working {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

@@ -53,11 +53,14 @@
                                 @endif
 
                                 <div class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
-                                    {{ $menu->duration }}分
+                                    {{ $menu->is_event ? 'イベント' : $menu->duration . '分' }}
                                 </div>
                             </div>
 
                             <div class="p-4 sm:p-5">
+                                @if($menu->is_event)
+                                    <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">EVENT</span>
+                                @endif
                                 <h2 class="text-lg font-bold text-slate-900">{{ $menu->name }}</h2>
                                 <p class="mt-2 min-h-[3rem] text-sm text-slate-600">
                                     {{ \Illuminate\Support\Str::limit((string) $menu->description, 78) }}
@@ -68,9 +71,9 @@
                                     <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}</span>
                                 </div>
 
-                                          <a href="{{ route('menus.show', ['menu' => $menu->id]) }}"
-                                              class="mt-4 block w-full rounded-xl bg-sky-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
-                                    このメニューで日時を選ぶ
+                                <a href="{{ route('menus.show', ['menu' => $menu->id]) }}"
+                                   class="mt-4 block w-full rounded-xl bg-sky-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                                    {{ $menu->is_event ? 'このイベントの日時を選ぶ' : 'このメニューで日時を選ぶ' }}
                                 </a>
                             </div>
                         </article>
