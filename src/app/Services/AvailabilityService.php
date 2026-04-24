@@ -10,8 +10,8 @@ use App\Models\ReservationPublicationMonth;
 use App\Models\Slot;
 use App\Models\TimeBlock;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class AvailabilityService
 {
