@@ -30,6 +30,11 @@ class ReservationCalendarTest extends TestCase
             'year_month' => now('Asia/Tokyo')->format('Y-m'),
             'is_published' => true,
         ]);
+
+        ReservationPublicationMonth::create([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'is_published' => true,
+        ]);
     }
 
     public function test_menu_show_contains_hidden_menu_id_and_calendar_form_action(): void
@@ -77,7 +82,7 @@ class ReservationCalendarTest extends TestCase
 
     public function test_times_page_shows_closed_day_message(): void
     {
-        $targetDate = now()->addDay();
+        $targetDate = now('Asia/Tokyo')->addDay();
 
         BusinessHour::updateOrCreate(
             [

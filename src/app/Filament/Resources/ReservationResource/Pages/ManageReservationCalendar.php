@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ReservationResource\Pages;
 
 use App\Filament\Resources\ReservationResource;
 use App\Models\Reservation;
+use App\Models\Slot;
 use App\Models\TimeBlock;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -21,6 +22,8 @@ class ManageReservationCalendar extends Page
     protected static ?string $title = '予約カレンダー';
 
     public ?array $selectedReservation = null;
+
+    public ?array $selectedSlot = null;
 
     public string $operationMode = 'reservation';
 
@@ -65,9 +68,14 @@ class ManageReservationCalendar extends Page
             ->values()
             ->all();
 
+        $slotEvents = $this->getEventSlotEvents($startDate, $endDate);
+
         $blockEvents = $this->getTimeBlockEvents($startDate, $endDate);
 
-        return array_merge($blockEvents, $reservationEvents);
+        return collect(array_merge($blockEvents, $reservationEvents, $slotEvents))
+            ->sortBy('start')
+            ->values()
+            ->all();
     }
 
     public function setOperationMode(string $mode): void
@@ -221,6 +229,39 @@ class ManageReservationCalendar extends Page
         $this->dispatch('open-modal', id: 'reservation-calendar-detail');
     }
 
+    public function openSlotModal(int $slotId): void
+    {
+        $slot = Slot::query()
+            ->with('menu')
+            ->withCount([
+                'reservations as confirmed_reservations_count' => fn (Builder $query) => $query->where('status', 'confirmed'),
+            ])
+            ->find($slotId);
+
+        if (! $slot) {
+            Notification::make()
+                ->title('イベント枠情報を取得できませんでした。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $payload = $this->buildSlotPayload($slot);
+
+        if (! $payload) {
+            Notification::make()
+                ->title('イベント枠日時を解決できません。')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $this->selectedSlot = $payload;
+        $this->dispatch('open-modal', id: 'reservation-calendar-slot-detail');
+    }
+
     public function cancelSelectedReservation(): void
     {
         if (! $this->selectedReservation || ! isset($this->selectedReservation['id'])) {
@@ -295,6 +336,59 @@ class ManageReservationCalendar extends Page
         ];
     }
 
+    protected function getEventSlotEvents(Carbon $startDate, Carbon $endDate): array
+    {
+        return Slot::query()
+            ->with('menu')
+            ->withCount([
+                'reservations as confirmed_reservations_count' => fn (Builder $query) => $query->where('status', 'confirmed'),
+            ])
+            ->whereHas('menu', fn (Builder $query) => $query->where('is_event', true))
+            ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (Slot $slot): ?array => $this->buildEventSlotCalendarEvent($slot))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    protected function buildEventSlotCalendarEvent(Slot $slot): ?array
+    {
+        $startAt = $this->resolveSlotDateTime($slot, 'start');
+        $endAt = $this->resolveSlotDateTime($slot, 'end');
+
+        if (! $startAt || ! $endAt) {
+            return null;
+        }
+
+        $menuName = $slot->menu?->name ?? 'イベント枠';
+        $remainingCapacity = $slot->remainingCapacity();
+        $confirmedCount = $slot->confirmedCount();
+        $isFull = $remainingCapacity !== null && $remainingCapacity <= 0;
+
+        return [
+            'id' => 'slot-'.$slot->id,
+            'title' => sprintf('%s-%s %s（枠）', $startAt->format('H:i'), $endAt->format('H:i'), $menuName),
+            'start' => $startAt->format('Y-m-d\TH:i:s'),
+            'end' => $endAt->format('Y-m-d\TH:i:s'),
+            'backgroundColor' => $isFull ? '#60a5fa' : '#0284c7',
+            'borderColor' => $isFull ? '#3b82f6' : '#0369a1',
+            'textColor' => '#f0f9ff',
+            'editable' => false,
+            'durationEditable' => false,
+            'extendedProps' => [
+                'type' => 'slot',
+                'slot_id' => $slot->id,
+                'menuName' => $menuName,
+                'capacity' => $slot->capacity,
+                'confirmed_count' => $confirmedCount,
+                'remaining_capacity' => $remainingCapacity,
+            ],
+        ];
+    }
+
     protected function buildReservationPayload(Reservation $reservation): ?array
     {
         $startAt = $this->resolveReservationDateTime($reservation, 'start');
@@ -335,6 +429,58 @@ class ManageReservationCalendar extends Page
             'status_label' => $status['label'],
             'status_badge_class' => $status['badge'],
         ];
+    }
+
+    protected function buildSlotPayload(Slot $slot): ?array
+    {
+        $startAt = $this->resolveSlotDateTime($slot, 'start');
+        $endAt = $this->resolveSlotDateTime($slot, 'end');
+
+        if (! $startAt || ! $endAt) {
+            return null;
+        }
+
+        $remainingCapacity = $slot->remainingCapacity();
+        $confirmedCount = $slot->confirmedCount();
+        $statusLabel = match (true) {
+            $slot->capacity === null => '定員未設定',
+            $remainingCapacity !== null && $remainingCapacity <= 0 => '満席',
+            default => '受付中',
+        };
+
+        $statusBadgeClass = match (true) {
+            $slot->capacity === null => 'bg-slate-100 text-slate-700 ring-slate-200',
+            $remainingCapacity !== null && $remainingCapacity <= 0 => 'bg-blue-100 text-blue-700 ring-blue-200',
+            default => 'bg-sky-100 text-sky-700 ring-sky-200',
+        };
+
+        return [
+            'id' => $slot->id,
+            'menu_name' => $slot->menu?->name ?? 'イベント枠',
+            'date_label' => $startAt->locale('ja')->isoFormat('Y年M月D日(ddd)'),
+            'time_label' => $startAt->format('H:i').' - '.$endAt->format('H:i'),
+            'capacity_label' => $slot->capacity !== null ? $slot->capacity.'名' : '未設定',
+            'confirmed_count_label' => $confirmedCount.'名',
+            'remaining_capacity_label' => $remainingCapacity !== null ? $remainingCapacity.'名' : '未設定',
+            'status_label' => $statusLabel,
+            'status_badge_class' => $statusBadgeClass,
+        ];
+    }
+
+    protected function resolveSlotDateTime(Slot $slot, string $edge): ?Carbon
+    {
+        $date = $slot->date;
+        $time = $edge === 'start' ? $slot->start_time : $slot->end_time;
+
+        if (! $date || ! $time) {
+            return null;
+        }
+
+        return Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $date->toDateString().' '.$time->format('H:i:s'),
+            'Asia/Tokyo',
+        );
     }
 
     protected function resolveReservationDateTime(Reservation $reservation, string $edge): ?Carbon

@@ -211,6 +211,9 @@ class ReservationController extends Controller
             $startTime = $slot->start_time->format('H:i');
             $totalDuration = $startDateTime->diffInMinutes($endDateTime);
             $totalPrice = $menu->price;
+            foreach ($options as $option) {
+                $totalPrice += $option->price;
+            }
         } else {
             $totalDuration = $menu->duration;
             $totalPrice = $menu->price;
@@ -451,10 +454,10 @@ class ReservationController extends Controller
 
     private function resolveOptions(Menu $menu, array $optionIds)
     {
-        if ($menu->is_event || $optionIds === []) {
+        if ($optionIds === []) {
             return collect();
         }
 
-        return MenuOption::whereIn('id', $optionIds)->active()->get();
+        return MenuOption::whereIn('id', $optionIds)->where('menu_id', $menu->id)->active()->get();
     }
 }

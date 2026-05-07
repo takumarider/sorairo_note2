@@ -28,6 +28,10 @@
                         <span class="h-2 w-2 rounded-full bg-red-600"></span>
                         時間帯ブロック
                     </span>
+                    <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1">
+                        <span class="h-2 w-2 rounded-full bg-sky-700"></span>
+                        イベント枠
+                    </span>
                 </div>
             </div>
         </section>
@@ -84,7 +88,7 @@
                 @if ($operationMode === 'block')
                     カレンダーをドラッグして予約不可の時間帯ブロックを作成できます。作成後はドラッグ・リサイズで調整、クリックで削除できます。
                 @else
-                    予約をクリックすると詳細モーダルを表示します。
+                    予約をクリックすると予約詳細、イベント枠をクリックするとイベント枠詳細を表示します。
                 @endif
             </p>
         </section>
@@ -242,6 +246,67 @@
                     </x-filament::button>
                 @endif
                 <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'reservation-calendar-detail' })">
+                    閉じる
+                </x-filament::button>
+            </div>
+        </x-slot>
+    </x-filament::modal>
+
+    <x-filament::modal
+        id="reservation-calendar-slot-detail"
+        width="md"
+        icon="heroicon-o-calendar-days"
+        icon-color="info"
+    >
+        <x-slot name="heading">
+            イベント枠詳細
+        </x-slot>
+
+        <x-slot name="description">
+            選択したイベント枠の定員と予約状況を確認できます。
+        </x-slot>
+
+        @if ($selectedSlot)
+            <div class="space-y-4">
+                <div class="rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 via-white to-cyan-50 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Event Slot</p>
+                            <p class="mt-1 text-lg font-semibold text-slate-900">{{ $selectedSlot['menu_name'] }}</p>
+                        </div>
+                        <span class="inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-bold ring-1 {{ $selectedSlot['status_badge_class'] }}">
+                            {{ $selectedSlot['status_label'] }}
+                        </span>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-2 text-sm">
+                        <span class="inline-flex items-center rounded-full border border-sky-200 bg-white px-3 py-1 font-semibold text-sky-800">{{ $selectedSlot['date_label'] }}</span>
+                        <span class="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 font-semibold text-cyan-800">{{ $selectedSlot['time_label'] }}</span>
+                    </div>
+                </div>
+
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">定員</p>
+                        <p class="mt-1 text-lg font-bold text-slate-900">{{ $selectedSlot['capacity_label'] }}</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">予約済み</p>
+                        <p class="mt-1 text-lg font-bold text-slate-900">{{ $selectedSlot['confirmed_count_label'] }}</p>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">残枠</p>
+                        <p class="mt-1 text-lg font-bold text-slate-900">{{ $selectedSlot['remaining_capacity_label'] }}</p>
+                    </div>
+                </div>
+            </div>
+        @else
+            <p class="text-sm text-slate-500">イベント枠を選択すると詳細を表示します。</p>
+        @endif
+
+        <x-slot name="footer">
+            <div class="flex items-center justify-end">
+                <x-filament::button color="gray" x-on:click="$dispatch('close-modal', { id: 'reservation-calendar-slot-detail' })">
                     閉じる
                 </x-filament::button>
             </div>
@@ -830,6 +895,12 @@
                                     .then(() => calendar.refetchEvents())
                                     .catch(() => calendar.refetchEvents());
                             }
+
+                            return;
+                        }
+
+                        if (eventType === 'slot') {
+                            livewireComponent.call('openSlotModal', Number(info.event.extendedProps.slot_id));
 
                             return;
                         }

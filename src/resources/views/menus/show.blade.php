@@ -6,7 +6,7 @@
     </x-slot>
 
         <div class="py-6 sm:py-10"
-            x-data="menuOptionSelector({{ $menu->price }}, {{ $menu->is_event ? 0 : $menu->duration }})"
+            x-data="menuOptionSelector({{ $menu->price }}, {{ $menu->duration }})"
          x-init="init()"
          data-requested-options='@json(array_map("intval", (array) request("options", [])))'>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 sm:pb-6">
@@ -37,6 +37,9 @@
                                 </svg>
                                 <span class="text-2xl font-bold text-sky-700" x-text="'¥' + Number(totalPriceValue).toLocaleString('ja-JP')"></span>
                             </div>
+                            @if($menu->price_max)
+                                <p class="mt-1 text-xs text-sky-600">参考: ¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</p>
+                            @endif
                         </div>
 
                         <div class="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
@@ -65,7 +68,7 @@
                         </div>
                     @endif
 
-                    @if(! $menu->is_event && $menu->options && $menu->options->isNotEmpty())
+                    @if($menu->options && $menu->options->isNotEmpty())
                         <div class="mb-8">
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-lg sm:text-xl font-bold text-sky-950">オプション</h2>

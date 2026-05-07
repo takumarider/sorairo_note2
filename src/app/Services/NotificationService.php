@@ -14,6 +14,17 @@ use Throwable;
 class NotificationService
 {
     /**
+     * 同一リクエスト内での重複投稿を防ぐ。
+     *
+     * @var array<string, bool>
+     */
+    private array $sentDiscordReservationEvents = [];
+
+    public function __construct(
+        private DiscordService $discordService
+    ) {}
+
+    /**
      * ユーザーに予約確定通知を送信
      */
     public function sendReservationConfirmedToUser(Reservation $reservation): void
@@ -28,6 +39,8 @@ class NotificationService
 
             Mail::to($reservation->user->email)
                 ->send(new ReservationConfirmed($reservation, $template['subject'], $template['body']));
+
+            $this->notifyReservationToDiscord($reservation, 'confirmed');
         } catch (Throwable $e) {
             Log::warning('予約確定メールの送信に失敗しました', [
                 'reservation_id' => $reservation->id,
@@ -51,6 +64,8 @@ class NotificationService
 
             Mail::to($reservation->user->email)
                 ->send(new ReservationCanceled($reservation, $template['subject'], $template['body']));
+
+            $this->notifyReservationToDiscord($reservation, 'canceled');
         } catch (Throwable $e) {
             Log::warning('予約キャンセルメールの送信に失敗しました', [
                 'reservation_id' => $reservation->id,
@@ -89,6 +104,8 @@ class NotificationService
 
             Mail::to($settings->admin_notification_email)
                 ->send(new AdminReservationNotification($reservation, $type, $template['subject'], $template['body']));
+
+            $this->notifyReservationToDiscord($reservation, $type);
         } catch (Throwable $e) {
             Log::warning('管理者通知メールの送信に失敗しました', [
                 'reservation_id' => $reservation->id,
@@ -214,5 +231,53 @@ class NotificationService
 
             return $variables[$key] ?? '';
         }, $template);
+    }
+
+    /**
+     * 予約イベントを Discord に通知する。
+     */
+    private function notifyReservationToDiscord(Reservation $reservation, string $type): void
+    {
+        $eventType = $type === 'canceled' ? 'canceled' : 'confirmed';
+        $eventKey = $reservation->id.':'.$eventType;
+
+        if (isset($this->sentDiscordReservationEvents[$eventKey])) {
+            return;
+        }
+
+        $this->sentDiscordReservationEvents[$eventKey] = true;
+        $message = $this->buildReservationDiscordMessage($reservation, $eventType);
+
+        $this->discordService->send($message, [
+            'category' => 'reservation',
+            'reservation_id' => $reservation->id,
+            'type' => $eventType,
+        ]);
+    }
+
+    /**
+     * 予約通知用のDiscordメッセージを作成する。
+     */
+    private function buildReservationDiscordMessage(Reservation $reservation, string $type): string
+    {
+        $variables = $this->buildTemplateVariables(
+            $reservation,
+            $type === 'canceled' ? 'user_canceled' : 'user_confirmed'
+        );
+
+        $eventLabel = $type === 'canceled' ? 'キャンセル' : '予約確定';
+        $start = $variables['reservation_start_time'] ?? '';
+        $end = $variables['reservation_end_time'] ?? '';
+        $timeRange = $start !== '' && $end !== '' ? $start.' - '.$end : $start;
+
+        return implode("\n", [
+            '【予約通知】',
+            '種別: '.$eventLabel,
+            'ユーザー名: '.($variables['user_name'] ?: '未設定'),
+            '日時: '.($variables['reservation_date'] ?: '未設定').($timeRange !== '' ? ' '.$timeRange : ''),
+            'メニュー: '.($variables['menu_name'] ?: '未設定'),
+            '予約ID: '.($variables['reservation_id'] ?: '未設定'),
+            '管理画面: '.($variables['admin_reservation_url'] ?: '未設定'),
+        ]);
     }
 }
