@@ -519,11 +519,9 @@ APP_ENV=production
 APP_DEBUG=false
 APP_KEY=<ランダム生成>
 DB_CONNECTION=pgsql
-DB_HOST=<Render PostgreSQL Host>
-DB_PORT=5432
-DB_DATABASE=<Database Name>
-DB_USERNAME=<Database User>
-DB_PASSWORD=<Database Password>
+DB_URL=<Render PostgreSQL Internal Database URL>
+# 互換用（どちらか一方でOK）
+DATABASE_URL=<Render PostgreSQL Internal Database URL>
 RENDER_DISK_PATH=/var/uploads
 ```
 
@@ -532,9 +530,10 @@ RENDER_DISK_PATH=/var/uploads
 ```bash
 # Render Shell で実行
 php artisan migrate --force
-php artisan db:seed --force
 php artisan storage:link
 ```
+
+`db:seed --force` は初回セットアップなど必要時のみ実行し、再デプロイのたびには実行しないでください。
 
 `storage:link` は初回デプロイ直後に 1 回実行してください。
 

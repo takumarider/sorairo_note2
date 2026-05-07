@@ -36,6 +36,11 @@ class EventReservationFlowTest extends TestCase
             'year_month' => now('Asia/Tokyo')->format('Y-m'),
             'is_published' => true,
         ]);
+
+        ReservationPublicationMonth::create([
+            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'is_published' => true,
+        ]);
     }
 
     public function test_event_menu_uses_slot_capacity_for_availability(): void

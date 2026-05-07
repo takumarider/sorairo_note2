@@ -124,6 +124,17 @@ echo "========================================"
 
 cd /var/www/html
 
+# DB接続設定のガード（本番での意図しないsqliteフォールバックを防止）
+if [ -z "${DB_CONNECTION:-}" ]; then
+  echo "❌ ERROR: DB_CONNECTION is not set"
+  exit 1
+fi
+
+if [ "$DB_CONNECTION" = "pgsql" ] && [ -z "${DB_URL:-}" ] && [ -z "${DATABASE_URL:-}" ]; then
+  echo "❌ ERROR: DB_URL or DATABASE_URL must be set when DB_CONNECTION=pgsql"
+  exit 1
+fi
+
 echo "📦 Checking frontend assets..."
 if [ ! -d "public/build" ]; then
   echo "❌ ERROR: public/build directory not found!"
@@ -141,6 +152,7 @@ else
 fi
 
 echo "📦 Running database migrations..."
+php artisan config:clear || true
 php artisan migrate --force || { echo "❌ Migration failed"; exit 1; }
 
 echo "⚡ Caching configuration files..."

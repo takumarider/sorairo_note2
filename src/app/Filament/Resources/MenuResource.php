@@ -53,6 +53,12 @@ class MenuResource extends Resource
                             ->numeric()
                             ->suffix('円')
                             ->required(),
+                        Forms\Components\TextInput::make('price_max')
+                            ->label('料金上限')
+                            ->numeric()
+                            ->suffix('円')
+                            ->minValue(0)
+                            ->helperText('幅のある料金設定の場合、上限額を入力します（例: ¥3,000〜¥5,000）。未入力なら単一料金として扱います。'),
                         Forms\Components\TextInput::make('duration')
                             ->label('所要時間')
                             ->numeric()
@@ -74,14 +80,13 @@ class MenuResource extends Resource
                             ->default(true),
                         Forms\Components\Placeholder::make('event_slot_hint')
                             ->label('イベント枠の扱い')
-                            ->content('イベントは時間枠管理で開始・終了時刻を設定します。所要時間やオプションは使用しません。')
+                            ->content('イベントは時間枠管理で開始・終了時刻を設定します。所要時間はスロットで管理されます。オプションを設定することもできます。')
                             ->visible(fn (Get $get): bool => (bool) $get('is_event'))
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
 
                 Forms\Components\Section::make('オプション')
-                    ->hidden(fn (Get $get): bool => (bool) $get('is_event'))
                     ->schema([
                         Forms\Components\Repeater::make('options')
                             ->relationship('options')

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\ReservationResource\Pages\ManageReservationCalendar;
 use App\Models\Menu;
 use App\Models\Reservation;
+use App\Models\Slot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -24,6 +26,48 @@ class AdminReservationCalendarTest extends TestCase
         $response->assertSee('予約状況カレンダー');
         $response->assertSee('日・週・月で予約を確認');
         $response->assertSee('reservation-calendar-detail', false);
+        $response->assertSee('イベント枠');
+        $response->assertSee('reservation-calendar-slot-detail', false);
+    }
+
+    public function test_calendar_events_include_event_slots_even_without_reservations(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+
+        $menu = Menu::factory()->create([
+            'name' => '春イベント',
+            'is_event' => true,
+            'duration' => 0,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDay()->toDateString();
+        $slot = Slot::create([
+            'menu_id' => $menu->id,
+            'date' => $date,
+            'start_time' => '14:00',
+            'end_time' => '15:30',
+            'capacity' => 3,
+            'is_reserved' => false,
+        ]);
+
+        $this->actingAs($admin);
+
+        $page = app(ManageReservationCalendar::class);
+        $events = $page->getCalendarEvents(
+            now('Asia/Tokyo')->startOfWeek()->toIso8601String(),
+            now('Asia/Tokyo')->endOfWeek()->addDay()->toIso8601String(),
+        );
+
+        $slotEvent = collect($events)->first(fn (array $event): bool => ($event['id'] ?? null) === 'slot-'.$slot->id);
+
+        $this->assertNotNull($slotEvent);
+        $this->assertSame('slot', $slotEvent['extendedProps']['type']);
+        $this->assertSame(3, $slotEvent['extendedProps']['capacity']);
+        $this->assertSame(0, $slotEvent['extendedProps']['confirmed_count']);
+        $this->assertSame(3, $slotEvent['extendedProps']['remaining_capacity']);
+        $this->assertStringContainsString('（枠）', $slotEvent['title']);
     }
 
     public function test_reservation_list_shows_calendar_navigation_for_admin(): void

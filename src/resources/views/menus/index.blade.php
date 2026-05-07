@@ -68,7 +68,11 @@
 
                                 <div class="mt-4 flex items-center justify-between rounded-xl bg-cyan-50 px-3 py-2">
                                     <span class="text-xs font-semibold text-cyan-700">料金</span>
-                                    <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}</span>
+                                    @if($menu->price_max)
+                                        <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</span>
+                                    @else
+                                        <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}</span>
+                                    @endif
                                 </div>
 
                                 <a href="{{ route('menus.show', ['menu' => $menu->id]) }}"

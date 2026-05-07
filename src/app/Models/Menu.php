@@ -14,6 +14,7 @@ class Menu extends Model
         'name',
         'description',
         'price',
+        'price_max',
         'duration',
         'image_path',
         'is_event',
@@ -25,6 +26,7 @@ class Menu extends Model
         return [
             'is_event' => 'boolean',
             'is_active' => 'boolean',
+            'price_max' => 'integer',
         ];
     }
 
