@@ -27,7 +27,7 @@
                                 </div>
                                 @if($note->image_path)
                                     <div class="w-24 h-24 rounded-xl overflow-hidden shadow-md ring-1 ring-sky-100">
-                                        <img src="{{ asset('storage/'.$note->image_path) }}" alt="{{ $note->title }}" class="w-full h-full object-cover">
+                                        <img src="{{ Storage::url($note->image_path) }}" alt="{{ $note->title }}" class="w-full h-full object-cover">
                                     </div>
                                 @endif
                             </div>

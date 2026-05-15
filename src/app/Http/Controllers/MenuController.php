@@ -8,7 +8,10 @@ class MenuController extends Controller
 {
     public function index()
     {
-        $menus = Menu::where('is_active', true)->get();
+        $menus = Menu::query()
+            ->where('is_active', true)
+            ->orderedByTypeForDisplay()
+            ->get();
 
         return view('menus.index', compact('menus'));
     }

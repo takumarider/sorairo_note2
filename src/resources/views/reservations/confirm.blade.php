@@ -26,7 +26,7 @@
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 overflow-hidden rounded bg-gray-100 shrink-0">
                                         @if($option->image_path)
-                                            <img src="{{ asset('storage/' . $option->image_path) }}" alt="{{ $option->name }}" class="w-full h-full object-cover">
+                                            <img src="{{ Storage::url($option->image_path) }}" alt="{{ $option->name }}" class="w-full h-full object-cover">
                                         @else
                                             <div class="w-full h-full flex items-center justify-center text-[10px] text-gray-400">画像なし</div>
                                         @endif

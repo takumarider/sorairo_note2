@@ -523,19 +523,22 @@ DB_URL=<Render PostgreSQL Internal Database URL>
 # 互換用（どちらか一方でOK）
 DATABASE_URL=<Render PostgreSQL Internal Database URL>
 RENDER_DISK_PATH=/var/uploads
+STORAGE_URL=https://<your-render-domain>/storage
 ```
+
+`STORAGE_URL` は必ず `https://` を含む完全URLで設定してください。スキームなし（例: `app.example.com/storage`）だと、管理画面の画像プレビューが相対パス解釈されて 404 になります。
 
 #### 5. マイグレーション / シンボリックリンク
 
 ```bash
 # Render Shell で実行
 php artisan migrate --force
-php artisan storage:link
+php artisan storage:link --force
 ```
 
 `db:seed --force` は初回セットアップなど必要時のみ実行し、再デプロイのたびには実行しないでください。
 
-`storage:link` は初回デプロイ直後に 1 回実行してください。
+`storage:link --force` は再デプロイ後も実行してください（`public/storage` リンクの不整合を防ぐため）。
 
 #### 6. 永続化の確認
 

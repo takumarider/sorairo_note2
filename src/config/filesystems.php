@@ -1,5 +1,14 @@
 <?php
 
+$storageBaseUrl = trim((string) env('STORAGE_URL', env('APP_URL', '')));
+
+if ($storageBaseUrl !== '' && ! str_starts_with($storageBaseUrl, 'http://') && ! str_starts_with($storageBaseUrl, 'https://')) {
+    $defaultScheme = env('APP_ENV', 'production') === 'local' ? 'http://' : 'https://';
+    $storageBaseUrl = $defaultScheme.ltrim($storageBaseUrl, '/');
+}
+
+$storageBaseUrl = rtrim($storageBaseUrl, '/');
+
 return [
 
     /*
@@ -39,7 +48,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => rtrim(env('RENDER_DISK_PATH', storage_path('app')), '/').'/public',
-            'url' => rtrim(env('STORAGE_URL', env('APP_URL', '')), '/').'/storage',
+            'url' => $storageBaseUrl !== '' ? $storageBaseUrl.'/storage' : '/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
