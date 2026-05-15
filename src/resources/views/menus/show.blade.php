@@ -13,7 +13,7 @@
             <div class="rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 overflow-hidden">
                 <div class="aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-sky-50 to-cyan-50">
                     @if($menu->image_path)
-                        <img src="{{ asset('storage/' . $menu->image_path) }}" alt="{{ $menu->name }}" class="w-full h-full object-cover">
+                        <img src="{{ Storage::url($menu->image_path) }}" alt="{{ $menu->name }}" class="w-full h-full object-cover">
                     @else
                         <div class="w-full h-full flex items-center justify-center">
                             <span class="text-sky-300 text-xl">画像なし</span>
@@ -107,7 +107,7 @@
 
                                                 <div class="w-16 h-16 overflow-hidden rounded-lg bg-sky-50 shrink-0 ring-1 ring-sky-100">
                                                     @if($option->image_path)
-                                                        <img src="{{ asset('storage/' . $option->image_path) }}" alt="{{ $option->name }}" class="w-full h-full object-cover">
+                                                        <img src="{{ Storage::url($option->image_path) }}" alt="{{ $option->name }}" class="w-full h-full object-cover">
                                                     @else
                                                         <div class="w-full h-full flex items-center justify-center text-[10px] text-sky-300">画像なし</div>
                                                     @endif

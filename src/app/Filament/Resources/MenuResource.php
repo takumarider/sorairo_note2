@@ -11,6 +11,7 @@ use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class MenuResource extends Resource
 {
@@ -23,6 +24,11 @@ class MenuResource extends Resource
     protected static ?string $modelLabel = 'メニュー';
 
     protected static ?string $pluralModelLabel = 'メニュー';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->orderedForDisplay();
+    }
 
     public static function form(Form $form): Form
     {
@@ -72,12 +78,19 @@ class MenuResource extends Resource
                             ->image()
                             ->directory('menus')
                             ->disk('public')
+                            ->visibility('public')
                             ->imageEditor()
                             ->imagePreviewHeight('150')
                             ->columnSpanFull(),
-                        Forms\Components\Toggle::make('is_active')
-                            ->label('有効')
-                            ->default(true),
+                        Forms\Components\Radio::make('is_active')
+                            ->label('公開設定')
+                            ->options([
+                                1 => '公開',
+                                0 => '非公開',
+                            ])
+                            ->default(1)
+                            ->required()
+                            ->inline(),
                         Forms\Components\Placeholder::make('event_slot_hint')
                             ->label('イベント枠の扱い')
                             ->content('イベントは時間枠管理で開始・終了時刻を設定します。所要時間はスロットで管理されます。オプションを設定することもできます。')
@@ -113,6 +126,7 @@ class MenuResource extends Resource
                                     ->image()
                                     ->directory('menu-options')
                                     ->disk('public')
+                                    ->visibility('public')
                                     ->imageEditor()
                                     ->imagePreviewHeight('100')
                                     ->required(),
@@ -130,6 +144,8 @@ class MenuResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultSort('sort_order')
+            ->reorderable('sort_order')
             ->columns([
                 Tables\Columns\ImageColumn::make('image_path')
                     ->label('画像')
@@ -139,6 +155,9 @@ class MenuResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('メニュー名')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('sort_order')
+                    ->label('表示順')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_event')
                     ->label('イベント')
@@ -153,7 +172,7 @@ class MenuResource extends Resource
                     ->suffix('分')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('有効')
+                    ->label('公開')
                     ->boolean()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
@@ -171,7 +190,7 @@ class MenuResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_event')
                     ->label('イベント'),
                 Tables\Filters\TernaryFilter::make('is_active')
-                    ->label('有効'),
+                    ->label('公開'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -45,7 +45,7 @@
                         >
                             <div class="relative aspect-[4/3] w-full overflow-hidden">
                                 @if($menu->image_path)
-                                    <img src="{{ asset('storage/' . $menu->image_path) }}" alt="{{ $menu->name }}" class="h-full w-full object-cover">
+                                    <img src="{{ Storage::url($menu->image_path) }}" alt="{{ $menu->name }}" class="h-full w-full object-cover">
                                 @else
                                     <div class="flex h-full w-full items-center justify-center bg-slate-100">
                                         <span class="text-sm text-slate-400">画像なし</span>
