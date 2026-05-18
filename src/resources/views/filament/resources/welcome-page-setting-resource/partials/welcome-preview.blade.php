@@ -1,4 +1,42 @@
 <div class="space-y-4">
+    @php
+        $themeBackgroundClass = [
+            'sky' => 'bg-gradient-to-br from-sky-50 via-white to-cyan-100',
+            'mint' => 'bg-gradient-to-br from-emerald-50 via-white to-teal-100',
+            'sand' => 'bg-gradient-to-br from-amber-50 via-white to-orange-100',
+        ][$theme_background ?? ''] ?? 'bg-gradient-to-br from-sky-50 via-white to-cyan-100';
+
+        $accentClasses = [
+            'sky' => ['badge' => 'bg-sky-100 text-sky-800', 'button' => 'border-sky-200 text-sky-800'],
+            'emerald' => ['badge' => 'bg-emerald-100 text-emerald-800', 'button' => 'border-emerald-200 text-emerald-800'],
+            'rose' => ['badge' => 'bg-rose-100 text-rose-800', 'button' => 'border-rose-200 text-rose-800'],
+        ][$theme_accent ?? ''] ?? ['badge' => 'bg-sky-100 text-sky-800', 'button' => 'border-sky-200 text-sky-800'];
+
+        $heroAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$hero_text_align ?? ''] ?? 'text-left';
+        $heroTitleSizeClass = ['md' => 'text-2xl', 'lg' => 'text-3xl', 'xl' => 'text-4xl'][$hero_title_size ?? ''] ?? 'text-3xl';
+        $heroTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$hero_title_color ?? ''] ?? 'text-slate-900';
+        $heroSubtitleSizeClass = ['sm' => 'text-base', 'md' => 'text-lg', 'lg' => 'text-xl'][$hero_subtitle_size ?? ''] ?? 'text-lg';
+        $heroSubtitleColorClass = ['sky' => 'text-sky-800', 'emerald' => 'text-emerald-800', 'rose' => 'text-rose-800'][$hero_subtitle_color ?? ''] ?? 'text-sky-800';
+        $heroLeadSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$hero_lead_size ?? ''] ?? 'text-base';
+        $heroLeadColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$hero_lead_color ?? ''] ?? 'text-slate-600';
+        $heroLeadMode = in_array($hero_lead_paragraph_mode ?? null, ['line', 'paragraph'], true) ? $hero_lead_paragraph_mode : 'line';
+        $shopParagraphMode = in_array($shop_paragraph_mode ?? null, ['line', 'paragraph'], true) ? $shop_paragraph_mode : 'line';
+        $shopTitleSizeClass = ['sm' => 'text-base', 'md' => 'text-lg', 'lg' => 'text-xl'][$shop_title_size ?? ''] ?? 'text-lg';
+        $shopTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$shop_title_color ?? ''] ?? 'text-slate-900';
+        $shopBodySizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$shop_body_size ?? ''] ?? 'text-sm';
+        $shopBodyColorClass = ['slate' => 'text-slate-700', 'sky' => 'text-sky-800', 'emerald' => 'text-emerald-800'][$shop_body_color ?? ''] ?? 'text-slate-700';
+
+        $toParagraphs = static function (?string $text): array {
+            if (! filled($text)) {
+                return [];
+            }
+
+            $normalized = str_replace(["\r\n", "\r"], "\n", trim((string) $text));
+            $parts = preg_split('/\n{2,}/', $normalized) ?: [];
+
+            return array_values(array_filter($parts, static fn (string $part): bool => filled(trim($part))));
+        };
+    @endphp
     <style>
         .slide-enter-right { animation: slideInRight .35s ease both; }
         .slide-enter-left  { animation: slideInLeft  .35s ease both; }
@@ -12,27 +50,33 @@
         }
     </style>
 
-    <div class="space-y-4 rounded-lg bg-gradient-to-br from-sky-50 via-white to-cyan-100 p-6">
+    <div class="space-y-4 rounded-lg {{ $themeBackgroundClass }} p-6">
         <div class="rounded-2xl bg-white/70 p-6 backdrop-blur-lg">
-            <div class="space-y-3">
+            <div class="space-y-3 {{ $heroAlignClass }}">
                 @if ($hero_badge ?? null)
-                    <span class="inline-block rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-800">
+                    <span class="inline-block rounded-full px-3 py-1 text-sm font-semibold {{ $accentClasses['badge'] }}">
                         {{ $hero_badge }}
                     </span>
                 @endif
 
                 @if ($hero_title ?? null)
-                    <h1 class="text-3xl font-extrabold text-slate-900">{{ $hero_title }}</h1>
+                    <h1 class="{{ $heroTitleSizeClass }} font-extrabold {{ $heroTitleColorClass }}">{{ $hero_title }}</h1>
                 @else
                     <p class="text-sm italic text-slate-500">メイン見出しを入力してください</p>
                 @endif
 
                 @if ($hero_subtitle ?? null)
-                    <p class="text-lg font-semibold text-sky-800">{{ $hero_subtitle }}</p>
+                    <p class="{{ $heroSubtitleSizeClass }} font-semibold {{ $heroSubtitleColorClass }}">{{ $hero_subtitle }}</p>
                 @endif
 
                 @if ($hero_lead ?? null)
-                    <p class="text-base text-slate-600">{{ $hero_lead }}</p>
+                    @if ($heroLeadMode === 'paragraph')
+                        @foreach ($toParagraphs($hero_lead) as $paragraph)
+                            <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $paragraph }}</p>
+                        @endforeach
+                    @else
+                        <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $hero_lead }}</p>
+                    @endif
                 @else
                     <p class="text-sm italic text-slate-500">リード文を入力してください</p>
                 @endif
@@ -55,8 +99,22 @@
                             <div class="flex items-start gap-2">
                                 <span class="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">1</span>
                                 <div class="flex-1">
-                                    <h3 class="font-semibold text-slate-900">{{ $block['title'] ?? '（見出しなし）' }}</h3>
-                                    <p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ $block['text'] ?? '（本文なし）' }}</p>
+                                    @php
+                                        $blockTitleSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$block['title_size'] ?? ''] ?? 'text-base';
+                                        $blockTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$block['title_color'] ?? ''] ?? 'text-slate-900';
+                                        $blockTextSizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$block['text_size'] ?? ''] ?? 'text-sm';
+                                        $blockTextColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$block['text_color'] ?? ''] ?? 'text-slate-600';
+                                        $blockTextAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$block['text_align'] ?? ''] ?? 'text-left';
+                                        $blockMode = in_array($block['paragraph_mode'] ?? null, ['line', 'paragraph'], true) ? $block['paragraph_mode'] : 'line';
+                                    @endphp
+                                    <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ $block['title'] ?? '（見出しなし）' }}</h3>
+                                    @if ($blockMode === 'paragraph')
+                                        @foreach ($toParagraphs($block['text'] ?? null) as $paragraph)
+                                            <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $paragraph }}</p>
+                                        @endforeach
+                                    @else
+                                        <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $block['text'] ?? '（本文なし）' }}</p>
+                                    @endif
                                 </div>
                             </div>
                             @if ($block['image'] ?? null)
@@ -99,8 +157,22 @@
                                 <div class="flex items-start gap-2">
                                     <span class="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">{{ $index + 1 }}</span>
                                     <div class="flex-1">
-                                        <h3 class="font-semibold text-slate-900">{{ $block['title'] ?? '（見出しなし）' }}</h3>
-                                        <p class="mt-1 whitespace-pre-line text-sm text-slate-600">{{ $block['text'] ?? '（本文なし）' }}</p>
+                                        @php
+                                            $blockTitleSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$block['title_size'] ?? ''] ?? 'text-base';
+                                            $blockTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$block['title_color'] ?? ''] ?? 'text-slate-900';
+                                            $blockTextSizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$block['text_size'] ?? ''] ?? 'text-sm';
+                                            $blockTextColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$block['text_color'] ?? ''] ?? 'text-slate-600';
+                                            $blockTextAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$block['text_align'] ?? ''] ?? 'text-left';
+                                            $blockMode = in_array($block['paragraph_mode'] ?? null, ['line', 'paragraph'], true) ? $block['paragraph_mode'] : 'line';
+                                        @endphp
+                                        <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ $block['title'] ?? '（見出しなし）' }}</h3>
+                                        @if ($blockMode === 'paragraph')
+                                            @foreach ($toParagraphs($block['text'] ?? null) as $paragraph)
+                                                <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $paragraph }}</p>
+                                            @endforeach
+                                        @else
+                                            <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $block['text'] ?? '（本文なし）' }}</p>
+                                        @endif
                                     </div>
                                 </div>
                                 @if ($block['image'] ?? null)
@@ -137,12 +209,18 @@
         @endif
 
         <div class="rounded-2xl border border-white/50 bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 p-6 backdrop-blur-lg">
-            <h3 class="mb-3 text-lg font-bold text-slate-900">
+            <h3 class="mb-3 font-bold {{ $shopTitleSizeClass }} {{ $shopTitleColorClass }}">
                 {{ $shop_title ?? '店舗情報' }}
             </h3>
-            <div class="space-y-2 text-sm text-slate-700">
+            <div class="space-y-2 {{ $shopBodySizeClass }} {{ $shopBodyColorClass }}">
                 @if ($shop_description ?? null)
-                    <p class="whitespace-pre-line">{{ $shop_description }}</p>
+                    @if ($shopParagraphMode === 'paragraph')
+                        @foreach ($toParagraphs($shop_description) as $paragraph)
+                            <p class="whitespace-pre-line">{{ $paragraph }}</p>
+                        @endforeach
+                    @else
+                        <p class="whitespace-pre-line">{{ $shop_description }}</p>
+                    @endif
                 @endif
 
                 <p class="whitespace-pre-line">
@@ -161,12 +239,18 @@
                 </p>
 
                 @if ($shop_note ?? null)
-                    <p class="pt-1 whitespace-pre-line text-slate-600">{{ $shop_note }}</p>
+                    @if ($shopParagraphMode === 'paragraph')
+                        @foreach ($toParagraphs($shop_note) as $paragraph)
+                            <p class="pt-1 whitespace-pre-line">{{ $paragraph }}</p>
+                        @endforeach
+                    @else
+                        <p class="pt-1 whitespace-pre-line">{{ $shop_note }}</p>
+                    @endif
                 @endif
 
                 @if ($instagram_url ?? null)
                     <div class="pt-2">
-                        <a href="{{ $instagram_url }}" target="_blank" rel="noopener noreferrer" class="inline-block rounded-full border border-sky-200 bg-white/80 px-3 py-1.5 text-sm font-semibold text-sky-800 hover:bg-white">
+                        <a href="{{ $instagram_url }}" target="_blank" rel="noopener noreferrer" class="inline-block rounded-full border bg-white/80 px-3 py-1.5 text-sm font-semibold hover:bg-white {{ $accentClasses['button'] }}">
                             Instagram
                         </a>
                     </div>

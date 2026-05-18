@@ -39,6 +39,42 @@ class WelcomePageTest extends TestCase
         $response->assertSee('https://www.instagram.com/test_account', false);
     }
 
+    public function test_welcome_page_applies_style_settings_and_paragraph_mode(): void
+    {
+        SystemSetting::getSingleton()->update([
+            'welcome_title' => '装飾タイトル',
+            'welcome_lead' => "1段落目\n\n2段落目",
+            'welcome_theme_background' => 'mint',
+            'welcome_theme_accent' => 'emerald',
+            'welcome_hero_title_size' => 'xl',
+            'welcome_hero_title_color' => 'emerald',
+            'welcome_hero_text_align' => 'center',
+            'welcome_hero_lead_paragraph_mode' => 'paragraph',
+            'welcome_body_blocks' => [
+                [
+                    'title' => '装飾ブロック',
+                    'text' => "本文A\n\n本文B",
+                    'title_size' => 'lg',
+                    'title_color' => 'emerald',
+                    'text_size' => 'lg',
+                    'text_color' => 'emerald',
+                    'text_align' => 'center',
+                    'paragraph_mode' => 'paragraph',
+                    'image_path' => null,
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('装飾タイトル');
+        $response->assertSee('装飾ブロック');
+        $response->assertSee('from-emerald-50', false);
+        $response->assertSee('text-center', false);
+        $response->assertSee('text-5xl lg:text-6xl', false);
+    }
+
     public function test_welcome_page_shows_dashboard_link_for_authenticated_user(): void
     {
         $user = User::factory()->create();

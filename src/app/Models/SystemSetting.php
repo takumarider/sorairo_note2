@@ -44,6 +44,21 @@ class SystemSetting extends Model
         'welcome_contact_number',
         'welcome_business_note',
         'welcome_instagram_url',
+        'welcome_theme_background',
+        'welcome_theme_accent',
+        'welcome_hero_title_size',
+        'welcome_hero_title_color',
+        'welcome_hero_subtitle_size',
+        'welcome_hero_subtitle_color',
+        'welcome_hero_lead_size',
+        'welcome_hero_lead_color',
+        'welcome_hero_text_align',
+        'welcome_hero_lead_paragraph_mode',
+        'welcome_shop_title_size',
+        'welcome_shop_title_color',
+        'welcome_shop_body_size',
+        'welcome_shop_body_color',
+        'welcome_shop_paragraph_mode',
     ];
 
     protected $casts = [
