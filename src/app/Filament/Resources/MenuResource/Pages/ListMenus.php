@@ -25,7 +25,7 @@ class ListMenus extends ListRecords
         ];
     }
 
-    public function getDefaultActiveTab(): string | int | null
+    public function getDefaultActiveTab(): string|int|null
     {
         return 'treatments';
     }

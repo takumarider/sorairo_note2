@@ -83,6 +83,85 @@ class WelcomePageSettingResource extends Resource
                 ->maxLength(500)
                 ->columnSpanFull()
                 ->live(onBlur: true),
+            Forms\Components\Select::make('welcome_theme_background')
+                ->label('全体背景テーマ')
+                ->options([
+                    'sky' => '空色グラデーション',
+                    'mint' => 'ミントグラデーション',
+                    'sand' => 'サンドグラデーション',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_theme_accent')
+                ->label('アクセントカラー')
+                ->options([
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                    'rose' => 'ローズ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_text_align')
+                ->label('ヒーロー文字配置')
+                ->options([
+                    'left' => '左寄せ',
+                    'center' => '中央寄せ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_title_size')
+                ->label('見出しサイズ')
+                ->options([
+                    'md' => '標準',
+                    'lg' => '大きめ',
+                    'xl' => '大きい',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_title_color')
+                ->label('見出し色')
+                ->options([
+                    'slate' => '濃いグレー',
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_subtitle_size')
+                ->label('サブ見出しサイズ')
+                ->options([
+                    'sm' => '控えめ',
+                    'md' => '標準',
+                    'lg' => '大きめ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_subtitle_color')
+                ->label('サブ見出し色')
+                ->options([
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                    'rose' => 'ローズ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_lead_size')
+                ->label('リード文サイズ')
+                ->options([
+                    'sm' => '控えめ',
+                    'md' => '標準',
+                    'lg' => '大きめ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_lead_color')
+                ->label('リード文色')
+                ->options([
+                    'slate' => 'グレー',
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_hero_lead_paragraph_mode')
+                ->label('リード文の改行表示')
+                ->options([
+                    'line' => 'そのまま改行',
+                    'paragraph' => '段落表示',
+                ])
+                ->native(false)
+                ->helperText('段落表示は空行ごとに段落として表示します。'),
             Forms\Components\FileUpload::make('welcome_main_image_path')
                 ->label('メイン画像')
                 ->image()
@@ -101,6 +180,22 @@ class WelcomePageSettingResource extends Resource
                         ->required()
                         ->maxLength(120)
                         ->live(onBlur: true),
+                    Forms\Components\Select::make('title_size')
+                        ->label('見出しサイズ')
+                        ->options([
+                            'sm' => '控えめ',
+                            'md' => '標準',
+                            'lg' => '大きめ',
+                        ])
+                        ->native(false),
+                    Forms\Components\Select::make('title_color')
+                        ->label('見出し色')
+                        ->options([
+                            'slate' => '濃いグレー',
+                            'sky' => 'スカイ',
+                            'emerald' => 'エメラルド',
+                        ])
+                        ->native(false),
                     Forms\Components\Textarea::make('text')
                         ->label('本文')
                         ->rows(4)
@@ -108,6 +203,37 @@ class WelcomePageSettingResource extends Resource
                         ->maxLength(2000)
                         ->columnSpanFull()
                         ->live(onBlur: true),
+                    Forms\Components\Select::make('text_size')
+                        ->label('本文サイズ')
+                        ->options([
+                            'sm' => '控えめ',
+                            'md' => '標準',
+                            'lg' => '大きめ',
+                        ])
+                        ->native(false),
+                    Forms\Components\Select::make('text_color')
+                        ->label('本文色')
+                        ->options([
+                            'slate' => 'グレー',
+                            'sky' => 'スカイ',
+                            'emerald' => 'エメラルド',
+                        ])
+                        ->native(false),
+                    Forms\Components\Select::make('text_align')
+                        ->label('本文配置')
+                        ->options([
+                            'left' => '左寄せ',
+                            'center' => '中央寄せ',
+                        ])
+                        ->native(false),
+                    Forms\Components\Select::make('paragraph_mode')
+                        ->label('本文改行表示')
+                        ->options([
+                            'line' => 'そのまま改行',
+                            'paragraph' => '段落表示',
+                            'inherit' => '全体設定に合わせる',
+                        ])
+                        ->native(false),
                     Forms\Components\FileUpload::make('image_path')
                         ->label('画像')
                         ->image()
@@ -128,6 +254,22 @@ class WelcomePageSettingResource extends Resource
                 ->maxLength(120)
                 ->placeholder('店舗情報')
                 ->live(onBlur: true),
+            Forms\Components\Select::make('welcome_shop_title_size')
+                ->label('店舗情報タイトルサイズ')
+                ->options([
+                    'sm' => '控えめ',
+                    'md' => '標準',
+                    'lg' => '大きめ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_shop_title_color')
+                ->label('店舗情報タイトル色')
+                ->options([
+                    'slate' => '濃いグレー',
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                ])
+                ->native(false),
             Forms\Components\Textarea::make('welcome_shop_description')
                 ->label('店舗紹介文')
                 ->rows(3)
@@ -157,11 +299,36 @@ class WelcomePageSettingResource extends Resource
                 ->maxLength(500)
                 ->columnSpanFull()
                 ->live(onBlur: true),
+            Forms\Components\Select::make('welcome_shop_body_size')
+                ->label('店舗情報本文サイズ')
+                ->options([
+                    'sm' => '控えめ',
+                    'md' => '標準',
+                    'lg' => '大きめ',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_shop_body_color')
+                ->label('店舗情報本文色')
+                ->options([
+                    'slate' => 'グレー',
+                    'sky' => 'スカイ',
+                    'emerald' => 'エメラルド',
+                ])
+                ->native(false),
+            Forms\Components\Select::make('welcome_shop_paragraph_mode')
+                ->label('店舗情報の改行表示')
+                ->options([
+                    'line' => 'そのまま改行',
+                    'paragraph' => '段落表示',
+                ])
+                ->native(false),
             Forms\Components\TextInput::make('welcome_instagram_url')
                 ->label('Instagramリンク')
                 ->url()
+                ->rule('starts_with:http://,https://')
                 ->maxLength(255)
                 ->placeholder('https://www.instagram.com/your_account')
+                ->helperText('http:// または https:// で始まるURLを入力してください。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
         ];
@@ -180,6 +347,12 @@ class WelcomePageSettingResource extends Resource
                     'title' => $block['title'] ?? null,
                     'text' => $block['text'] ?? null,
                     'image' => static::resolveImageUrl($block['image_path'] ?? null),
+                    'title_size' => $block['title_size'] ?? null,
+                    'title_color' => $block['title_color'] ?? null,
+                    'text_size' => $block['text_size'] ?? null,
+                    'text_color' => $block['text_color'] ?? null,
+                    'text_align' => $block['text_align'] ?? null,
+                    'paragraph_mode' => $block['paragraph_mode'] ?? null,
                 ])
                 ->values()
                 ->toArray(),
@@ -190,6 +363,21 @@ class WelcomePageSettingResource extends Resource
             'shop_contact_number' => $state['welcome_contact_number'] ?? null,
             'shop_note' => $state['welcome_business_note'] ?? null,
             'instagram_url' => $state['welcome_instagram_url'] ?? null,
+            'theme_background' => $state['welcome_theme_background'] ?? null,
+            'theme_accent' => $state['welcome_theme_accent'] ?? null,
+            'hero_title_size' => $state['welcome_hero_title_size'] ?? null,
+            'hero_title_color' => $state['welcome_hero_title_color'] ?? null,
+            'hero_subtitle_size' => $state['welcome_hero_subtitle_size'] ?? null,
+            'hero_subtitle_color' => $state['welcome_hero_subtitle_color'] ?? null,
+            'hero_lead_size' => $state['welcome_hero_lead_size'] ?? null,
+            'hero_lead_color' => $state['welcome_hero_lead_color'] ?? null,
+            'hero_text_align' => $state['welcome_hero_text_align'] ?? null,
+            'hero_lead_paragraph_mode' => $state['welcome_hero_lead_paragraph_mode'] ?? null,
+            'shop_title_size' => $state['welcome_shop_title_size'] ?? null,
+            'shop_title_color' => $state['welcome_shop_title_color'] ?? null,
+            'shop_body_size' => $state['welcome_shop_body_size'] ?? null,
+            'shop_body_color' => $state['welcome_shop_body_color'] ?? null,
+            'shop_paragraph_mode' => $state['welcome_shop_paragraph_mode'] ?? null,
         ];
     }
 

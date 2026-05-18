@@ -12,7 +12,112 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="description" content="Sorairo Note is a personal note-taking application designed to help you organize your thoughts and ideas efficiently.">       
     </head>
-    <body class="min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-100 text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
+    @php
+        $themeBackgroundClass = [
+            'sky' => 'bg-gradient-to-br from-sky-50 via-white to-cyan-100',
+            'mint' => 'bg-gradient-to-br from-emerald-50 via-white to-teal-100',
+            'sand' => 'bg-gradient-to-br from-amber-50 via-white to-orange-100',
+        ][$settings->welcome_theme_background ?? ''] ?? 'bg-gradient-to-br from-sky-50 via-white to-cyan-100';
+
+        $accentClasses = [
+            'sky' => [
+                'badge' => 'bg-sky-100 text-sky-800',
+                'button' => 'border-sky-200 text-sky-800',
+            ],
+            'emerald' => [
+                'badge' => 'bg-emerald-100 text-emerald-800',
+                'button' => 'border-emerald-200 text-emerald-800',
+            ],
+            'rose' => [
+                'badge' => 'bg-rose-100 text-rose-800',
+                'button' => 'border-rose-200 text-rose-800',
+            ],
+        ][$settings->welcome_theme_accent ?? ''] ?? [
+            'badge' => 'bg-sky-100 text-sky-800',
+            'button' => 'border-sky-200 text-sky-800',
+        ];
+
+        $heroAlignClass = [
+            'left' => 'text-left',
+            'center' => 'text-center',
+        ][$settings->welcome_hero_text_align ?? ''] ?? 'text-left';
+
+        $heroTitleSizeClass = [
+            'md' => 'text-3xl lg:text-4xl',
+            'lg' => 'text-4xl lg:text-5xl',
+            'xl' => 'text-5xl lg:text-6xl',
+        ][$settings->welcome_hero_title_size ?? ''] ?? 'text-4xl lg:text-5xl';
+
+        $heroTitleColorClass = [
+            'slate' => 'text-slate-900',
+            'sky' => 'text-sky-900',
+            'emerald' => 'text-emerald-900',
+        ][$settings->welcome_hero_title_color ?? ''] ?? 'text-slate-900';
+
+        $heroSubtitleSizeClass = [
+            'sm' => 'text-lg lg:text-xl',
+            'md' => 'text-xl lg:text-2xl',
+            'lg' => 'text-2xl lg:text-3xl',
+        ][$settings->welcome_hero_subtitle_size ?? ''] ?? 'text-xl lg:text-2xl';
+
+        $heroSubtitleColorClass = [
+            'sky' => 'text-sky-800',
+            'emerald' => 'text-emerald-800',
+            'rose' => 'text-rose-800',
+        ][$settings->welcome_hero_subtitle_color ?? ''] ?? 'text-sky-800';
+
+        $heroLeadSizeClass = [
+            'sm' => 'text-base lg:text-lg',
+            'md' => 'text-lg lg:text-xl',
+            'lg' => 'text-xl lg:text-2xl',
+        ][$settings->welcome_hero_lead_size ?? ''] ?? 'text-lg lg:text-xl';
+
+        $heroLeadColorClass = [
+            'slate' => 'text-slate-600',
+            'sky' => 'text-sky-700',
+            'emerald' => 'text-emerald-700',
+        ][$settings->welcome_hero_lead_color ?? ''] ?? 'text-slate-600';
+
+        $heroLeadMode = in_array($settings->welcome_hero_lead_paragraph_mode, ['line', 'paragraph'], true)
+            ? $settings->welcome_hero_lead_paragraph_mode
+            : 'line';
+        $shopParagraphMode = in_array($settings->welcome_shop_paragraph_mode, ['line', 'paragraph'], true)
+            ? $settings->welcome_shop_paragraph_mode
+            : 'line';
+
+        $shopTitleSizeClass = [
+            'sm' => 'text-lg',
+            'md' => 'text-xl',
+            'lg' => 'text-2xl',
+        ][$settings->welcome_shop_title_size ?? ''] ?? 'text-xl';
+        $shopTitleColorClass = [
+            'slate' => 'text-slate-900',
+            'sky' => 'text-sky-900',
+            'emerald' => 'text-emerald-900',
+        ][$settings->welcome_shop_title_color ?? ''] ?? 'text-slate-900';
+        $shopBodySizeClass = [
+            'sm' => 'text-xs',
+            'md' => 'text-sm',
+            'lg' => 'text-base',
+        ][$settings->welcome_shop_body_size ?? ''] ?? 'text-sm';
+        $shopBodyColorClass = [
+            'slate' => 'text-slate-700',
+            'sky' => 'text-sky-800',
+            'emerald' => 'text-emerald-800',
+        ][$settings->welcome_shop_body_color ?? ''] ?? 'text-slate-700';
+
+        $toParagraphs = static function (?string $text): array {
+            if (! filled($text)) {
+                return [];
+            }
+
+            $normalized = str_replace(["\r\n", "\r"], "\n", trim((string) $text));
+            $parts = preg_split('/\n{2,}/', $normalized) ?: [];
+
+            return array_values(array_filter($parts, static fn (string $part): bool => filled(trim($part))));
+        };
+    @endphp
+    <body class="min-h-screen {{ $themeBackgroundClass }} text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
         <header class="w-full lg:max-w-5xl max-w-[340px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex justify-end items-center gap-4 flex-wrap">
@@ -27,7 +132,7 @@
                     @endauth
                     <a
                         href="{{ $settings->welcome_instagram_url ?: 'https://www.instagram.com/06sorairo30' }}"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-sky-200 text-sky-800 font-semibold shadow hover:bg-white transition"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border {{ $accentClasses['button'] }} font-semibold shadow hover:bg-white transition"
                         target="_blank"
                         rel="noopener noreferrer"
                     >
@@ -41,15 +146,22 @@
             <section class="w-full">
                 <div class="rounded-3xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl p-8 lg:p-12">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-                        <div class="space-y-4 lg:max-w-2xl">
-                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 text-sky-800 text-sm font-semibold">{{ $settings->welcome_badge ?: 'sorairo_note' }}</span>
-                            <h1 class="text-4xl lg:text-5xl font-extrabold leading-tight text-slate-900">{{ $settings->welcome_title ?: 'ドライヘッドスパ 〜sorairo〜' }}</h1>
+                        <div class="space-y-4 lg:max-w-2xl {{ $heroAlignClass }}">
+                            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full {{ $accentClasses['badge'] }} text-sm font-semibold">{{ $settings->welcome_badge ?: 'sorairo_note' }}</span>
+                            <h1 class="{{ $heroTitleSizeClass }} font-extrabold leading-tight {{ $heroTitleColorClass }}">{{ $settings->welcome_title ?: 'ドライヘッドスパ 〜sorairo〜' }}</h1>
                             @if (filled($settings->welcome_subtitle))
-                                <p class="text-xl lg:text-2xl font-semibold text-sky-800">{{ $settings->welcome_subtitle }}</p>
+                                <p class="{{ $heroSubtitleSizeClass }} font-semibold {{ $heroSubtitleColorClass }}">{{ $settings->welcome_subtitle }}</p>
                             @endif
-                            <p class="text-lg lg:text-xl text-slate-600">
-                                {{ $settings->welcome_lead ?: '世の頑張る女性がほっと一息をつける場所。' }}
-                            </p>
+                            @php
+                                $heroLeadText = $settings->welcome_lead ?: '世の頑張る女性がほっと一息をつける場所。';
+                            @endphp
+                            @if ($heroLeadMode === 'paragraph')
+                                @foreach ($toParagraphs($heroLeadText) as $paragraph)
+                                    <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $paragraph }}</p>
+                                @endforeach
+                            @else
+                                <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $heroLeadText }}</p>
+                            @endif
                         </div>
                         @if (filled($settings->welcome_main_image_path))
                             <div class="lg:w-[320px] w-full">
@@ -76,8 +188,44 @@
                                         <div class="flex items-start gap-3">
                                             <span class="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-sm">1</span>
                                             <div>
-                                                <h3 class="font-semibold text-slate-900">{{ data_get($block, 'title') }}</h3>
-                                                <p class="text-sm text-slate-600 whitespace-pre-line mt-1">{{ data_get($block, 'text') }}</p>
+                                                @php
+                                                    $blockTitleSizeClass = [
+                                                        'sm' => 'text-sm',
+                                                        'md' => 'text-base',
+                                                        'lg' => 'text-lg',
+                                                    ][data_get($block, 'title_size')] ?? 'text-base';
+                                                    $blockTitleColorClass = [
+                                                        'slate' => 'text-slate-900',
+                                                        'sky' => 'text-sky-900',
+                                                        'emerald' => 'text-emerald-900',
+                                                    ][data_get($block, 'title_color')] ?? 'text-slate-900';
+                                                    $blockTextSizeClass = [
+                                                        'sm' => 'text-xs',
+                                                        'md' => 'text-sm',
+                                                        'lg' => 'text-base',
+                                                    ][data_get($block, 'text_size')] ?? 'text-sm';
+                                                    $blockTextColorClass = [
+                                                        'slate' => 'text-slate-600',
+                                                        'sky' => 'text-sky-700',
+                                                        'emerald' => 'text-emerald-700',
+                                                    ][data_get($block, 'text_color')] ?? 'text-slate-600';
+                                                    $blockTextAlignClass = [
+                                                        'left' => 'text-left',
+                                                        'center' => 'text-center',
+                                                    ][data_get($block, 'text_align')] ?? 'text-left';
+                                                    $blockMode = data_get($block, 'paragraph_mode');
+                                                    if (! in_array($blockMode, ['line', 'paragraph'], true)) {
+                                                        $blockMode = 'line';
+                                                    }
+                                                @endphp
+                                                <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ data_get($block, 'title') }}</h3>
+                                                @if ($blockMode === 'paragraph')
+                                                    @foreach ($toParagraphs((string) data_get($block, 'text')) as $paragraph)
+                                                        <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $paragraph }}</p>
+                                                    @endforeach
+                                                @else
+                                                    <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ data_get($block, 'text') }}</p>
+                                                @endif
                                             </div>
                                         </div>
                                         @if (filled(data_get($block, 'image_path')))
@@ -135,8 +283,44 @@
                                             <div class="flex items-start gap-3">
                                                 <span class="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-sm">{{ $index + 1 }}</span>
                                                 <div>
-                                                    <h3 class="font-semibold text-slate-900">{{ data_get($block, 'title') }}</h3>
-                                                    <p class="text-sm text-slate-600 whitespace-pre-line mt-1">{{ data_get($block, 'text') }}</p>
+                                                    @php
+                                                        $blockTitleSizeClass = [
+                                                            'sm' => 'text-sm',
+                                                            'md' => 'text-base',
+                                                            'lg' => 'text-lg',
+                                                        ][data_get($block, 'title_size')] ?? 'text-base';
+                                                        $blockTitleColorClass = [
+                                                            'slate' => 'text-slate-900',
+                                                            'sky' => 'text-sky-900',
+                                                            'emerald' => 'text-emerald-900',
+                                                        ][data_get($block, 'title_color')] ?? 'text-slate-900';
+                                                        $blockTextSizeClass = [
+                                                            'sm' => 'text-xs',
+                                                            'md' => 'text-sm',
+                                                            'lg' => 'text-base',
+                                                        ][data_get($block, 'text_size')] ?? 'text-sm';
+                                                        $blockTextColorClass = [
+                                                            'slate' => 'text-slate-600',
+                                                            'sky' => 'text-sky-700',
+                                                            'emerald' => 'text-emerald-700',
+                                                        ][data_get($block, 'text_color')] ?? 'text-slate-600';
+                                                        $blockTextAlignClass = [
+                                                            'left' => 'text-left',
+                                                            'center' => 'text-center',
+                                                        ][data_get($block, 'text_align')] ?? 'text-left';
+                                                        $blockMode = data_get($block, 'paragraph_mode');
+                                                        if (! in_array($blockMode, ['line', 'paragraph'], true)) {
+                                                            $blockMode = 'line';
+                                                        }
+                                                    @endphp
+                                                    <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ data_get($block, 'title') }}</h3>
+                                                    @if ($blockMode === 'paragraph')
+                                                        @foreach ($toParagraphs((string) data_get($block, 'text')) as $paragraph)
+                                                            <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ $paragraph }}</p>
+                                                        @endforeach
+                                                    @else
+                                                        <p class="mt-1 whitespace-pre-line {{ $blockTextSizeClass }} {{ $blockTextColorClass }} {{ $blockTextAlignClass }}">{{ data_get($block, 'text') }}</p>
+                                                    @endif
                                                 </div>
                                             </div>
                                             @if (filled(data_get($block, 'image_path')))
@@ -193,16 +377,28 @@
                     </div>
 
                     <div class="rounded-3xl bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 shadow-xl p-6 lg:p-8">
-                        <h3 class="text-xl font-bold text-slate-900 mb-3">{{ $settings->welcome_shop_title ?: '店舗情報' }}</h3>
-                        <div class="space-y-3 text-sm text-slate-700">
+                        <h3 class="{{ $shopTitleSizeClass }} font-bold {{ $shopTitleColorClass }} mb-3">{{ $settings->welcome_shop_title ?: '店舗情報' }}</h3>
+                        <div class="space-y-3 {{ $shopBodySizeClass }} {{ $shopBodyColorClass }}">
                             @if (filled($settings->welcome_shop_description))
-                                <p class="text-slate-600 whitespace-pre-line">{{ $settings->welcome_shop_description }}</p>
+                                @if ($shopParagraphMode === 'paragraph')
+                                    @foreach ($toParagraphs($settings->welcome_shop_description) as $paragraph)
+                                        <p class="whitespace-pre-line">{{ $paragraph }}</p>
+                                    @endforeach
+                                @else
+                                    <p class="whitespace-pre-line">{{ $settings->welcome_shop_description }}</p>
+                                @endif
                             @endif
                             <p class="whitespace-pre-line"><span class="font-semibold text-slate-900">営業時間:</span> {{ $settings->welcome_business_hours ?: '管理画面から設定してください' }}</p>
                             <p><span class="font-semibold text-slate-900">定休日:</span> {{ $settings->welcome_regular_holiday ?: '管理画面から設定してください' }}</p>
                             <p><span class="font-semibold text-slate-900">お問い合わせ:</span> {{ $settings->welcome_contact_number ?: '管理画面から設定してください' }}</p>
                             @if (filled($settings->welcome_business_note))
-                                <p class="pt-1 text-slate-600 whitespace-pre-line">{{ $settings->welcome_business_note }}</p>
+                                @if ($shopParagraphMode === 'paragraph')
+                                    @foreach ($toParagraphs($settings->welcome_business_note) as $paragraph)
+                                        <p class="pt-1 whitespace-pre-line">{{ $paragraph }}</p>
+                                    @endforeach
+                                @else
+                                    <p class="pt-1 whitespace-pre-line">{{ $settings->welcome_business_note }}</p>
+                                @endif
                             @endif
                         </div>
                     </div>
