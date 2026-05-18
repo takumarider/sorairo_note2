@@ -15,6 +15,16 @@
         $shopTitleColorClass = \App\Support\WelcomeStyleHelper::shopTitleColorClass($shop_title_color ?? null);
         $shopBodySizeClass = \App\Support\WelcomeStyleHelper::shopBodySizeClass($shop_body_size ?? null);
         $shopBodyColorClass = \App\Support\WelcomeStyleHelper::shopBodyColorClass($shop_body_color ?? null);
+        $cardPaddingHeroClass = \App\Support\WelcomeStyleHelper::cardPaddingHeroClass($card_padding ?? null);
+        $cardPaddingShopClass = \App\Support\WelcomeStyleHelper::cardPaddingShopClass($card_padding ?? null);
+        $cardPaddingBlockClass = \App\Support\WelcomeStyleHelper::cardPaddingBlockClass($card_padding ?? null);
+        $cardRadiusClass = \App\Support\WelcomeStyleHelper::cardRadiusClass($card_radius ?? null);
+        $cardShadowClass = \App\Support\WelcomeStyleHelper::cardShadowClass($card_shadow ?? null);
+        $fontStyleClass = \App\Support\WelcomeStyleHelper::fontStyleClass($font_style ?? null);
+        $cardPaddingHeroMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($cardPaddingHeroClass, 'mobile');
+        $cardPaddingHeroDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($cardPaddingHeroClass, 'desktop');
+        $cardPaddingShopMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($cardPaddingShopClass, 'mobile');
+        $cardPaddingShopDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($cardPaddingShopClass, 'desktop');
 
         $heroTitleSizeMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroTitleSizeClass, 'mobile');
         $heroTitleSizeDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroTitleSizeClass, 'desktop');
@@ -54,8 +64,11 @@
         <button type="button" @click="viewport = 'desktop'" :class="viewport === 'desktop' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="rounded-full px-3 py-1 text-xs font-semibold">Desktop</button>
     </div>
 
-    <div class="mx-auto space-y-4 rounded-lg {{ $themeBackgroundClass }} p-6 transition-all duration-200" :class="viewport === 'mobile' ? 'max-w-[340px]' : (viewport === 'tablet' ? 'max-w-3xl' : 'max-w-5xl')">
-        <div class="rounded-2xl bg-white/70 p-6 backdrop-blur-lg">
+    <div class="mx-auto space-y-4 rounded-lg {{ $themeBackgroundClass }} {{ $fontStyleClass }} p-6 transition-all duration-200" :class="viewport === 'mobile' ? 'max-w-[340px]' : (viewport === 'tablet' ? 'max-w-3xl' : 'max-w-5xl')">
+        <div
+            :class="viewport === 'mobile' ? '{{ $cardPaddingHeroMobileClass }}' : '{{ $cardPaddingHeroDesktopClass }}'"
+            class="{{ $cardRadiusClass }} bg-white/70 backdrop-blur-lg {{ $cardShadowClass }}"
+        >
             <div class="space-y-3 {{ $heroAlignClass }}">
                 @if ($hero_badge ?? null)
                     <span class="inline-block rounded-full px-3 py-1 text-sm font-semibold {{ $accentClasses['badge'] }}">
@@ -99,7 +112,7 @@
                 <h2 class="font-semibold text-slate-900">本文セクション</h2>
                 @if ($previewBlockCount === 1)
                     @foreach ($body_blocks as $index => $block)
-                        <div class="rounded-xl border border-white/60 bg-white/80 p-4 shadow-sm">
+                        <div class="{{ $cardRadiusClass }} border border-white/60 bg-white/80 {{ $cardPaddingBlockClass }} {{ $cardShadowClass }}">
                             <div class="flex items-start gap-2">
                                 <span class="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">1</span>
                                 <div class="flex-1">
@@ -155,7 +168,7 @@
                                 x-show="current === {{ $index }}"
                                 x-transition:enter.duration.350ms
                                 :class="direction === 'right' ? 'slide-enter-right' : 'slide-enter-left'"
-                                class="rounded-xl border border-white/60 bg-white/80 p-4 shadow-sm"
+                                class="{{ $cardRadiusClass }} border border-white/60 bg-white/80 {{ $cardPaddingBlockClass }} {{ $cardShadowClass }}"
                                 @if ($index !== 0) style="display:none;" @endif
                             >
                                 <div class="flex items-start gap-2">
@@ -212,7 +225,10 @@
             </div>
         @endif
 
-        <div class="rounded-2xl border border-white/50 bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 p-6 backdrop-blur-lg">
+        <div
+            :class="viewport === 'mobile' ? '{{ $cardPaddingShopMobileClass }}' : '{{ $cardPaddingShopDesktopClass }}'"
+            class="{{ $cardRadiusClass }} border border-white/50 bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg {{ $cardShadowClass }}"
+        >
             <h3 class="mb-3 font-bold {{ $shopTitleSizeClass }} {{ $shopTitleColorClass }}">
                 {{ $shop_title ?? '店舗情報' }}
             </h3>

@@ -59,6 +59,10 @@ class SystemSetting extends Model
         'welcome_shop_body_size',
         'welcome_shop_body_color',
         'welcome_shop_paragraph_mode',
+        'welcome_card_padding',
+        'welcome_card_radius',
+        'welcome_card_shadow',
+        'welcome_font_style',
     ];
 
     protected $casts = [
