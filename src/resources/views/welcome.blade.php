@@ -13,98 +13,21 @@
         <meta name="description" content="Sorairo Note is a personal note-taking application designed to help you organize your thoughts and ideas efficiently.">       
     </head>
     @php
-        $themeBackgroundClass = [
-            'sky' => 'bg-gradient-to-br from-sky-50 via-white to-cyan-100',
-            'mint' => 'bg-gradient-to-br from-emerald-50 via-white to-teal-100',
-            'sand' => 'bg-gradient-to-br from-amber-50 via-white to-orange-100',
-        ][$settings->welcome_theme_background ?? ''] ?? 'bg-gradient-to-br from-sky-50 via-white to-cyan-100';
-
-        $accentClasses = [
-            'sky' => [
-                'badge' => 'bg-sky-100 text-sky-800',
-                'button' => 'border-sky-200 text-sky-800',
-            ],
-            'emerald' => [
-                'badge' => 'bg-emerald-100 text-emerald-800',
-                'button' => 'border-emerald-200 text-emerald-800',
-            ],
-            'rose' => [
-                'badge' => 'bg-rose-100 text-rose-800',
-                'button' => 'border-rose-200 text-rose-800',
-            ],
-        ][$settings->welcome_theme_accent ?? ''] ?? [
-            'badge' => 'bg-sky-100 text-sky-800',
-            'button' => 'border-sky-200 text-sky-800',
-        ];
-
-        $heroAlignClass = [
-            'left' => 'text-left',
-            'center' => 'text-center',
-        ][$settings->welcome_hero_text_align ?? ''] ?? 'text-left';
-
-        $heroTitleSizeClass = [
-            'md' => 'text-3xl lg:text-4xl',
-            'lg' => 'text-4xl lg:text-5xl',
-            'xl' => 'text-5xl lg:text-6xl',
-        ][$settings->welcome_hero_title_size ?? ''] ?? 'text-4xl lg:text-5xl';
-
-        $heroTitleColorClass = [
-            'slate' => 'text-slate-900',
-            'sky' => 'text-sky-900',
-            'emerald' => 'text-emerald-900',
-        ][$settings->welcome_hero_title_color ?? ''] ?? 'text-slate-900';
-
-        $heroSubtitleSizeClass = [
-            'sm' => 'text-lg lg:text-xl',
-            'md' => 'text-xl lg:text-2xl',
-            'lg' => 'text-2xl lg:text-3xl',
-        ][$settings->welcome_hero_subtitle_size ?? ''] ?? 'text-xl lg:text-2xl';
-
-        $heroSubtitleColorClass = [
-            'sky' => 'text-sky-800',
-            'emerald' => 'text-emerald-800',
-            'rose' => 'text-rose-800',
-        ][$settings->welcome_hero_subtitle_color ?? ''] ?? 'text-sky-800';
-
-        $heroLeadSizeClass = [
-            'sm' => 'text-base lg:text-lg',
-            'md' => 'text-lg lg:text-xl',
-            'lg' => 'text-xl lg:text-2xl',
-        ][$settings->welcome_hero_lead_size ?? ''] ?? 'text-lg lg:text-xl';
-
-        $heroLeadColorClass = [
-            'slate' => 'text-slate-600',
-            'sky' => 'text-sky-700',
-            'emerald' => 'text-emerald-700',
-        ][$settings->welcome_hero_lead_color ?? ''] ?? 'text-slate-600';
-
-        $heroLeadMode = in_array($settings->welcome_hero_lead_paragraph_mode, ['line', 'paragraph'], true)
-            ? $settings->welcome_hero_lead_paragraph_mode
-            : 'line';
-        $shopParagraphMode = in_array($settings->welcome_shop_paragraph_mode, ['line', 'paragraph'], true)
-            ? $settings->welcome_shop_paragraph_mode
-            : 'line';
-
-        $shopTitleSizeClass = [
-            'sm' => 'text-lg',
-            'md' => 'text-xl',
-            'lg' => 'text-2xl',
-        ][$settings->welcome_shop_title_size ?? ''] ?? 'text-xl';
-        $shopTitleColorClass = [
-            'slate' => 'text-slate-900',
-            'sky' => 'text-sky-900',
-            'emerald' => 'text-emerald-900',
-        ][$settings->welcome_shop_title_color ?? ''] ?? 'text-slate-900';
-        $shopBodySizeClass = [
-            'sm' => 'text-xs',
-            'md' => 'text-sm',
-            'lg' => 'text-base',
-        ][$settings->welcome_shop_body_size ?? ''] ?? 'text-sm';
-        $shopBodyColorClass = [
-            'slate' => 'text-slate-700',
-            'sky' => 'text-sky-800',
-            'emerald' => 'text-emerald-800',
-        ][$settings->welcome_shop_body_color ?? ''] ?? 'text-slate-700';
+        $themeBackgroundClass = \App\Support\WelcomeStyleHelper::themeBackgroundClass($settings->welcome_theme_background);
+        $accentClasses = \App\Support\WelcomeStyleHelper::accentClasses($settings->welcome_theme_accent);
+        $heroAlignClass = \App\Support\WelcomeStyleHelper::heroAlignClass($settings->welcome_hero_text_align);
+        $heroTitleSizeClass = \App\Support\WelcomeStyleHelper::heroTitleSizeClass($settings->welcome_hero_title_size);
+        $heroTitleColorClass = \App\Support\WelcomeStyleHelper::heroTitleColorClass($settings->welcome_hero_title_color);
+        $heroSubtitleSizeClass = \App\Support\WelcomeStyleHelper::heroSubtitleSizeClass($settings->welcome_hero_subtitle_size);
+        $heroSubtitleColorClass = \App\Support\WelcomeStyleHelper::heroSubtitleColorClass($settings->welcome_hero_subtitle_color);
+        $heroLeadSizeClass = \App\Support\WelcomeStyleHelper::heroLeadSizeClass($settings->welcome_hero_lead_size);
+        $heroLeadColorClass = \App\Support\WelcomeStyleHelper::heroLeadColorClass($settings->welcome_hero_lead_color);
+        $heroLeadMode = \App\Support\WelcomeStyleHelper::paragraphMode($settings->welcome_hero_lead_paragraph_mode);
+        $shopParagraphMode = \App\Support\WelcomeStyleHelper::paragraphMode($settings->welcome_shop_paragraph_mode);
+        $shopTitleSizeClass = \App\Support\WelcomeStyleHelper::shopTitleSizeClass($settings->welcome_shop_title_size);
+        $shopTitleColorClass = \App\Support\WelcomeStyleHelper::shopTitleColorClass($settings->welcome_shop_title_color);
+        $shopBodySizeClass = \App\Support\WelcomeStyleHelper::shopBodySizeClass($settings->welcome_shop_body_size);
+        $shopBodyColorClass = \App\Support\WelcomeStyleHelper::shopBodyColorClass($settings->welcome_shop_body_color);
 
         $toParagraphs = static function (?string $text): array {
             if (! filled($text)) {
@@ -189,34 +112,12 @@
                                             <span class="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-sm">1</span>
                                             <div>
                                                 @php
-                                                    $blockTitleSizeClass = [
-                                                        'sm' => 'text-sm',
-                                                        'md' => 'text-base',
-                                                        'lg' => 'text-lg',
-                                                    ][data_get($block, 'title_size')] ?? 'text-base';
-                                                    $blockTitleColorClass = [
-                                                        'slate' => 'text-slate-900',
-                                                        'sky' => 'text-sky-900',
-                                                        'emerald' => 'text-emerald-900',
-                                                    ][data_get($block, 'title_color')] ?? 'text-slate-900';
-                                                    $blockTextSizeClass = [
-                                                        'sm' => 'text-xs',
-                                                        'md' => 'text-sm',
-                                                        'lg' => 'text-base',
-                                                    ][data_get($block, 'text_size')] ?? 'text-sm';
-                                                    $blockTextColorClass = [
-                                                        'slate' => 'text-slate-600',
-                                                        'sky' => 'text-sky-700',
-                                                        'emerald' => 'text-emerald-700',
-                                                    ][data_get($block, 'text_color')] ?? 'text-slate-600';
-                                                    $blockTextAlignClass = [
-                                                        'left' => 'text-left',
-                                                        'center' => 'text-center',
-                                                    ][data_get($block, 'text_align')] ?? 'text-left';
-                                                    $blockMode = data_get($block, 'paragraph_mode');
-                                                    if (! in_array($blockMode, ['line', 'paragraph'], true)) {
-                                                        $blockMode = 'line';
-                                                    }
+                                                    $blockTitleSizeClass = \App\Support\WelcomeStyleHelper::blockTitleSizeClass(data_get($block, 'title_size'));
+                                                    $blockTitleColorClass = \App\Support\WelcomeStyleHelper::blockTitleColorClass(data_get($block, 'title_color'));
+                                                    $blockTextSizeClass = \App\Support\WelcomeStyleHelper::blockTextSizeClass(data_get($block, 'text_size'));
+                                                    $blockTextColorClass = \App\Support\WelcomeStyleHelper::blockTextColorClass(data_get($block, 'text_color'));
+                                                    $blockTextAlignClass = \App\Support\WelcomeStyleHelper::blockTextAlignClass(data_get($block, 'text_align'));
+                                                    $blockMode = \App\Support\WelcomeStyleHelper::paragraphMode(data_get($block, 'paragraph_mode'));
                                                 @endphp
                                                 <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ data_get($block, 'title') }}</h3>
                                                 @if ($blockMode === 'paragraph')
@@ -278,40 +179,18 @@
                                             x-transition:enter.duration.350ms
                                             :class="direction === 'right' ? 'slide-enter-right' : 'slide-enter-left'"
                                             class="rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex flex-col gap-4"
-                                            style="{{ $index !== 0 ? 'display:none;' : '' }}"
+                                            @if ($index !== 0) style="display:none;" @endif
                                         >
                                             <div class="flex items-start gap-3">
                                                 <span class="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-sm">{{ $index + 1 }}</span>
                                                 <div>
                                                     @php
-                                                        $blockTitleSizeClass = [
-                                                            'sm' => 'text-sm',
-                                                            'md' => 'text-base',
-                                                            'lg' => 'text-lg',
-                                                        ][data_get($block, 'title_size')] ?? 'text-base';
-                                                        $blockTitleColorClass = [
-                                                            'slate' => 'text-slate-900',
-                                                            'sky' => 'text-sky-900',
-                                                            'emerald' => 'text-emerald-900',
-                                                        ][data_get($block, 'title_color')] ?? 'text-slate-900';
-                                                        $blockTextSizeClass = [
-                                                            'sm' => 'text-xs',
-                                                            'md' => 'text-sm',
-                                                            'lg' => 'text-base',
-                                                        ][data_get($block, 'text_size')] ?? 'text-sm';
-                                                        $blockTextColorClass = [
-                                                            'slate' => 'text-slate-600',
-                                                            'sky' => 'text-sky-700',
-                                                            'emerald' => 'text-emerald-700',
-                                                        ][data_get($block, 'text_color')] ?? 'text-slate-600';
-                                                        $blockTextAlignClass = [
-                                                            'left' => 'text-left',
-                                                            'center' => 'text-center',
-                                                        ][data_get($block, 'text_align')] ?? 'text-left';
-                                                        $blockMode = data_get($block, 'paragraph_mode');
-                                                        if (! in_array($blockMode, ['line', 'paragraph'], true)) {
-                                                            $blockMode = 'line';
-                                                        }
+                                                        $blockTitleSizeClass = \App\Support\WelcomeStyleHelper::blockTitleSizeClass(data_get($block, 'title_size'));
+                                                        $blockTitleColorClass = \App\Support\WelcomeStyleHelper::blockTitleColorClass(data_get($block, 'title_color'));
+                                                        $blockTextSizeClass = \App\Support\WelcomeStyleHelper::blockTextSizeClass(data_get($block, 'text_size'));
+                                                        $blockTextColorClass = \App\Support\WelcomeStyleHelper::blockTextColorClass(data_get($block, 'text_color'));
+                                                        $blockTextAlignClass = \App\Support\WelcomeStyleHelper::blockTextAlignClass(data_get($block, 'text_align'));
+                                                        $blockMode = \App\Support\WelcomeStyleHelper::paragraphMode(data_get($block, 'paragraph_mode'));
                                                     @endphp
                                                     <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ data_get($block, 'title') }}</h3>
                                                     @if ($blockMode === 'paragraph')

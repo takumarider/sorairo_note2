@@ -29,8 +29,8 @@ class EditWelcomePageSetting extends EditRecord
                 ->icon('heroicon-m-eye')
                 ->color('gray')
                 ->modalHeading('ウェルカムページプレビュー')
-                ->modalDescription('現在の入力内容を保存前に確認できます。')
-                ->modalWidth('5xl')
+                ->modalDescription('現在の入力内容を保存前に確認できます。上部の Mobile / Tablet / Desktop 切替で表示幅を確認してください。')
+                ->modalWidth('7xl')
                 ->modalSubmitAction(false)
                 ->modalCancelAction(fn (StaticAction $action) => $action->label('閉じる'))
                 ->modalContent(fn () => view(

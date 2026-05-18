@@ -1,30 +1,27 @@
-<div class="space-y-4">
+<div class="space-y-4" x-data="{ viewport: 'desktop' }">
     @php
-        $themeBackgroundClass = [
-            'sky' => 'bg-gradient-to-br from-sky-50 via-white to-cyan-100',
-            'mint' => 'bg-gradient-to-br from-emerald-50 via-white to-teal-100',
-            'sand' => 'bg-gradient-to-br from-amber-50 via-white to-orange-100',
-        ][$theme_background ?? ''] ?? 'bg-gradient-to-br from-sky-50 via-white to-cyan-100';
+        $themeBackgroundClass = \App\Support\WelcomeStyleHelper::themeBackgroundClass($theme_background ?? null);
+        $accentClasses = \App\Support\WelcomeStyleHelper::accentClasses($theme_accent ?? null);
+        $heroAlignClass = \App\Support\WelcomeStyleHelper::heroAlignClass($hero_text_align ?? null);
+        $heroTitleSizeClass = \App\Support\WelcomeStyleHelper::heroTitleSizeClass($hero_title_size ?? null);
+        $heroTitleColorClass = \App\Support\WelcomeStyleHelper::heroTitleColorClass($hero_title_color ?? null);
+        $heroSubtitleSizeClass = \App\Support\WelcomeStyleHelper::heroSubtitleSizeClass($hero_subtitle_size ?? null);
+        $heroSubtitleColorClass = \App\Support\WelcomeStyleHelper::heroSubtitleColorClass($hero_subtitle_color ?? null);
+        $heroLeadSizeClass = \App\Support\WelcomeStyleHelper::heroLeadSizeClass($hero_lead_size ?? null);
+        $heroLeadColorClass = \App\Support\WelcomeStyleHelper::heroLeadColorClass($hero_lead_color ?? null);
+        $heroLeadMode = \App\Support\WelcomeStyleHelper::paragraphMode($hero_lead_paragraph_mode ?? null);
+        $shopParagraphMode = \App\Support\WelcomeStyleHelper::paragraphMode($shop_paragraph_mode ?? null);
+        $shopTitleSizeClass = \App\Support\WelcomeStyleHelper::shopTitleSizeClass($shop_title_size ?? null);
+        $shopTitleColorClass = \App\Support\WelcomeStyleHelper::shopTitleColorClass($shop_title_color ?? null);
+        $shopBodySizeClass = \App\Support\WelcomeStyleHelper::shopBodySizeClass($shop_body_size ?? null);
+        $shopBodyColorClass = \App\Support\WelcomeStyleHelper::shopBodyColorClass($shop_body_color ?? null);
 
-        $accentClasses = [
-            'sky' => ['badge' => 'bg-sky-100 text-sky-800', 'button' => 'border-sky-200 text-sky-800'],
-            'emerald' => ['badge' => 'bg-emerald-100 text-emerald-800', 'button' => 'border-emerald-200 text-emerald-800'],
-            'rose' => ['badge' => 'bg-rose-100 text-rose-800', 'button' => 'border-rose-200 text-rose-800'],
-        ][$theme_accent ?? ''] ?? ['badge' => 'bg-sky-100 text-sky-800', 'button' => 'border-sky-200 text-sky-800'];
-
-        $heroAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$hero_text_align ?? ''] ?? 'text-left';
-        $heroTitleSizeClass = ['md' => 'text-2xl', 'lg' => 'text-3xl', 'xl' => 'text-4xl'][$hero_title_size ?? ''] ?? 'text-3xl';
-        $heroTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$hero_title_color ?? ''] ?? 'text-slate-900';
-        $heroSubtitleSizeClass = ['sm' => 'text-base', 'md' => 'text-lg', 'lg' => 'text-xl'][$hero_subtitle_size ?? ''] ?? 'text-lg';
-        $heroSubtitleColorClass = ['sky' => 'text-sky-800', 'emerald' => 'text-emerald-800', 'rose' => 'text-rose-800'][$hero_subtitle_color ?? ''] ?? 'text-sky-800';
-        $heroLeadSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$hero_lead_size ?? ''] ?? 'text-base';
-        $heroLeadColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$hero_lead_color ?? ''] ?? 'text-slate-600';
-        $heroLeadMode = in_array($hero_lead_paragraph_mode ?? null, ['line', 'paragraph'], true) ? $hero_lead_paragraph_mode : 'line';
-        $shopParagraphMode = in_array($shop_paragraph_mode ?? null, ['line', 'paragraph'], true) ? $shop_paragraph_mode : 'line';
-        $shopTitleSizeClass = ['sm' => 'text-base', 'md' => 'text-lg', 'lg' => 'text-xl'][$shop_title_size ?? ''] ?? 'text-lg';
-        $shopTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$shop_title_color ?? ''] ?? 'text-slate-900';
-        $shopBodySizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$shop_body_size ?? ''] ?? 'text-sm';
-        $shopBodyColorClass = ['slate' => 'text-slate-700', 'sky' => 'text-sky-800', 'emerald' => 'text-emerald-800'][$shop_body_color ?? ''] ?? 'text-slate-700';
+        $heroTitleSizeMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroTitleSizeClass, 'mobile');
+        $heroTitleSizeDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroTitleSizeClass, 'desktop');
+        $heroSubtitleSizeMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroSubtitleSizeClass, 'mobile');
+        $heroSubtitleSizeDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroSubtitleSizeClass, 'desktop');
+        $heroLeadSizeMobileClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroLeadSizeClass, 'mobile');
+        $heroLeadSizeDesktopClass = \App\Support\WelcomeStyleHelper::previewResponsiveClass($heroLeadSizeClass, 'desktop');
 
         $toParagraphs = static function (?string $text): array {
             if (! filled($text)) {
@@ -50,7 +47,14 @@
         }
     </style>
 
-    <div class="space-y-4 rounded-lg {{ $themeBackgroundClass }} p-6">
+    <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs text-slate-500">表示幅:</span>
+        <button type="button" @click="viewport = 'mobile'" :class="viewport === 'mobile' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="rounded-full px-3 py-1 text-xs font-semibold">Mobile</button>
+        <button type="button" @click="viewport = 'tablet'" :class="viewport === 'tablet' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="rounded-full px-3 py-1 text-xs font-semibold">Tablet</button>
+        <button type="button" @click="viewport = 'desktop'" :class="viewport === 'desktop' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="rounded-full px-3 py-1 text-xs font-semibold">Desktop</button>
+    </div>
+
+    <div class="mx-auto space-y-4 rounded-lg {{ $themeBackgroundClass }} p-6 transition-all duration-200" :class="viewport === 'mobile' ? 'max-w-[340px]' : (viewport === 'tablet' ? 'max-w-3xl' : 'max-w-5xl')">
         <div class="rounded-2xl bg-white/70 p-6 backdrop-blur-lg">
             <div class="space-y-3 {{ $heroAlignClass }}">
                 @if ($hero_badge ?? null)
@@ -60,22 +64,22 @@
                 @endif
 
                 @if ($hero_title ?? null)
-                    <h1 class="{{ $heroTitleSizeClass }} font-extrabold {{ $heroTitleColorClass }}">{{ $hero_title }}</h1>
+                    <h1 x-bind:class="viewport === 'mobile' ? '{{ $heroTitleSizeMobileClass }}' : '{{ $heroTitleSizeDesktopClass }}'" class="font-extrabold {{ $heroTitleColorClass }}">{{ $hero_title }}</h1>
                 @else
                     <p class="text-sm italic text-slate-500">メイン見出しを入力してください</p>
                 @endif
 
                 @if ($hero_subtitle ?? null)
-                    <p class="{{ $heroSubtitleSizeClass }} font-semibold {{ $heroSubtitleColorClass }}">{{ $hero_subtitle }}</p>
+                    <p x-bind:class="viewport === 'mobile' ? '{{ $heroSubtitleSizeMobileClass }}' : '{{ $heroSubtitleSizeDesktopClass }}'" class="font-semibold {{ $heroSubtitleColorClass }}">{{ $hero_subtitle }}</p>
                 @endif
 
                 @if ($hero_lead ?? null)
                     @if ($heroLeadMode === 'paragraph')
                         @foreach ($toParagraphs($hero_lead) as $paragraph)
-                            <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $paragraph }}</p>
+                            <p x-bind:class="viewport === 'mobile' ? '{{ $heroLeadSizeMobileClass }}' : '{{ $heroLeadSizeDesktopClass }}'" class="{{ $heroLeadColorClass }} whitespace-pre-line">{{ $paragraph }}</p>
                         @endforeach
                     @else
-                        <p class="{{ $heroLeadSizeClass }} {{ $heroLeadColorClass }} whitespace-pre-line">{{ $hero_lead }}</p>
+                        <p x-bind:class="viewport === 'mobile' ? '{{ $heroLeadSizeMobileClass }}' : '{{ $heroLeadSizeDesktopClass }}'" class="{{ $heroLeadColorClass }} whitespace-pre-line">{{ $hero_lead }}</p>
                     @endif
                 @else
                     <p class="text-sm italic text-slate-500">リード文を入力してください</p>
@@ -100,12 +104,12 @@
                                 <span class="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">1</span>
                                 <div class="flex-1">
                                     @php
-                                        $blockTitleSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$block['title_size'] ?? ''] ?? 'text-base';
-                                        $blockTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$block['title_color'] ?? ''] ?? 'text-slate-900';
-                                        $blockTextSizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$block['text_size'] ?? ''] ?? 'text-sm';
-                                        $blockTextColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$block['text_color'] ?? ''] ?? 'text-slate-600';
-                                        $blockTextAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$block['text_align'] ?? ''] ?? 'text-left';
-                                        $blockMode = in_array($block['paragraph_mode'] ?? null, ['line', 'paragraph'], true) ? $block['paragraph_mode'] : 'line';
+                                        $blockTitleSizeClass = \App\Support\WelcomeStyleHelper::blockTitleSizeClass($block['title_size'] ?? null);
+                                        $blockTitleColorClass = \App\Support\WelcomeStyleHelper::blockTitleColorClass($block['title_color'] ?? null);
+                                        $blockTextSizeClass = \App\Support\WelcomeStyleHelper::blockTextSizeClass($block['text_size'] ?? null);
+                                        $blockTextColorClass = \App\Support\WelcomeStyleHelper::blockTextColorClass($block['text_color'] ?? null);
+                                        $blockTextAlignClass = \App\Support\WelcomeStyleHelper::blockTextAlignClass($block['text_align'] ?? null);
+                                        $blockMode = \App\Support\WelcomeStyleHelper::paragraphMode($block['paragraph_mode'] ?? null);
                                     @endphp
                                     <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ $block['title'] ?? '（見出しなし）' }}</h3>
                                     @if ($blockMode === 'paragraph')
@@ -152,18 +156,18 @@
                                 x-transition:enter.duration.350ms
                                 :class="direction === 'right' ? 'slide-enter-right' : 'slide-enter-left'"
                                 class="rounded-xl border border-white/60 bg-white/80 p-4 shadow-sm"
-                                style="{{ $index !== 0 ? 'display:none;' : '' }}"
+                                @if ($index !== 0) style="display:none;" @endif
                             >
                                 <div class="flex items-start gap-2">
                                     <span class="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-500 text-sm font-bold text-white">{{ $index + 1 }}</span>
                                     <div class="flex-1">
                                         @php
-                                            $blockTitleSizeClass = ['sm' => 'text-sm', 'md' => 'text-base', 'lg' => 'text-lg'][$block['title_size'] ?? ''] ?? 'text-base';
-                                            $blockTitleColorClass = ['slate' => 'text-slate-900', 'sky' => 'text-sky-900', 'emerald' => 'text-emerald-900'][$block['title_color'] ?? ''] ?? 'text-slate-900';
-                                            $blockTextSizeClass = ['sm' => 'text-xs', 'md' => 'text-sm', 'lg' => 'text-base'][$block['text_size'] ?? ''] ?? 'text-sm';
-                                            $blockTextColorClass = ['slate' => 'text-slate-600', 'sky' => 'text-sky-700', 'emerald' => 'text-emerald-700'][$block['text_color'] ?? ''] ?? 'text-slate-600';
-                                            $blockTextAlignClass = ['left' => 'text-left', 'center' => 'text-center'][$block['text_align'] ?? ''] ?? 'text-left';
-                                            $blockMode = in_array($block['paragraph_mode'] ?? null, ['line', 'paragraph'], true) ? $block['paragraph_mode'] : 'line';
+                                            $blockTitleSizeClass = \App\Support\WelcomeStyleHelper::blockTitleSizeClass($block['title_size'] ?? null);
+                                            $blockTitleColorClass = \App\Support\WelcomeStyleHelper::blockTitleColorClass($block['title_color'] ?? null);
+                                            $blockTextSizeClass = \App\Support\WelcomeStyleHelper::blockTextSizeClass($block['text_size'] ?? null);
+                                            $blockTextColorClass = \App\Support\WelcomeStyleHelper::blockTextColorClass($block['text_color'] ?? null);
+                                            $blockTextAlignClass = \App\Support\WelcomeStyleHelper::blockTextAlignClass($block['text_align'] ?? null);
+                                            $blockMode = \App\Support\WelcomeStyleHelper::paragraphMode($block['paragraph_mode'] ?? null);
                                         @endphp
                                         <h3 class="font-semibold {{ $blockTitleSizeClass }} {{ $blockTitleColorClass }}">{{ $block['title'] ?? '（見出しなし）' }}</h3>
                                         @if ($blockMode === 'paragraph')
@@ -260,6 +264,6 @@
     </div>
 
     <p class="text-xs text-slate-500">
-        保存前の入力内容をそのまま表示しています。
+        保存前の入力内容をそのまま表示しています。Mobileはモバイル用クラス、Tablet/Desktopは大型画面用クラスでプレビューします。
     </p>
 </div>
