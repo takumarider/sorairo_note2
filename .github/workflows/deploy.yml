@@ -33,6 +33,8 @@ jobs:
           response=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
           if [ "$response" -eq 200 ] || [ "$response" -eq 201 ]; then
             echo "✅ Deploy triggered successfully (HTTP $response)"
+          elif [ "$response" -eq 409 ]; then
+            echo "ℹ️ Deploy already in progress on Render (HTTP $response), continuing"
           else
             echo "::error::Deploy hook failed with HTTP $response"
             exit 1
