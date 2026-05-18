@@ -205,4 +205,57 @@ class WelcomeStyleHelper
 
         return implode(' ', ! empty($desktop) ? $desktop : $base);
     }
+
+    public static function cardPaddingHeroClass(?string $value): string
+    {
+        return [
+            'compact' => 'p-5 lg:p-8',
+            'normal' => 'p-8 lg:p-12',
+            'spacious' => 'p-10 lg:p-16',
+        ][$value ?? ''] ?? 'p-8 lg:p-12';
+    }
+
+    public static function cardPaddingShopClass(?string $value): string
+    {
+        return [
+            'compact' => 'p-4 lg:p-5',
+            'normal' => 'p-6 lg:p-8',
+            'spacious' => 'p-8 lg:p-10',
+        ][$value ?? ''] ?? 'p-6 lg:p-8';
+    }
+
+    public static function cardPaddingBlockClass(?string $value): string
+    {
+        return [
+            'compact' => 'p-3',
+            'normal' => 'p-5',
+            'spacious' => 'p-7',
+        ][$value ?? ''] ?? 'p-5';
+    }
+
+    public static function cardRadiusClass(?string $value): string
+    {
+        return [
+            'none' => 'rounded-lg',
+            'rounded' => 'rounded-2xl',
+            'rounder' => 'rounded-3xl',
+        ][$value ?? ''] ?? 'rounded-3xl';
+    }
+
+    public static function cardShadowClass(?string $value): string
+    {
+        return [
+            'none' => 'shadow-none',
+            'soft' => 'shadow-md',
+            'strong' => 'shadow-xl',
+        ][$value ?? ''] ?? 'shadow-xl';
+    }
+
+    public static function fontStyleClass(?string $value): string
+    {
+        return [
+            'sans' => 'font-sans',
+            'serif' => 'font-serif',
+        ][$value ?? ''] ?? 'font-sans';
+    }
 }

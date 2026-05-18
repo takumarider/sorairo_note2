@@ -28,6 +28,12 @@
         $shopTitleColorClass = \App\Support\WelcomeStyleHelper::shopTitleColorClass($settings->welcome_shop_title_color);
         $shopBodySizeClass = \App\Support\WelcomeStyleHelper::shopBodySizeClass($settings->welcome_shop_body_size);
         $shopBodyColorClass = \App\Support\WelcomeStyleHelper::shopBodyColorClass($settings->welcome_shop_body_color);
+        $cardPaddingHeroClass = \App\Support\WelcomeStyleHelper::cardPaddingHeroClass($settings->welcome_card_padding);
+        $cardPaddingShopClass = \App\Support\WelcomeStyleHelper::cardPaddingShopClass($settings->welcome_card_padding);
+        $cardPaddingBlockClass = \App\Support\WelcomeStyleHelper::cardPaddingBlockClass($settings->welcome_card_padding);
+        $cardRadiusClass = \App\Support\WelcomeStyleHelper::cardRadiusClass($settings->welcome_card_radius);
+        $cardShadowClass = \App\Support\WelcomeStyleHelper::cardShadowClass($settings->welcome_card_shadow);
+        $fontStyleClass = \App\Support\WelcomeStyleHelper::fontStyleClass($settings->welcome_font_style);
 
         $toParagraphs = static function (?string $text): array {
             if (! filled($text)) {
@@ -40,7 +46,7 @@
             return array_values(array_filter($parts, static fn (string $part): bool => filled(trim($part))));
         };
     @endphp
-    <body class="min-h-screen {{ $themeBackgroundClass }} text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
+    <body class="min-h-screen {{ $themeBackgroundClass }} {{ $fontStyleClass }} text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
         <header class="w-full lg:max-w-5xl max-w-[340px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
                 <nav class="flex justify-end items-center gap-4 flex-wrap">
@@ -67,7 +73,7 @@
 
         <main class="w-full max-w-[340px] lg:max-w-5xl flex-grow mx-auto px-4 py-10">
             <section class="w-full">
-                <div class="rounded-3xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl p-8 lg:p-12">
+                <div class="{{ $cardRadiusClass }} bg-white/70 backdrop-blur-lg border border-white/40 {{ $cardShadowClass }} {{ $cardPaddingHeroClass }}">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
                         <div class="space-y-4 lg:max-w-2xl {{ $heroAlignClass }}">
                             <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full {{ $accentClasses['badge'] }} text-sm font-semibold">{{ $settings->welcome_badge ?: 'sorairo_note' }}</span>
@@ -100,14 +106,14 @@
                     </div>  
                 </div>
                 <div class="mt-10 grid lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 rounded-3xl bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl p-6 lg:p-8">
+                    <div class="lg:col-span-2 {{ $cardRadiusClass }} bg-white/70 backdrop-blur-lg border border-white/40 {{ $cardShadowClass }} {{ $cardPaddingShopClass }}">
                         <h2 class="text-2xl font-bold text-slate-900 mb-4">お店のご案内</h2>
                         @if ($bodyBlocks->isNotEmpty())
                             @php $blockCount = $bodyBlocks->count(); @endphp
                             @if ($blockCount === 1)
                                 {{-- 1件のみはシンプルカード表示 --}}
                                 @foreach ($bodyBlocks as $block)
-                                    <article class="rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex flex-col gap-4">
+                                    <article class="{{ $cardRadiusClass }} border border-white/60 bg-white/80 {{ $cardShadowClass }} {{ $cardPaddingBlockClass }} flex flex-col gap-4">
                                         <div class="flex items-start gap-3">
                                             <span class="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-sky-500 text-white font-bold text-sm">1</span>
                                             <div>
@@ -178,7 +184,7 @@
                                             x-show="current === {{ $index }}"
                                             x-transition:enter.duration.350ms
                                             :class="direction === 'right' ? 'slide-enter-right' : 'slide-enter-left'"
-                                            class="rounded-2xl border border-white/60 bg-white/80 shadow-sm p-5 flex flex-col gap-4"
+                                            class="{{ $cardRadiusClass }} border border-white/60 bg-white/80 {{ $cardShadowClass }} {{ $cardPaddingBlockClass }} flex flex-col gap-4"
                                             @if ($index !== 0) style="display:none;" @endif
                                         >
                                             <div class="flex items-start gap-3">
@@ -255,7 +261,7 @@
                         @endif
                     </div>
 
-                    <div class="rounded-3xl bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 shadow-xl p-6 lg:p-8">
+                    <div class="{{ $cardRadiusClass }} bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 {{ $cardShadowClass }} {{ $cardPaddingShopClass }}">
                         <h3 class="{{ $shopTitleSizeClass }} font-bold {{ $shopTitleColorClass }} mb-3">{{ $settings->welcome_shop_title ?: '店舗情報' }}</h3>
                         <div class="space-y-3 {{ $shopBodySizeClass }} {{ $shopBodyColorClass }}">
                             @if (filled($settings->welcome_shop_description))

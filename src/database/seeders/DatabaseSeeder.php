@@ -15,6 +15,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command->warn('DatabaseSeeder は本番環境では実行されません。スキップします。');
+
+            return;
+        }
+
         $this->call(SystemSettingSeeder::class);
 
         User::updateOrCreate(

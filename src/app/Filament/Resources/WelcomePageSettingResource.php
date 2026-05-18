@@ -66,7 +66,7 @@ class WelcomePageSettingResource extends Resource
         return [
             Forms\Components\Placeholder::make('welcome_mapping_guide')
                 ->label('設定項目と反映箇所')
-                ->content(new HtmlString('① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー'))
+                ->content(new HtmlString('① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー<br>⑤ レイアウト: カード余白/角丸/影/フォント'))
                 ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_badge')
                 ->label('バッジテキスト')
@@ -346,6 +346,41 @@ class WelcomePageSettingResource extends Resource
                 ->helperText('ヘッダーのInstagramボタンに反映されます。http:// または https:// で始まるURLを入力してください。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
+            Forms\Components\Select::make('welcome_card_padding')
+                ->label('カード余白密度')
+                ->options([
+                    'compact' => 'コンパクト（狭め）',
+                    'normal' => '標準（推奨）',
+                    'spacious' => 'ゆったり（広め）',
+                ])
+                ->helperText('ヒーロー・お店のご案内・店舗情報カードの内側余白に反映されます。')
+                ->native(false),
+            Forms\Components\Select::make('welcome_card_radius')
+                ->label('カード角丸')
+                ->options([
+                    'none' => '小（やや角あり）',
+                    'rounded' => '中（丸め）',
+                    'rounder' => '大（推奨）',
+                ])
+                ->helperText('各カードの角の丸さに反映されます。')
+                ->native(false),
+            Forms\Components\Select::make('welcome_card_shadow')
+                ->label('カードの影')
+                ->options([
+                    'none' => 'なし',
+                    'soft' => '控えめ',
+                    'strong' => '標準（推奨）',
+                ])
+                ->helperText('各カードに付く影の強さに反映されます。')
+                ->native(false),
+            Forms\Components\Select::make('welcome_font_style')
+                ->label('フォント種別')
+                ->options([
+                    'sans' => 'サンセリフ（推奨）',
+                    'serif' => 'セリフ体',
+                ])
+                ->helperText('ページ全体のフォント種別に反映されます。')
+                ->native(false),
         ];
     }
 
@@ -393,6 +428,10 @@ class WelcomePageSettingResource extends Resource
             'shop_body_size' => $state['welcome_shop_body_size'] ?? null,
             'shop_body_color' => $state['welcome_shop_body_color'] ?? null,
             'shop_paragraph_mode' => $state['welcome_shop_paragraph_mode'] ?? null,
+            'card_padding' => $state['welcome_card_padding'] ?? null,
+            'card_radius' => $state['welcome_card_radius'] ?? null,
+            'card_shadow' => $state['welcome_card_shadow'] ?? null,
+            'font_style' => $state['welcome_font_style'] ?? null,
         ];
     }
 
