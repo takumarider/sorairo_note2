@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\HtmlString;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class WelcomePageSettingResource extends Resource
@@ -63,24 +64,32 @@ class WelcomePageSettingResource extends Resource
     public static function getWelcomeFields(): array
     {
         return [
+            Forms\Components\Placeholder::make('welcome_mapping_guide')
+                ->label('設定項目と反映箇所')
+                ->content(new HtmlString('① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー'))
+                ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_badge')
                 ->label('バッジテキスト')
                 ->maxLength(50)
                 ->placeholder('sorairo_note')
+                ->helperText('ヒーロー上部の小さなラベルに反映されます。')
                 ->live(onBlur: true),
             Forms\Components\TextInput::make('welcome_title')
                 ->label('メイン見出し')
                 ->required()
                 ->maxLength(120)
+                ->helperText('ヒーロー中央の最も大きな見出しに反映されます。')
                 ->live(onBlur: true),
             Forms\Components\TextInput::make('welcome_subtitle')
                 ->label('サブ見出し')
                 ->maxLength(120)
+                ->helperText('メイン見出しの直下に反映されます。')
                 ->live(onBlur: true),
             Forms\Components\Textarea::make('welcome_lead')
                 ->label('リード文')
                 ->rows(3)
                 ->maxLength(500)
+                ->helperText('ヒーロー説明文に反映されます。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
             Forms\Components\Select::make('welcome_theme_background')
@@ -90,6 +99,7 @@ class WelcomePageSettingResource extends Resource
                     'mint' => 'ミントグラデーション',
                     'sand' => 'サンドグラデーション',
                 ])
+                ->helperText('ページ全体の背景色に反映されます。')
                 ->native(false),
             Forms\Components\Select::make('welcome_theme_accent')
                 ->label('アクセントカラー')
@@ -98,6 +108,7 @@ class WelcomePageSettingResource extends Resource
                     'emerald' => 'エメラルド',
                     'rose' => 'ローズ',
                 ])
+                ->helperText('バッジやInstagramボタンの色に反映されます。')
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_text_align')
                 ->label('ヒーロー文字配置')
@@ -170,10 +181,12 @@ class WelcomePageSettingResource extends Resource
                 ->visibility('public')
                 ->imageEditor()
                 ->maxSize(3072)
+                ->helperText('ヒーロー右側の画像に反映されます。')
                 ->columnSpanFull()
                 ->live(),
             Forms\Components\Repeater::make('welcome_body_blocks')
                 ->label('本文セクション（文章・画像）')
+                ->helperText('お店のご案内エリアに反映されます。1件ならカード、複数ならスライド表示です。')
                 ->schema([
                     Forms\Components\TextInput::make('title')
                         ->label('見出し')
@@ -253,6 +266,7 @@ class WelcomePageSettingResource extends Resource
                 ->label('店舗情報タイトル')
                 ->maxLength(120)
                 ->placeholder('店舗情報')
+                ->helperText('右側の店舗情報カード見出しに反映されます。')
                 ->live(onBlur: true),
             Forms\Components\Select::make('welcome_shop_title_size')
                 ->label('店舗情報タイトルサイズ')
@@ -274,6 +288,7 @@ class WelcomePageSettingResource extends Resource
                 ->label('店舗紹介文')
                 ->rows(3)
                 ->maxLength(500)
+                ->helperText('店舗情報カード本文に反映されます。')
                 ->live(onBlur: true),
             Forms\Components\Textarea::make('welcome_business_hours')
                 ->label('営業時間（平日・土曜は改行して入力）')
@@ -328,7 +343,7 @@ class WelcomePageSettingResource extends Resource
                 ->rule('starts_with:http://,https://')
                 ->maxLength(255)
                 ->placeholder('https://www.instagram.com/your_account')
-                ->helperText('http:// または https:// で始まるURLを入力してください。')
+                ->helperText('ヘッダーのInstagramボタンに反映されます。http:// または https:// で始まるURLを入力してください。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
         ];
