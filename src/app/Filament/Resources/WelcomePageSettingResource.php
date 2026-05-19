@@ -65,8 +65,8 @@ class WelcomePageSettingResource extends Resource
     {
         return [
             Forms\Components\Placeholder::make('welcome_mapping_guide')
-                ->label('設定項目と反映箇所')
-                ->content(new HtmlString('① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー<br>⑤ レイアウト: カード余白/角丸/影/フォント'))
+                ->hiddenLabel()
+                ->content(new HtmlString('<strong>設定項目と反映箇所</strong><br>① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー<br>⑤ レイアウト: カード余白/角丸/影/フォント'))
                 ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_badge')
                 ->label('バッジテキスト')
@@ -185,8 +185,8 @@ class WelcomePageSettingResource extends Resource
                 ->columnSpanFull()
                 ->live(),
             Forms\Components\Repeater::make('welcome_body_blocks')
-                ->label('本文セクション（文章・画像）')
-                ->helperText('お店のご案内エリアに反映されます。1件ならカード、複数ならスライド表示です。')
+                ->hiddenLabel()
+                ->helperText('本文セクション（文章・画像）: お店のご案内エリアに反映されます。1件ならカード、複数ならスライド表示です。')
                 ->schema([
                     Forms\Components\TextInput::make('title')
                         ->label('見出し')
