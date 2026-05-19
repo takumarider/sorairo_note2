@@ -199,16 +199,14 @@ class WelcomePageSettingResource extends Resource
                             'sm' => '控えめ',
                             'md' => '標準',
                             'lg' => '大きめ',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\Select::make('title_color')
                         ->label('見出し色')
                         ->options([
                             'slate' => '濃いグレー',
                             'sky' => 'スカイ',
                             'emerald' => 'エメラルド',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\Textarea::make('text')
                         ->label('本文')
                         ->rows(4)
@@ -222,31 +220,27 @@ class WelcomePageSettingResource extends Resource
                             'sm' => '控えめ',
                             'md' => '標準',
                             'lg' => '大きめ',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\Select::make('text_color')
                         ->label('本文色')
                         ->options([
                             'slate' => 'グレー',
                             'sky' => 'スカイ',
                             'emerald' => 'エメラルド',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\Select::make('text_align')
                         ->label('本文配置')
                         ->options([
                             'left' => '左寄せ',
                             'center' => '中央寄せ',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\Select::make('paragraph_mode')
                         ->label('本文改行表示')
                         ->options([
                             'line' => 'そのまま改行',
                             'paragraph' => '段落表示',
                             'inherit' => '全体設定に合わせる',
-                        ])
-                        ->native(false),
+                        ]),
                     Forms\Components\FileUpload::make('image_path')
                         ->label('画像')
                         ->image()
