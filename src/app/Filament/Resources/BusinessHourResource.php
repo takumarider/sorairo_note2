@@ -31,7 +31,7 @@ class BusinessHourResource extends Resource
                 Forms\Components\Section::make('営業時間設定')
                     ->schema([
                         Forms\Components\Placeholder::make('usage_guide')
-                            ->label('入力ルール')
+                            ->hiddenLabel()
                             ->content('曜日は毎週の基本設定、特定日はその日だけの上書きです。休業日にする場合も対象の曜日または特定日を作成して設定してください。')
                             ->columnSpanFull(),
 
