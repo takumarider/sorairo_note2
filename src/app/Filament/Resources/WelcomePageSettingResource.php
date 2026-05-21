@@ -75,7 +75,7 @@ class WelcomePageSettingResource extends Resource
                     .'</div>'))
                 ->columnSpanFull(),
             Forms\Components\Placeholder::make('welcome_group_hero')
-                ->label('① ヒーロー')
+                ->hiddenLabel()
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">青色の項目はヒーロー領域（バッジ/見出し/リード文/メイン画像）に反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_badge')
@@ -103,7 +103,7 @@ class WelcomePageSettingResource extends Resource
                 ->columnSpanFull()
                 ->live(onBlur: true),
             Forms\Components\Placeholder::make('welcome_group_design')
-                ->label('④ 全体デザイン')
+                ->hiddenLabel()
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-900">紫色の項目はページ全体の背景とアクセントカラーに反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\Select::make('welcome_theme_background')
@@ -223,7 +223,7 @@ class WelcomePageSettingResource extends Resource
                 ->columnSpanFull()
                 ->live(),
             Forms\Components\Placeholder::make('welcome_group_body')
-                ->label('② 本文セクション')
+                ->hiddenLabel()
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">緑色の項目は本文セクションカード（見出し/本文/画像）に反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\Repeater::make('welcome_body_blocks')
@@ -311,7 +311,7 @@ class WelcomePageSettingResource extends Resource
                 ->collapsible()
                 ->columnSpanFull(),
             Forms\Components\Placeholder::make('welcome_group_shop')
-                ->label('③ 店舗情報カード')
+                ->hiddenLabel()
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">橙色の項目は店舗情報カード（タイトル/紹介文/営業時間/補足）に反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_shop_title')
@@ -411,7 +411,7 @@ class WelcomePageSettingResource extends Resource
                 ->columnSpanFull()
                 ->live(onBlur: true),
             Forms\Components\Placeholder::make('welcome_group_layout')
-                ->label('⑤ レイアウト')
+                ->hiddenLabel()
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">灰色の項目はカード余白/角丸/影/フォントなど全体レイアウトに反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\Select::make('welcome_card_padding')
