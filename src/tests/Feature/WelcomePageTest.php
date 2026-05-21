@@ -75,6 +75,50 @@ class WelcomePageTest extends TestCase
         $response->assertSee('text-5xl lg:text-6xl', false);
     }
 
+    public function test_welcome_page_applies_new_color_and_size_variations(): void
+    {
+        SystemSetting::getSingleton()->update([
+            'welcome_title' => '新スタイル',
+            'welcome_subtitle' => 'サブスタイル',
+            'welcome_theme_background' => 'indigo',
+            'welcome_theme_accent' => 'indigo',
+            'welcome_hero_title_size' => '2xl',
+            'welcome_hero_title_color' => 'indigo',
+            'welcome_hero_subtitle_size' => 'xs',
+            'welcome_hero_subtitle_color' => 'cyan',
+            'welcome_hero_lead_size' => 'xl',
+            'welcome_hero_lead_color' => 'amber',
+            'welcome_shop_title_size' => '2xl',
+            'welcome_shop_title_color' => 'indigo',
+            'welcome_shop_body_size' => 'xl',
+            'welcome_shop_body_color' => 'cyan',
+            'welcome_body_blocks' => [
+                [
+                    'title' => '本文サイズ確認',
+                    'text' => '本文カラー確認',
+                    'title_size' => '2xl',
+                    'title_color' => 'indigo',
+                    'text_size' => 'xl',
+                    'text_color' => 'amber',
+                    'image_path' => null,
+                ],
+            ],
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('text-6xl lg:text-7xl', false);
+        $response->assertSee('text-indigo-900', false);
+        $response->assertSee('text-base lg:text-lg', false);
+        $response->assertSee('text-cyan-800', false);
+        $response->assertSee('text-2xl lg:text-3xl', false);
+        $response->assertSee('text-amber-700', false);
+        $response->assertSee('bg-indigo-100 text-indigo-800', false);
+        $response->assertSee('border-indigo-200 text-indigo-800', false);
+        $response->assertSee('from-indigo-50', false);
+    }
+
     public function test_welcome_page_shows_dashboard_link_for_authenticated_user(): void
     {
         $user = User::factory()->create();
