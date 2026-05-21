@@ -66,7 +66,17 @@ class WelcomePageSettingResource extends Resource
         return [
             Forms\Components\Placeholder::make('welcome_mapping_guide')
                 ->hiddenLabel()
-                ->content(new HtmlString('<strong>設定項目と反映箇所</strong><br>① ヒーロー: バッジ/見出し/リード文/メイン画像<br>② 本文セクション: 「本文セクション（文章・画像）」の各ブロック<br>③ 店舗情報カード: タイトル/紹介文/営業時間/補足<br>④ 全体デザイン: 背景テーマ・アクセントカラー<br>⑤ レイアウト: カード余白/角丸/影/フォント'))
+                ->content(new HtmlString('<div class="space-y-2 text-sm">'
+                    .'<div class="inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 text-sky-900">① ヒーロー: バッジ/見出し/リード文/メイン画像</div>'
+                    .'<div class="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-emerald-900">② 本文セクション: 「本文セクション（文章・画像）」の各ブロック</div>'
+                    .'<div class="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-amber-900">③ 店舗情報カード: タイトル/紹介文/営業時間/補足</div>'
+                    .'<div class="inline-flex items-center gap-2 rounded-full bg-violet-100 px-3 py-1 text-violet-900">④ 全体デザイン: 背景テーマ・アクセントカラー</div>'
+                    .'<div class="inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-slate-900">⑤ レイアウト: カード余白/角丸/影/フォント</div>'
+                    .'</div>'))
+                ->columnSpanFull(),
+            Forms\Components\Placeholder::make('welcome_group_hero')
+                ->label('① ヒーロー')
+                ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">青色の項目はヒーロー領域（バッジ/見出し/リード文/メイン画像）に反映されます。</span>'))
                 ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_badge')
                 ->label('バッジテキスト')
@@ -92,12 +102,19 @@ class WelcomePageSettingResource extends Resource
                 ->helperText('ヒーロー説明文に反映されます。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
+            Forms\Components\Placeholder::make('welcome_group_design')
+                ->label('④ 全体デザイン')
+                ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-900">紫色の項目はページ全体の背景とアクセントカラーに反映されます。</span>'))
+                ->columnSpanFull(),
             Forms\Components\Select::make('welcome_theme_background')
                 ->label('全体背景テーマ')
                 ->options([
                     'sky' => '空色グラデーション',
                     'mint' => 'ミントグラデーション',
                     'sand' => 'サンドグラデーション',
+                    'indigo' => 'インディゴグラデーション',
+                    'cyan' => 'シアングラデーション',
+                    'amber' => 'アンバーグラデーション',
                 ])
                 ->helperText('ページ全体の背景色に反映されます。')
                 ->native(false),
@@ -107,6 +124,9 @@ class WelcomePageSettingResource extends Resource
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
                     'rose' => 'ローズ',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->helperText('バッジやInstagramボタンの色に反映されます。')
                 ->native(false),
@@ -120,9 +140,12 @@ class WelcomePageSettingResource extends Resource
             Forms\Components\Select::make('welcome_hero_title_size')
                 ->label('見出しサイズ')
                 ->options([
+                    'xs' => 'とても小さめ',
+                    'sm' => '控えめ',
                     'md' => '標準',
                     'lg' => '大きめ',
                     'xl' => '大きい',
+                    '2xl' => 'かなり大きい',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_title_color')
@@ -131,14 +154,20 @@ class WelcomePageSettingResource extends Resource
                     'slate' => '濃いグレー',
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_subtitle_size')
                 ->label('サブ見出しサイズ')
                 ->options([
+                    'xs' => 'とても小さめ',
                     'sm' => '控えめ',
                     'md' => '標準',
                     'lg' => '大きめ',
+                    'xl' => '大きい',
+                    '2xl' => 'かなり大きい',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_subtitle_color')
@@ -147,14 +176,20 @@ class WelcomePageSettingResource extends Resource
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
                     'rose' => 'ローズ',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_lead_size')
                 ->label('リード文サイズ')
                 ->options([
+                    'xs' => 'とても小さめ',
                     'sm' => '控えめ',
                     'md' => '標準',
                     'lg' => '大きめ',
+                    'xl' => '大きい',
+                    '2xl' => 'かなり大きい',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_lead_color')
@@ -163,6 +198,9 @@ class WelcomePageSettingResource extends Resource
                     'slate' => 'グレー',
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_hero_lead_paragraph_mode')
@@ -184,6 +222,10 @@ class WelcomePageSettingResource extends Resource
                 ->helperText('ヒーロー右側の画像に反映されます。')
                 ->columnSpanFull()
                 ->live(),
+            Forms\Components\Placeholder::make('welcome_group_body')
+                ->label('② 本文セクション')
+                ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-900">緑色の項目は本文セクションカード（見出し/本文/画像）に反映されます。</span>'))
+                ->columnSpanFull(),
             Forms\Components\Repeater::make('welcome_body_blocks')
                 ->hiddenLabel()
                 ->helperText('本文セクション（文章・画像）: お店のご案内エリアに反映されます。1件ならカード、複数ならスライド表示です。')
@@ -196,9 +238,12 @@ class WelcomePageSettingResource extends Resource
                     Forms\Components\Select::make('title_size')
                         ->label('見出しサイズ')
                         ->options([
+                            'xs' => 'とても小さめ',
                             'sm' => '控えめ',
                             'md' => '標準',
                             'lg' => '大きめ',
+                            'xl' => '大きい',
+                            '2xl' => 'かなり大きい',
                         ]),
                     Forms\Components\Select::make('title_color')
                         ->label('見出し色')
@@ -206,6 +251,9 @@ class WelcomePageSettingResource extends Resource
                             'slate' => '濃いグレー',
                             'sky' => 'スカイ',
                             'emerald' => 'エメラルド',
+                            'indigo' => 'インディゴ',
+                            'cyan' => 'シアン',
+                            'amber' => 'アンバー',
                         ]),
                     Forms\Components\Textarea::make('text')
                         ->label('本文')
@@ -217,9 +265,12 @@ class WelcomePageSettingResource extends Resource
                     Forms\Components\Select::make('text_size')
                         ->label('本文サイズ')
                         ->options([
+                            'xs' => 'とても小さめ',
                             'sm' => '控えめ',
                             'md' => '標準',
                             'lg' => '大きめ',
+                            'xl' => '大きい',
+                            '2xl' => 'かなり大きい',
                         ]),
                     Forms\Components\Select::make('text_color')
                         ->label('本文色')
@@ -227,6 +278,9 @@ class WelcomePageSettingResource extends Resource
                             'slate' => 'グレー',
                             'sky' => 'スカイ',
                             'emerald' => 'エメラルド',
+                            'indigo' => 'インディゴ',
+                            'cyan' => 'シアン',
+                            'amber' => 'アンバー',
                         ]),
                     Forms\Components\Select::make('text_align')
                         ->label('本文配置')
@@ -256,6 +310,10 @@ class WelcomePageSettingResource extends Resource
                 ->reorderable()
                 ->collapsible()
                 ->columnSpanFull(),
+            Forms\Components\Placeholder::make('welcome_group_shop')
+                ->label('③ 店舗情報カード')
+                ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">橙色の項目は店舗情報カード（タイトル/紹介文/営業時間/補足）に反映されます。</span>'))
+                ->columnSpanFull(),
             Forms\Components\TextInput::make('welcome_shop_title')
                 ->label('店舗情報タイトル')
                 ->maxLength(120)
@@ -265,9 +323,12 @@ class WelcomePageSettingResource extends Resource
             Forms\Components\Select::make('welcome_shop_title_size')
                 ->label('店舗情報タイトルサイズ')
                 ->options([
+                    'xs' => 'とても小さめ',
                     'sm' => '控えめ',
                     'md' => '標準',
                     'lg' => '大きめ',
+                    'xl' => '大きい',
+                    '2xl' => 'かなり大きい',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_shop_title_color')
@@ -276,6 +337,9 @@ class WelcomePageSettingResource extends Resource
                     'slate' => '濃いグレー',
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->native(false),
             Forms\Components\Textarea::make('welcome_shop_description')
@@ -311,9 +375,12 @@ class WelcomePageSettingResource extends Resource
             Forms\Components\Select::make('welcome_shop_body_size')
                 ->label('店舗情報本文サイズ')
                 ->options([
+                    'xs' => 'とても小さめ',
                     'sm' => '控えめ',
                     'md' => '標準',
                     'lg' => '大きめ',
+                    'xl' => '大きい',
+                    '2xl' => 'かなり大きい',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_shop_body_color')
@@ -322,6 +389,9 @@ class WelcomePageSettingResource extends Resource
                     'slate' => 'グレー',
                     'sky' => 'スカイ',
                     'emerald' => 'エメラルド',
+                    'indigo' => 'インディゴ',
+                    'cyan' => 'シアン',
+                    'amber' => 'アンバー',
                 ])
                 ->native(false),
             Forms\Components\Select::make('welcome_shop_paragraph_mode')
@@ -340,6 +410,10 @@ class WelcomePageSettingResource extends Resource
                 ->helperText('ヘッダーのInstagramボタンに反映されます。http:// または https:// で始まるURLを入力してください。')
                 ->columnSpanFull()
                 ->live(onBlur: true),
+            Forms\Components\Placeholder::make('welcome_group_layout')
+                ->label('⑤ レイアウト')
+                ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-900">灰色の項目はカード余白/角丸/影/フォントなど全体レイアウトに反映されます。</span>'))
+                ->columnSpanFull(),
             Forms\Components\Select::make('welcome_card_padding')
                 ->label('カード余白密度')
                 ->options([
