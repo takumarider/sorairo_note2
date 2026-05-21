@@ -117,7 +117,7 @@ class WelcomePageSettingResource extends Resource
                     'amber' => 'アンバーグラデーション',
                 ])
                 ->helperText('ページ全体の背景色に反映されます。')
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_theme_accent')
                 ->label('アクセントカラー')
                 ->options([
@@ -129,14 +129,14 @@ class WelcomePageSettingResource extends Resource
                     'amber' => 'アンバー',
                 ])
                 ->helperText('バッジやInstagramボタンの色に反映されます。')
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_text_align')
                 ->label('ヒーロー文字配置')
                 ->options([
                     'left' => '左寄せ',
                     'center' => '中央寄せ',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_title_size')
                 ->label('見出しサイズ')
                 ->options([
@@ -147,7 +147,7 @@ class WelcomePageSettingResource extends Resource
                     'xl' => '大きい',
                     '2xl' => 'かなり大きい',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_title_color')
                 ->label('見出し色')
                 ->options([
@@ -158,7 +158,7 @@ class WelcomePageSettingResource extends Resource
                     'cyan' => 'シアン',
                     'amber' => 'アンバー',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_subtitle_size')
                 ->label('サブ見出しサイズ')
                 ->options([
@@ -169,7 +169,7 @@ class WelcomePageSettingResource extends Resource
                     'xl' => '大きい',
                     '2xl' => 'かなり大きい',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_subtitle_color')
                 ->label('サブ見出し色')
                 ->options([
@@ -180,7 +180,7 @@ class WelcomePageSettingResource extends Resource
                     'cyan' => 'シアン',
                     'amber' => 'アンバー',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_lead_size')
                 ->label('リード文サイズ')
                 ->options([
@@ -191,7 +191,7 @@ class WelcomePageSettingResource extends Resource
                     'xl' => '大きい',
                     '2xl' => 'かなり大きい',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_lead_color')
                 ->label('リード文色')
                 ->options([
@@ -202,14 +202,14 @@ class WelcomePageSettingResource extends Resource
                     'cyan' => 'シアン',
                     'amber' => 'アンバー',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_hero_lead_paragraph_mode')
                 ->label('リード文の改行表示')
                 ->options([
                     'line' => 'そのまま改行',
                     'paragraph' => '段落表示',
                 ])
-                ->native(false)
+                ->native()
                 ->helperText('段落表示は空行ごとに段落として表示します。'),
             Forms\Components\FileUpload::make('welcome_main_image_path')
                 ->label('メイン画像')
@@ -330,7 +330,7 @@ class WelcomePageSettingResource extends Resource
                     'xl' => '大きい',
                     '2xl' => 'かなり大きい',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_shop_title_color')
                 ->label('店舗情報タイトル色')
                 ->options([
@@ -341,7 +341,7 @@ class WelcomePageSettingResource extends Resource
                     'cyan' => 'シアン',
                     'amber' => 'アンバー',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Textarea::make('welcome_shop_description')
                 ->label('店舗紹介文')
                 ->rows(3)
@@ -382,7 +382,7 @@ class WelcomePageSettingResource extends Resource
                     'xl' => '大きい',
                     '2xl' => 'かなり大きい',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_shop_body_color')
                 ->label('店舗情報本文色')
                 ->options([
@@ -393,14 +393,14 @@ class WelcomePageSettingResource extends Resource
                     'cyan' => 'シアン',
                     'amber' => 'アンバー',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_shop_paragraph_mode')
                 ->label('店舗情報の改行表示')
                 ->options([
                     'line' => 'そのまま改行',
                     'paragraph' => '段落表示',
                 ])
-                ->native(false),
+                ->native(),
             Forms\Components\TextInput::make('welcome_instagram_url')
                 ->label('Instagramリンク')
                 ->url()
@@ -422,7 +422,7 @@ class WelcomePageSettingResource extends Resource
                     'spacious' => 'ゆったり（広め）',
                 ])
                 ->helperText('ヒーロー・お店のご案内・店舗情報カードの内側余白に反映されます。')
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_card_radius')
                 ->label('カード角丸')
                 ->options([
@@ -431,7 +431,7 @@ class WelcomePageSettingResource extends Resource
                     'rounder' => '大（推奨）',
                 ])
                 ->helperText('各カードの角の丸さに反映されます。')
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_card_shadow')
                 ->label('カードの影')
                 ->options([
@@ -440,7 +440,7 @@ class WelcomePageSettingResource extends Resource
                     'strong' => '標準（推奨）',
                 ])
                 ->helperText('各カードに付く影の強さに反映されます。')
-                ->native(false),
+                ->native(),
             Forms\Components\Select::make('welcome_font_style')
                 ->label('フォント種別')
                 ->options([
@@ -448,7 +448,7 @@ class WelcomePageSettingResource extends Resource
                     'serif' => 'セリフ体',
                 ])
                 ->helperText('ページ全体のフォント種別に反映されます。')
-                ->native(false),
+                ->native(),
         ];
     }
 
