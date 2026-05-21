@@ -92,7 +92,7 @@ class MenuResource extends Resource
                             ->required()
                             ->inline(),
                         Forms\Components\Placeholder::make('event_slot_hint')
-                            ->label('イベント枠の扱い')
+                            ->hiddenLabel()
                             ->content('イベントは時間枠管理で開始・終了時刻を設定します。所要時間はスロットで管理されます。オプションを設定することもできます。')
                             ->visible(fn (Get $get): bool => (bool) $get('is_event'))
                             ->columnSpanFull(),
