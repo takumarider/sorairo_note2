@@ -38,7 +38,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
             editable: false,
             height: "auto",
             headerToolbar: {
-                left: "today",
+                left: "prev,next today",
                 center: "title",
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
             },

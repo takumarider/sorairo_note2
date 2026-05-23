@@ -71,6 +71,22 @@
                             <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
                         @endif
                     </button>
+                    <button
+                        type="button"
+                        wire:click="setOperationMode('direct')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
+                            {{ $operationMode === 'direct'
+                                ? 'border-emerald-600 bg-emerald-500 text-white shadow-emerald-200 focus:ring-emerald-400'
+                                : 'border-slate-300 bg-white text-slate-500 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 focus:ring-emerald-200' }}"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-1 9H8a3 3 0 01-3-3V8a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3z" />
+                        </svg>
+                        ダイレクト予約
+                        @if ($operationMode === 'direct')
+                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
+                        @endif
+                    </button>
                 </div>
 
                 @if ($operationMode === 'block')
@@ -84,9 +100,11 @@
                 @endif
             </div>
 
-            <p class="mt-2 text-xs {{ $operationMode === 'block' ? 'text-red-700' : 'text-slate-500' }}">
+            <p class="mt-2 text-xs {{ $operationMode === 'block' ? 'text-red-700' : ($operationMode === 'direct' ? 'text-emerald-700' : 'text-slate-500') }}">
                 @if ($operationMode === 'block')
                     カレンダーをドラッグして予約不可の時間帯ブロックを作成できます。作成後はドラッグ・リサイズで調整、クリックで削除できます。
+                @elseif ($operationMode === 'direct')
+                    カレンダーをドラッグするとダイレクト予約作成モーダルを開きます。ブロック時間帯は予約できません。
                 @else
                     予約をクリックすると予約詳細、イベント枠をクリックするとイベント枠詳細を表示します。
                 @endif
@@ -310,6 +328,130 @@
                     閉じる
                 </x-filament::button>
             </div>
+        </x-slot>
+    </x-filament::modal>
+
+    <x-filament::modal
+        id="direct-reservation-create-confirm"
+        width="2xl"
+        icon="heroicon-o-calendar-days"
+        icon-color="success"
+        sticky-header
+    >
+        <x-slot name="heading">
+            ダイレクト予約の確認
+        </x-slot>
+
+        <x-slot name="description">
+            ユーザーとメニューを選択し、カレンダーで選んだ時間帯で予約を確定します。
+        </x-slot>
+
+        @php
+            $selectedMenu = collect($this->getDirectReservationMenus())->firstWhere('id', $directReservationMenuId);
+            $isEventMenu = (bool) ($selectedMenu['is_event'] ?? false);
+            $directUsers = $this->getDirectReservationUsers();
+            $directMenus = $this->getDirectReservationMenus();
+            $directOptions = $this->getDirectReservationMenuOptions();
+            $directSlots = $this->getDirectReservationEventSlots();
+        @endphp
+
+        <div class="space-y-4">
+            @if ($pendingDirectReservationStart && $pendingDirectReservationEnd)
+                <div class="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-emerald-600">選択時間帯</p>
+                    <p class="mt-1 text-base font-semibold text-emerald-800">
+                        {{ \Carbon\Carbon::parse($pendingDirectReservationStart)->timezone('Asia/Tokyo')->format('Y年n月j日 H:i') }}
+                        〜
+                        {{ \Carbon\Carbon::parse($pendingDirectReservationEnd)->timezone('Asia/Tokyo')->format('H:i') }}
+                    </p>
+                </div>
+            @endif
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1">
+                    <span class="text-sm font-semibold text-slate-700">ユーザー</span>
+                    <select
+                        wire:model.live="directReservationUserId"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    >
+                        <option value="">選択してください</option>
+                        @foreach ($directUsers as $user)
+                            <option value="{{ $user['id'] }}">{{ $user['name'] }}</option>
+                        @endforeach
+                    </select>
+                </label>
+
+                <label class="space-y-1">
+                    <span class="text-sm font-semibold text-slate-700">メニュー</span>
+                    <select
+                        wire:model.live="directReservationMenuId"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    >
+                        <option value="">選択してください</option>
+                        @foreach ($directMenus as $menu)
+                            <option value="{{ $menu['id'] }}">
+                                {{ $menu['name'] }}{{ $menu['is_event'] ? '（イベント）' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+
+            @if ($directReservationMenuId)
+                @if ($isEventMenu)
+                    <label class="space-y-1">
+                        <span class="text-sm font-semibold text-slate-700">イベント時間枠</span>
+                        <select
+                            wire:model.live="directReservationSlotId"
+                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                        >
+                            <option value="">選択してください</option>
+                            @foreach ($directSlots as $slot)
+                                <option value="{{ $slot['id'] }}">{{ $slot['label'] }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    @if (empty($directSlots))
+                        <p class="text-xs text-amber-700">選択した時間帯に一致するイベント時間枠がありません。カレンダー上で枠の時間を選択してください。</p>
+                    @endif
+                @elseif (! empty($directOptions))
+                    <div class="space-y-2">
+                        <p class="text-sm font-semibold text-slate-700">追加オプション</p>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            @foreach ($directOptions as $option)
+                                <label class="flex items-start gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        value="{{ $option['id'] }}"
+                                        wire:model.live="directReservationOptionIds"
+                                        class="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                    >
+                                    <span class="min-w-0">
+                                        <span class="block font-medium text-slate-800">{{ $option['name'] }}</span>
+                                        <span class="block text-xs text-slate-500">+{{ $option['duration'] }}分 / ¥{{ number_format($option['price']) }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endif
+        </div>
+
+        <x-slot name="footerActions">
+            <x-filament::button
+                color="success"
+                wire:click="confirmCreateDirectReservation"
+            >
+                予約する
+            </x-filament::button>
+            <x-filament::button
+                color="gray"
+                x-on:click="$dispatch('close-modal', { id: 'direct-reservation-create-confirm' })"
+            >
+                キャンセル
+            </x-filament::button>
         </x-slot>
     </x-filament::modal>
 
@@ -850,14 +992,26 @@
                     select: (info) => {
                         const operationMode = livewireComponent.get('operationMode');
 
+                        if (operationMode === 'block') {
+                            livewireComponent
+                                .call('showBlockConfirmModal', info.startStr, info.endStr)
+                                .finally(() => calendar.unselect());
+
+                            return;
+                        }
+
+                        if (operationMode === 'direct') {
+                            livewireComponent
+                                .call('showDirectReservationModal', info.startStr, info.endStr)
+                                .finally(() => calendar.unselect());
+
+                            return;
+                        }
+
                         if (operationMode !== 'block') {
                             calendar.unselect();
                             return;
                         }
-
-                        livewireComponent
-                            .call('showBlockConfirmModal', info.startStr, info.endStr)
-                            .finally(() => calendar.unselect());
                     },
                     eventDrop: (info) => {
                         const eventType = info.event.extendedProps && info.event.extendedProps.type;

@@ -3,11 +3,16 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\ReservationResource\Pages\ManageReservationCalendar;
+use App\Models\BusinessHour;
 use App\Models\Menu;
+use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Models\Slot;
+use App\Models\TimeBlock;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AdminReservationCalendarTest extends TestCase
@@ -42,7 +47,9 @@ class AdminReservationCalendarTest extends TestCase
             'duration' => 0,
         ]);
 
-        $date = now('Asia/Tokyo')->addDay()->toDateString();
+        $rangeStart = now('Asia/Tokyo')->startOfWeek();
+        $rangeEndExclusive = now('Asia/Tokyo')->endOfWeek()->addDay();
+        $date = $rangeStart->copy()->addDay()->toDateString();
         $slot = Slot::create([
             'menu_id' => $menu->id,
             'date' => $date,
@@ -56,8 +63,8 @@ class AdminReservationCalendarTest extends TestCase
 
         $page = app(ManageReservationCalendar::class);
         $events = $page->getCalendarEvents(
-            now('Asia/Tokyo')->startOfWeek()->toIso8601String(),
-            now('Asia/Tokyo')->endOfWeek()->addDay()->toIso8601String(),
+            $rangeStart->toIso8601String(),
+            $rangeEndExclusive->toIso8601String(),
         );
 
         $slotEvent = collect($events)->first(fn (array $event): bool => ($event['id'] ?? null) === 'slot-'.$slot->id);
@@ -131,5 +138,161 @@ class AdminReservationCalendarTest extends TestCase
         $endedResponse->assertOk();
         $endedResponse->assertSee('/admin/reservations/'.$pastReservation->id.'/edit', false);
         $endedResponse->assertDontSee('/admin/reservations/'.$futureReservation->id.'/edit', false);
+    }
+
+    public function test_admin_can_create_direct_treatment_reservation_from_calendar(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+        $customer = User::factory()->create();
+
+        $menu = Menu::factory()->create([
+            'is_event' => false,
+            'duration' => 60,
+            'price' => 7000,
+            'is_active' => true,
+        ]);
+        $option = MenuOption::create([
+            'menu_id' => $menu->id,
+            'name' => 'ヘッドマッサージ',
+            'price' => 1000,
+            'duration' => 30,
+            'is_active' => true,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDays(2)->startOfDay();
+        $this->createBusinessHour($date, '10:00:00', '20:00:00');
+
+        $start = $date->copy()->setTime(11, 0, 0);
+        $end = $date->copy()->setTime(12, 30, 0);
+
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->set('directReservationUserId', $customer->id)
+            ->set('directReservationMenuId', $menu->id)
+            ->set('directReservationOptionIds', [$option->id])
+            ->call('createDirectReservationFromCalendar', $start->toIso8601String(), $end->toIso8601String())
+            ->assertSet('directReservationMenuId', $menu->id);
+
+        $reservation = Reservation::query()->where('user_id', $customer->id)->latest('id')->first();
+
+        $this->assertNotNull($reservation);
+        $this->assertSame($menu->id, $reservation->menu_id);
+        $this->assertNull($reservation->slot_id);
+        $this->assertSame($start->toDateString(), $reservation->date->toDateString());
+        $this->assertSame('11:00', $reservation->start_time->format('H:i'));
+        $this->assertSame('12:30', $reservation->end_time->format('H:i'));
+        $this->assertSame('confirmed', $reservation->status);
+        $this->assertSame([$option->id], $reservation->options()->pluck('menu_option_id')->all());
+    }
+
+    public function test_direct_reservation_is_rejected_when_time_block_conflicts(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+        $customer = User::factory()->create();
+
+        $menu = Menu::factory()->create([
+            'is_event' => false,
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDays(3)->startOfDay();
+        $this->createBusinessHour($date, '10:00:00', '20:00:00');
+
+        $start = $date->copy()->setTime(11, 0, 0);
+        $end = $date->copy()->setTime(12, 0, 0);
+
+        TimeBlock::create([
+            'start_at' => $date->copy()->setTime(10, 30, 0),
+            'end_at' => $date->copy()->setTime(12, 0, 0),
+            'reason' => '臨時対応',
+            'is_active' => true,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->set('directReservationUserId', $customer->id)
+            ->set('directReservationMenuId', $menu->id)
+            ->call('createDirectReservationFromCalendar', $start->toIso8601String(), $end->toIso8601String());
+
+        $this->assertDatabaseMissing('reservations', [
+            'user_id' => $customer->id,
+            'menu_id' => $menu->id,
+            'date' => $date->toDateString(),
+            'start_time' => '11:00:00',
+            'status' => 'confirmed',
+        ]);
+    }
+
+    public function test_admin_can_create_direct_event_reservation_and_reject_full_slot(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+        $customer1 = User::factory()->create();
+        $customer2 = User::factory()->create();
+
+        $eventMenu = Menu::factory()->create([
+            'is_event' => true,
+            'duration' => 0,
+            'is_active' => true,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDays(4)->startOfDay();
+        $slot = Slot::create([
+            'menu_id' => $eventMenu->id,
+            'date' => $date->toDateString(),
+            'start_time' => '14:00',
+            'end_time' => '15:00',
+            'capacity' => 1,
+            'is_reserved' => false,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->set('directReservationUserId', $customer1->id)
+            ->set('directReservationMenuId', $eventMenu->id)
+            ->set('directReservationSlotId', $slot->id)
+            ->call(
+                'createDirectReservationFromCalendar',
+                $date->copy()->setTime(14, 0, 0)->toIso8601String(),
+                $date->copy()->setTime(15, 0, 0)->toIso8601String(),
+            );
+
+        $this->assertDatabaseHas('reservations', [
+            'user_id' => $customer1->id,
+            'menu_id' => $eventMenu->id,
+            'slot_id' => $slot->id,
+            'date' => $date->toDateString(),
+            'status' => 'confirmed',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->set('directReservationUserId', $customer2->id)
+            ->set('directReservationMenuId', $eventMenu->id)
+            ->set('directReservationSlotId', $slot->id)
+            ->call(
+                'createDirectReservationFromCalendar',
+                $date->copy()->setTime(14, 0, 0)->toIso8601String(),
+                $date->copy()->setTime(15, 0, 0)->toIso8601String(),
+            );
+
+        $this->assertSame(1, Reservation::query()->where('slot_id', $slot->id)->where('status', 'confirmed')->count());
+    }
+
+    private function createBusinessHour(Carbon $date, string $openTime, string $closeTime): void
+    {
+        BusinessHour::create([
+            'day_of_week' => null,
+            'specific_date' => $date->toDateString(),
+            'open_time' => $openTime,
+            'close_time' => $closeTime,
+            'is_closed' => false,
+        ]);
     }
 }
