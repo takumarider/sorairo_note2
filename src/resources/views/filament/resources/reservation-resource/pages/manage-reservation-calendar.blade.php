@@ -44,48 +44,48 @@
                         wire:click="setOperationMode('reservation')"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'reservation'
-                                ? 'border-sky-600 bg-sky-500 text-white shadow-sky-200 focus:ring-sky-400'
-                                : 'border-slate-300 bg-white text-slate-500 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 focus:ring-sky-200' }}"
+                                ? 'border-sky-800 bg-sky-700 text-white shadow-sky-300 focus:ring-sky-500'
+                                : 'border-sky-200 bg-sky-50 text-sky-900 hover:border-sky-500 hover:bg-sky-100 focus:ring-sky-300' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         予約を確認
-                        @if ($operationMode === 'reservation')
-                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
-                        @endif
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'reservation' ? 'bg-white text-sky-800' : 'bg-sky-200 text-sky-800' }}">
+                            {{ $operationMode === 'reservation' ? 'ON' : 'OFF' }}
+                        </span>
                     </button>
                     <button
                         type="button"
                         wire:click="setOperationMode('block')"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'block'
-                                ? 'border-red-600 bg-red-500 text-white shadow-red-200 focus:ring-red-400'
-                                : 'border-slate-300 bg-white text-slate-500 hover:border-red-400 hover:bg-red-50 hover:text-red-700 focus:ring-red-200' }}"
+                                ? 'border-rose-800 bg-rose-700 text-white shadow-rose-300 focus:ring-rose-500'
+                                : 'border-rose-200 bg-rose-50 text-rose-900 hover:border-rose-500 hover:bg-rose-100 focus:ring-rose-300' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                         </svg>
                         ブロックを作成
-                        @if ($operationMode === 'block')
-                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
-                        @endif
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'block' ? 'bg-white text-rose-800' : 'bg-rose-200 text-rose-800' }}">
+                            {{ $operationMode === 'block' ? 'ON' : 'OFF' }}
+                        </span>
                     </button>
                     <button
                         type="button"
                         wire:click="setOperationMode('direct')"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'direct'
-                                ? 'border-emerald-600 bg-emerald-500 text-white shadow-emerald-200 focus:ring-emerald-400'
-                                : 'border-slate-300 bg-white text-slate-500 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 focus:ring-emerald-200' }}"
+                                ? 'border-emerald-800 bg-emerald-700 text-white shadow-emerald-300 focus:ring-emerald-500'
+                                : 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-500 hover:bg-emerald-100 focus:ring-emerald-300' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-1 9H8a3 3 0 01-3-3V8a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3z" />
                         </svg>
                         ダイレクト予約
-                        @if ($operationMode === 'direct')
-                            <span class="ml-1 rounded-full bg-white/30 px-1.5 py-0.5 text-xs font-bold leading-none">ON</span>
-                        @endif
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'direct' ? 'bg-white text-emerald-800' : 'bg-emerald-200 text-emerald-800' }}">
+                            {{ $operationMode === 'direct' ? 'ON' : 'OFF' }}
+                        </span>
                     </button>
                 </div>
 
