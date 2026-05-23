@@ -3,15 +3,23 @@
 namespace App\Filament\Resources\ReservationResource\Pages;
 
 use App\Filament\Resources\ReservationResource;
+use App\Models\BusinessHour;
+use App\Models\Menu;
+use App\Models\MenuOption;
 use App\Models\Reservation;
 use App\Models\Slot;
 use App\Models\TimeBlock;
+use App\Models\User;
+use App\Services\AvailabilityService;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class ManageReservationCalendar extends Page
 {
@@ -32,6 +40,18 @@ class ManageReservationCalendar extends Page
     public ?string $pendingBlockStart = null;
 
     public ?string $pendingBlockEnd = null;
+
+    public ?string $pendingDirectReservationStart = null;
+
+    public ?string $pendingDirectReservationEnd = null;
+
+    public ?int $directReservationUserId = null;
+
+    public ?int $directReservationMenuId = null;
+
+    public array $directReservationOptionIds = [];
+
+    public ?int $directReservationSlotId = null;
 
     protected function getHeaderActions(): array
     {
@@ -80,11 +100,50 @@ class ManageReservationCalendar extends Page
 
     public function setOperationMode(string $mode): void
     {
-        if (! in_array($mode, ['reservation', 'block'], true)) {
+        if (! in_array($mode, ['reservation', 'block', 'direct'], true)) {
             return;
         }
 
         $this->operationMode = $mode;
+    }
+
+    public function updatedDirectReservationMenuId(): void
+    {
+        $this->directReservationOptionIds = [];
+        $this->directReservationSlotId = null;
+    }
+
+    public function showDirectReservationModal(string $start, string $end): void
+    {
+        $this->pendingDirectReservationStart = $start;
+        $this->pendingDirectReservationEnd = $end;
+        $this->directReservationOptionIds = [];
+        $this->directReservationSlotId = null;
+
+        $this->dispatch('open-modal', id: 'direct-reservation-create-confirm');
+    }
+
+    public function confirmCreateDirectReservation(): void
+    {
+        if (! $this->pendingDirectReservationStart || ! $this->pendingDirectReservationEnd) {
+            return;
+        }
+
+        $created = $this->createDirectReservationFromCalendar(
+            $this->pendingDirectReservationStart,
+            $this->pendingDirectReservationEnd,
+        );
+
+        if (! $created) {
+            return;
+        }
+
+        $this->pendingDirectReservationStart = null;
+        $this->pendingDirectReservationEnd = null;
+        $this->directReservationOptionIds = [];
+        $this->directReservationSlotId = null;
+
+        $this->dispatch('close-modal', id: 'direct-reservation-create-confirm');
     }
 
     public function showBlockConfirmModal(string $start, string $end): void
@@ -132,6 +191,70 @@ class ManageReservationCalendar extends Page
             ->send();
 
         $this->dispatch('reservation-calendar-refetch');
+    }
+
+    public function createDirectReservationFromCalendar(string $start, string $end): bool
+    {
+        try {
+            if (! Auth::user()?->is_admin) {
+                throw ValidationException::withMessages([
+                    'auth' => 'この操作を実行する権限がありません。',
+                ]);
+            }
+
+            $startAt = Carbon::parse($start, 'Asia/Tokyo');
+            $endAt = Carbon::parse($end, 'Asia/Tokyo');
+
+            if ($startAt->gte($endAt) || $startAt->diffInMinutes($endAt) % 30 !== 0) {
+                throw ValidationException::withMessages([
+                    'range' => '30分単位で正しい時間範囲を指定してください。',
+                ]);
+            }
+
+            if (! $this->directReservationUserId) {
+                throw ValidationException::withMessages([
+                    'user_id' => '利用者を選択してください。',
+                ]);
+            }
+
+            if (! $this->directReservationMenuId) {
+                throw ValidationException::withMessages([
+                    'menu_id' => 'メニューを選択してください。',
+                ]);
+            }
+
+            $user = User::query()->find($this->directReservationUserId);
+            $menu = Menu::query()->find($this->directReservationMenuId);
+
+            if (! $user || ! $menu || ! $menu->is_active) {
+                throw ValidationException::withMessages([
+                    'menu_id' => '利用者またはメニューの指定が不正です。',
+                ]);
+            }
+
+            if ($this->hasTimeBlockConflict($startAt, $endAt)) {
+                throw ValidationException::withMessages([
+                    'range' => '選択した時間帯はブロックされているため予約できません。',
+                ]);
+            }
+
+            if ($menu->is_event) {
+                return $this->createDirectEventReservation($user, $menu, $startAt, $endAt);
+            }
+
+            return $this->createDirectTreatmentReservation($user, $menu, $startAt, $endAt);
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())
+                ->flatten()
+                ->first() ?? 'ダイレクト予約の作成に失敗しました。';
+
+            Notification::make()
+                ->title((string) $message)
+                ->danger()
+                ->send();
+
+            return false;
+        }
     }
 
     public function updateBlockFromCalendar(int $blockId, string $start, string $end): void
@@ -568,5 +691,303 @@ class ManageReservationCalendar extends Page
     protected function formatPrice(int $price): string
     {
         return '¥'.number_format($price);
+    }
+
+    protected function createDirectTreatmentReservation(User $user, Menu $menu, Carbon $startAt, Carbon $endAt): bool
+    {
+        $businessSetting = BusinessHour::getSettingForDate($startAt->copy()->startOfDay());
+
+        if (! $businessSetting || $businessSetting->is_closed) {
+            throw ValidationException::withMessages([
+                'business_hour' => '選択した日は営業時間外のため予約できません。',
+            ]);
+        }
+
+        $openAt = Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $startAt->toDateString().' '.Carbon::parse((string) $businessSetting->open_time)->format('H:i:s'),
+            'Asia/Tokyo',
+        );
+        $closeAt = Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $startAt->toDateString().' '.Carbon::parse((string) $businessSetting->close_time)->format('H:i:s'),
+            'Asia/Tokyo',
+        );
+
+        if ($startAt->lt($openAt) || $endAt->gt($closeAt)) {
+            throw ValidationException::withMessages([
+                'business_hour' => '営業時間内の時間帯を選択してください。',
+            ]);
+        }
+
+        $activeOptions = $this->resolveActiveMenuOptions($menu);
+        $requestedOptionIds = collect($this->directReservationOptionIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values();
+
+        $selectedOptionIds = $requestedOptionIds
+            ->filter(fn ($id): bool => in_array((int) $id, $activeOptions->pluck('id')->all(), true))
+            ->map(fn ($id): int => (int) $id)
+            ->values();
+
+        if ($requestedOptionIds->count() !== $selectedOptionIds->count()) {
+            throw ValidationException::withMessages([
+                'options' => '選択したオプションに無効な項目が含まれています。',
+            ]);
+        }
+
+        $totalDuration = (int) $menu->duration + (int) $activeOptions
+            ->whereIn('id', $selectedOptionIds->all())
+            ->sum('duration');
+
+        if ($totalDuration <= 0 || $startAt->diffInMinutes($endAt) !== $totalDuration) {
+            throw ValidationException::withMessages([
+                'duration' => '選択した時間帯がメニュー所要時間と一致しません。',
+            ]);
+        }
+
+        $availabilityService = new AvailabilityService;
+        $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
+        if (! in_array($startAt->format('H:i'), $availableTimes, true)) {
+            throw ValidationException::withMessages([
+                'start_time' => 'この時間帯は既に予約されています。',
+            ]);
+        }
+
+        DB::transaction(function () use ($user, $menu, $startAt, $endAt, $selectedOptionIds): void {
+            Reservation::query()
+                ->whereDate('date', $startAt->toDateString())
+                ->where('status', 'confirmed')
+                ->lockForUpdate()
+                ->get();
+
+            $availabilityService = new AvailabilityService;
+            $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
+            if (! in_array($startAt->format('H:i'), $availableTimes, true)) {
+                throw ValidationException::withMessages([
+                    'start_time' => 'この時間帯は既に予約されています。',
+                ]);
+            }
+
+            $reservation = Reservation::create([
+                'user_id' => $user->id,
+                'menu_id' => $menu->id,
+                'slot_id' => null,
+                'date' => $startAt->toDateString(),
+                'start_time' => $startAt->format('H:i'),
+                'end_time' => $endAt->format('H:i'),
+                'status' => 'confirmed',
+            ]);
+
+            if ($selectedOptionIds->isNotEmpty()) {
+                $reservation->options()->attach($selectedOptionIds->all());
+            }
+        });
+
+        Notification::make()
+            ->title('ダイレクト予約を作成しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('reservation-calendar-refetch');
+
+        return true;
+    }
+
+    protected function createDirectEventReservation(User $user, Menu $menu, Carbon $startAt, Carbon $endAt): bool
+    {
+        if (! $this->directReservationSlotId) {
+            throw ValidationException::withMessages([
+                'slot_id' => 'イベント時間枠を選択してください。',
+            ]);
+        }
+
+        DB::transaction(function () use ($user, $menu, $startAt, $endAt): void {
+            $slot = Slot::query()
+                ->with('menu')
+                ->whereKey($this->directReservationSlotId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $slot || $slot->menu_id !== $menu->id) {
+                throw ValidationException::withMessages([
+                    'slot_id' => '選択したイベント時間枠を確認できませんでした。',
+                ]);
+            }
+
+            $slotStartAt = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $slot->date->toDateString().' '.$slot->start_time->format('H:i:s'),
+                'Asia/Tokyo',
+            );
+            $slotEndAt = Carbon::createFromFormat(
+                'Y-m-d H:i:s',
+                $slot->date->toDateString().' '.$slot->end_time->format('H:i:s'),
+                'Asia/Tokyo',
+            );
+
+            if (! $slotStartAt->equalTo($startAt) || ! $slotEndAt->equalTo($endAt)) {
+                throw ValidationException::withMessages([
+                    'slot_id' => 'カレンダーで選択した時間帯とイベント時間枠が一致しません。',
+                ]);
+            }
+
+            if ($this->hasTimeBlockConflict($slotStartAt, $slotEndAt)) {
+                throw ValidationException::withMessages([
+                    'slot_id' => '選択したイベント時間枠はブロックされているため予約できません。',
+                ]);
+            }
+
+            $alreadyReserved = Reservation::query()
+                ->where('user_id', $user->id)
+                ->where('menu_id', $menu->id)
+                ->whereDate('date', $slot->date->toDateString())
+                ->where('status', 'confirmed')
+                ->lockForUpdate()
+                ->exists();
+
+            if ($alreadyReserved) {
+                throw ValidationException::withMessages([
+                    'slot_id' => '同じイベントは1日につき1回まで予約できます。',
+                ]);
+            }
+
+            $confirmedCount = Reservation::query()
+                ->where('slot_id', $slot->id)
+                ->where('status', 'confirmed')
+                ->lockForUpdate()
+                ->count();
+
+            if ($slot->capacity === null || $confirmedCount >= $slot->capacity) {
+                throw ValidationException::withMessages([
+                    'slot_id' => 'このイベント枠は満席です。',
+                ]);
+            }
+
+            Reservation::create([
+                'user_id' => $user->id,
+                'menu_id' => $menu->id,
+                'slot_id' => $slot->id,
+                'date' => $slot->date->toDateString(),
+                'start_time' => $slot->start_time->format('H:i'),
+                'end_time' => $slot->end_time->format('H:i'),
+                'status' => 'confirmed',
+            ]);
+        });
+
+        Notification::make()
+            ->title('イベントのダイレクト予約を作成しました。')
+            ->success()
+            ->send();
+
+        $this->dispatch('reservation-calendar-refetch');
+
+        return true;
+    }
+
+    protected function hasTimeBlockConflict(Carbon $startAt, Carbon $endAt): bool
+    {
+        return TimeBlock::query()
+            ->where('is_active', true)
+            ->where('start_at', '<', $endAt)
+            ->where('end_at', '>', $startAt)
+            ->exists();
+    }
+
+    protected function resolveActiveMenuOptions(Menu $menu): Collection
+    {
+        return MenuOption::query()
+            ->where('menu_id', $menu->id)
+            ->active()
+            ->get();
+    }
+
+    public function getDirectReservationUsers(): array
+    {
+        return User::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ])
+            ->all();
+    }
+
+    public function getDirectReservationMenus(): array
+    {
+        return Menu::query()
+            ->where('is_active', true)
+            ->orderedByTypeForDisplay()
+            ->get(['id', 'name', 'is_event'])
+            ->map(fn (Menu $menu): array => [
+                'id' => $menu->id,
+                'name' => $menu->name,
+                'is_event' => (bool) $menu->is_event,
+            ])
+            ->all();
+    }
+
+    public function getDirectReservationMenuOptions(): array
+    {
+        if (! $this->directReservationMenuId) {
+            return [];
+        }
+
+        $menu = Menu::query()->find($this->directReservationMenuId);
+        if (! $menu || $menu->is_event) {
+            return [];
+        }
+
+        return $this->resolveActiveMenuOptions($menu)
+            ->map(fn (MenuOption $option): array => [
+                'id' => $option->id,
+                'name' => $option->name,
+                'duration' => (int) $option->duration,
+                'price' => (int) $option->price,
+            ])
+            ->all();
+    }
+
+    public function getDirectReservationEventSlots(): array
+    {
+        if (! $this->directReservationMenuId || ! $this->pendingDirectReservationStart || ! $this->pendingDirectReservationEnd) {
+            return [];
+        }
+
+        $menu = Menu::query()->find($this->directReservationMenuId);
+        if (! $menu || ! $menu->is_event) {
+            return [];
+        }
+
+        $startAt = Carbon::parse($this->pendingDirectReservationStart, 'Asia/Tokyo');
+        $endAt = Carbon::parse($this->pendingDirectReservationEnd, 'Asia/Tokyo');
+
+        return Slot::query()
+            ->withCount([
+                'reservations as confirmed_reservations_count' => fn (Builder $query) => $query->where('status', 'confirmed'),
+            ])
+            ->where('menu_id', $menu->id)
+            ->whereDate('date', $startAt->toDateString())
+            ->where('start_time', $startAt->format('H:i'))
+            ->where('end_time', $endAt->format('H:i'))
+            ->orderBy('start_time')
+            ->get()
+            ->map(function (Slot $slot): array {
+                $remainingCapacity = $slot->remainingCapacity();
+
+                return [
+                    'id' => $slot->id,
+                    'label' => sprintf(
+                        '%s - %s（残り %s名）',
+                        $slot->start_time->format('H:i'),
+                        $slot->end_time->format('H:i'),
+                        $remainingCapacity !== null ? (string) $remainingCapacity : '未設定'
+                    ),
+                ];
+            })
+            ->all();
     }
 }
