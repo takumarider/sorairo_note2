@@ -721,6 +721,10 @@ class ManageReservationCalendar extends Page
         }
 
         $activeOptions = $this->resolveActiveMenuOptions($menu);
+        $activeOptionIds = $activeOptions
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
         $requestedOptionIds = collect($this->directReservationOptionIds)
             ->map(fn ($id): int => (int) $id)
             ->filter(fn (int $id): bool => $id > 0)
@@ -728,7 +732,7 @@ class ManageReservationCalendar extends Page
             ->values();
 
         $selectedOptionIds = $requestedOptionIds
-            ->filter(fn ($id): bool => in_array((int) $id, $activeOptions->pluck('id')->all(), true))
+            ->filter(fn ($id): bool => in_array((int) $id, $activeOptionIds, true))
             ->map(fn ($id): int => (int) $id)
             ->values();
 
@@ -738,15 +742,22 @@ class ManageReservationCalendar extends Page
             ]);
         }
 
-        $totalDuration = (int) $menu->duration + (int) $activeOptions
-            ->whereIn('id', $selectedOptionIds->all())
-            ->sum('duration');
+        $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
+            ? (int) MenuOption::query()
+                ->where('menu_id', $menu->id)
+                ->whereIn('id', $selectedOptionIds->all())
+                ->sum('duration')
+            : 0;
 
-        if ($totalDuration <= 0 || $startAt->diffInMinutes($endAt) !== $totalDuration) {
+        $totalDuration = (int) $menu->duration + $selectedOptionDuration;
+
+        if ($totalDuration <= 0) {
             throw ValidationException::withMessages([
                 'duration' => '選択した時間帯がメニュー所要時間と一致しません。',
             ]);
         }
+
+        $resolvedEndAt = $startAt->copy()->addMinutes($totalDuration);
 
         $availabilityService = new AvailabilityService;
         $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
@@ -756,7 +767,7 @@ class ManageReservationCalendar extends Page
             ]);
         }
 
-        DB::transaction(function () use ($user, $menu, $startAt, $endAt, $selectedOptionIds): void {
+        DB::transaction(function () use ($user, $menu, $startAt, $resolvedEndAt, $selectedOptionIds): void {
             Reservation::query()
                 ->whereDate('date', $startAt->toDateString())
                 ->where('status', 'confirmed')
@@ -777,7 +788,7 @@ class ManageReservationCalendar extends Page
                 'slot_id' => null,
                 'date' => $startAt->toDateString(),
                 'start_time' => $startAt->format('H:i'),
-                'end_time' => $endAt->format('H:i'),
+                'end_time' => $resolvedEndAt->format('H:i'),
                 'status' => 'confirmed',
             ]);
 
@@ -858,6 +869,7 @@ class ManageReservationCalendar extends Page
                 ->where('slot_id', $slot->id)
                 ->where('status', 'confirmed')
                 ->lockForUpdate()
+                ->get(['id'])
                 ->count();
 
             if ($slot->capacity === null || $confirmedCount >= $slot->capacity) {

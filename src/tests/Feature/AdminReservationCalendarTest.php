@@ -47,7 +47,9 @@ class AdminReservationCalendarTest extends TestCase
             'duration' => 0,
         ]);
 
-        $date = now('Asia/Tokyo')->addDay()->toDateString();
+        $rangeStart = now('Asia/Tokyo')->startOfWeek();
+        $rangeEndExclusive = now('Asia/Tokyo')->endOfWeek()->addDay();
+        $date = $rangeStart->copy()->addDay()->toDateString();
         $slot = Slot::create([
             'menu_id' => $menu->id,
             'date' => $date,
@@ -61,8 +63,8 @@ class AdminReservationCalendarTest extends TestCase
 
         $page = app(ManageReservationCalendar::class);
         $events = $page->getCalendarEvents(
-            now('Asia/Tokyo')->startOfWeek()->toIso8601String(),
-            now('Asia/Tokyo')->endOfWeek()->addDay()->toIso8601String(),
+            $rangeStart->toIso8601String(),
+            $rangeEndExclusive->toIso8601String(),
         );
 
         $slotEvent = collect($events)->first(fn (array $event): bool => ($event['id'] ?? null) === 'slot-'.$slot->id);
@@ -165,9 +167,8 @@ class AdminReservationCalendarTest extends TestCase
         $start = $date->copy()->setTime(11, 0, 0);
         $end = $date->copy()->setTime(12, 30, 0);
 
-        $this->actingAs($admin);
-
-        Livewire::test(ManageReservationCalendar::class)
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
             ->set('directReservationUserId', $customer->id)
             ->set('directReservationMenuId', $menu->id)
             ->set('directReservationOptionIds', [$option->id])
@@ -212,9 +213,8 @@ class AdminReservationCalendarTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($admin);
-
-        Livewire::test(ManageReservationCalendar::class)
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
             ->set('directReservationUserId', $customer->id)
             ->set('directReservationMenuId', $menu->id)
             ->call('createDirectReservationFromCalendar', $start->toIso8601String(), $end->toIso8601String());
@@ -252,9 +252,8 @@ class AdminReservationCalendarTest extends TestCase
             'is_reserved' => false,
         ]);
 
-        $this->actingAs($admin);
-
-        Livewire::test(ManageReservationCalendar::class)
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
             ->set('directReservationUserId', $customer1->id)
             ->set('directReservationMenuId', $eventMenu->id)
             ->set('directReservationSlotId', $slot->id)
@@ -272,7 +271,8 @@ class AdminReservationCalendarTest extends TestCase
             'status' => 'confirmed',
         ]);
 
-        Livewire::test(ManageReservationCalendar::class)
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
             ->set('directReservationUserId', $customer2->id)
             ->set('directReservationMenuId', $eventMenu->id)
             ->set('directReservationSlotId', $slot->id)
