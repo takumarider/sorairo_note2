@@ -361,10 +361,10 @@ class WelcomePageSettingResource extends Resource
                 ->placeholder('不定休')
                 ->live(onBlur: true),
             Forms\Components\TextInput::make('welcome_contact_number')
-                ->label('お問い合わせ番号')
-                ->tel()
+                ->label('お問い合わせ')
                 ->maxLength(50)
-                ->placeholder('03-1234-5678')
+                ->placeholder('インスタのDMにご連絡ください')
+                ->helperText('未入力の場合は、公開ページで「インスタのDMにご連絡ください」と表示されます。')
                 ->live(onBlur: true),
             Forms\Components\Textarea::make('welcome_business_note')
                 ->label('営業補足')

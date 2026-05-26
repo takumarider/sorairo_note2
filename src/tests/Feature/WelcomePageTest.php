@@ -139,4 +139,18 @@ class WelcomePageTest extends TestCase
         $response->assertSee('新規登録');
         $response->assertDontSee('ダッシュボード');
     }
+
+    public function test_welcome_page_shows_default_contact_message_when_not_configured(): void
+    {
+        SystemSetting::getSingleton()->update([
+            'welcome_title' => 'テストタイトル',
+            'welcome_contact_number' => null,
+        ]);
+
+        $response = $this->get('/');
+
+        $response->assertOk();
+        $response->assertSee('お問い合わせ:');
+        $response->assertSee('インスタのDMにご連絡ください');
+    }
 }

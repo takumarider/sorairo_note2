@@ -255,7 +255,7 @@
 
                 <p>
                     <span class="font-semibold text-slate-900">お問い合わせ:</span>
-                    {{ $shop_contact_number ?? '未設定' }}
+                    {{ filled($shop_contact_number) ? $shop_contact_number : 'インスタのDMにご連絡ください' }}
                 </p>
 
                 @if ($shop_note ?? null)
