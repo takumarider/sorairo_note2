@@ -285,6 +285,58 @@ class AdminReservationCalendarTest extends TestCase
         $this->assertSame(1, Reservation::query()->where('slot_id', $slot->id)->where('status', 'confirmed')->count());
     }
 
+    public function test_admin_can_create_direct_treatment_reservation_with_guest_name(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+
+        $menu = Menu::factory()->create([
+            'is_event' => false,
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDays(5)->startOfDay();
+        $this->createBusinessHour($date, '10:00:00', '20:00:00');
+
+        $start = $date->copy()->setTime(13, 0, 0);
+        $end = $date->copy()->setTime(14, 0, 0);
+        $guestName = '体験予約 花子';
+
+        Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->set('directReservationGuestName', $guestName)
+            ->set('directReservationMenuId', $menu->id)
+            ->call('createDirectReservationFromCalendar', $start->toIso8601String(), $end->toIso8601String());
+
+        $guestUser = User::query()
+            ->where('name', $guestName)
+            ->where('email', 'like', User::directReservationGuestEmailLikePattern())
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($guestUser);
+
+        $reservation = Reservation::query()
+            ->where('user_id', $guestUser->id)
+            ->where('menu_id', $menu->id)
+            ->latest('id')
+            ->first();
+
+        $this->assertNotNull($reservation);
+        $this->assertSame($start->toDateString(), $reservation->date->toDateString());
+        $this->assertSame('13:00', $reservation->start_time->format('H:i'));
+        $this->assertSame('14:00', $reservation->end_time->format('H:i'));
+
+        $users = Livewire::actingAs($admin)
+            ->test(ManageReservationCalendar::class)
+            ->instance()
+            ->getDirectReservationUsers();
+
+        $this->assertFalse(collect($users)->contains(fn (array $user): bool => (int) $user['id'] === (int) $guestUser->id));
+    }
+
     private function createBusinessHour(Carbon $date, string $openTime, string $closeTime): void
     {
         BusinessHour::create([

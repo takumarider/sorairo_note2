@@ -8,11 +8,16 @@ use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    public const DIRECT_RESERVATION_GUEST_EMAIL_PREFIX = 'direct-guest+';
+
+    public const DIRECT_RESERVATION_GUEST_EMAIL_DOMAIN = 'guest.local.invalid';
 
     /**
      * The attributes that are mass assignable.
@@ -58,5 +63,37 @@ class User extends Authenticatable implements FilamentUser
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public static function createDirectReservationGuest(string $name): self
+    {
+        $displayName = trim($name);
+
+        return self::create([
+            'name' => $displayName !== '' ? $displayName : '仮名予約',
+            'email' => self::DIRECT_RESERVATION_GUEST_EMAIL_PREFIX.Str::ulid().'@'.self::DIRECT_RESERVATION_GUEST_EMAIL_DOMAIN,
+            'password' => Str::random(40),
+            'is_admin' => false,
+        ]);
+    }
+
+    public static function isDirectReservationGuestEmail(?string $email): bool
+    {
+        if (! $email) {
+            return false;
+        }
+
+        return str_starts_with($email, self::DIRECT_RESERVATION_GUEST_EMAIL_PREFIX)
+            && str_ends_with($email, '@'.self::DIRECT_RESERVATION_GUEST_EMAIL_DOMAIN);
+    }
+
+    public static function directReservationGuestEmailLikePattern(): string
+    {
+        return self::DIRECT_RESERVATION_GUEST_EMAIL_PREFIX.'%@'.self::DIRECT_RESERVATION_GUEST_EMAIL_DOMAIN;
+    }
+
+    public function isDirectReservationGuest(): bool
+    {
+        return self::isDirectReservationGuestEmail($this->email);
     }
 }

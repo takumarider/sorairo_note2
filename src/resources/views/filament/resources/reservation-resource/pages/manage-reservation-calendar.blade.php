@@ -38,55 +38,63 @@
 
         <section class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <div class="flex flex-wrap items-center gap-3">
-                <div class="flex gap-2">
+                <div class="flex flex-wrap gap-2">
                     <button
                         type="button"
                         wire:click="setOperationMode('reservation')"
+                        aria-pressed="{{ $operationMode === 'reservation' ? 'true' : 'false' }}"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'reservation'
                                 ? 'border-sky-800 bg-sky-700 text-white shadow-sky-300 focus:ring-sky-500'
-                                : 'border-sky-200 bg-sky-50 text-sky-900 hover:border-sky-500 hover:bg-sky-100 focus:ring-sky-300' }}"
+                                : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-slate-400 hover:bg-slate-200 focus:ring-slate-400' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         予約を確認
-                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'reservation' ? 'bg-white text-sky-800' : 'bg-sky-200 text-sky-800' }}">
-                            {{ $operationMode === 'reservation' ? 'ON' : 'OFF' }}
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'reservation' ? 'bg-white text-sky-800' : 'bg-slate-300 text-slate-700' }}">
+                            {{ $operationMode === 'reservation' ? 'ON 使用中' : 'OFF' }}
                         </span>
                     </button>
                     <button
                         type="button"
                         wire:click="setOperationMode('block')"
+                        aria-pressed="{{ $operationMode === 'block' ? 'true' : 'false' }}"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'block'
                                 ? 'border-rose-800 bg-rose-700 text-white shadow-rose-300 focus:ring-rose-500'
-                                : 'border-rose-200 bg-rose-50 text-rose-900 hover:border-rose-500 hover:bg-rose-100 focus:ring-rose-300' }}"
+                                : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-slate-400 hover:bg-slate-200 focus:ring-slate-400' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                         </svg>
                         ブロックを作成
-                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'block' ? 'bg-white text-rose-800' : 'bg-rose-200 text-rose-800' }}">
-                            {{ $operationMode === 'block' ? 'ON' : 'OFF' }}
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'block' ? 'bg-white text-rose-800' : 'bg-slate-300 text-slate-700' }}">
+                            {{ $operationMode === 'block' ? 'ON 使用中' : 'OFF' }}
                         </span>
                     </button>
                     <button
                         type="button"
                         wire:click="setOperationMode('direct')"
+                        aria-pressed="{{ $operationMode === 'direct' ? 'true' : 'false' }}"
                         class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
                             {{ $operationMode === 'direct'
                                 ? 'border-emerald-800 bg-emerald-700 text-white shadow-emerald-300 focus:ring-emerald-500'
-                                : 'border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-500 hover:bg-emerald-100 focus:ring-emerald-300' }}"
+                                : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-slate-400 hover:bg-slate-200 focus:ring-slate-400' }}"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10m-1 9H8a3 3 0 01-3-3V8a3 3 0 013-3h8a3 3 0 013 3v9a3 3 0 01-3 3z" />
                         </svg>
                         ダイレクト予約
-                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'direct' ? 'bg-white text-emerald-800' : 'bg-emerald-200 text-emerald-800' }}">
-                            {{ $operationMode === 'direct' ? 'ON' : 'OFF' }}
+                        <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'direct' ? 'bg-white text-emerald-800' : 'bg-slate-300 text-slate-700' }}">
+                            {{ $operationMode === 'direct' ? 'ON 使用中' : 'OFF' }}
                         </span>
                     </button>
+                </div>
+
+                <div class="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                    <span class="h-2 w-2 rounded-full {{ $operationMode === 'reservation' ? 'bg-sky-500' : ($operationMode === 'block' ? 'bg-rose-500' : 'bg-emerald-500') }}"></span>
+                    {{ $operationMode === 'reservation' ? '現在モード: 予約確認' : ($operationMode === 'block' ? '現在モード: ブロック作成' : '現在モード: ダイレクト予約') }}
                 </div>
 
                 @if ($operationMode === 'block')
@@ -343,7 +351,7 @@
         </x-slot>
 
         <x-slot name="description">
-            ユーザーとメニューを選択し、カレンダーで選んだ時間帯で予約を確定します。
+            既存ユーザーを選択するか、仮名を入力してメニューを選択し、カレンダーで選んだ時間帯で予約を確定します。
         </x-slot>
 
         @php
@@ -369,7 +377,7 @@
 
             <div class="grid gap-4 md:grid-cols-2">
                 <label class="space-y-1">
-                    <span class="text-sm font-semibold text-slate-700">ユーザー</span>
+                    <span class="text-sm font-semibold text-slate-700">既存ユーザー</span>
                     <select
                         wire:model.live="directReservationUserId"
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
@@ -380,6 +388,21 @@
                         @endforeach
                     </select>
                 </label>
+
+                <label class="space-y-1">
+                    <span class="text-sm font-semibold text-slate-700">仮名（既存ユーザー未登録時）</span>
+                    <input
+                        type="text"
+                        wire:model.live.debounce.300ms="directReservationGuestName"
+                        maxlength="255"
+                        placeholder="例: 体験予約 太郎"
+                        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    >
+                </label>
+
+                <p class="md:col-span-2 text-xs text-slate-500">
+                    既存ユーザーを選択するか、仮名を入力するかのどちらか一方を指定してください。
+                </p>
 
                 <label class="space-y-1">
                     <span class="text-sm font-semibold text-slate-700">メニュー</span>
@@ -508,7 +531,6 @@
 </x-filament-panels::page>
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
     <style>
         .reservation-modal {
             --rm-sky-50: #f0f9ff;

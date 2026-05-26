@@ -4,21 +4,42 @@
 
         {{-- 操作モードトグル & 再読み込み --}}
         <div class="flex flex-wrap items-center gap-3">
-            <div class="flex overflow-hidden rounded-lg border border-slate-300">
+            <div class="flex flex-wrap gap-2">
                 <button
                     type="button"
                     wire:click="setOperationMode('slot')"
-                    class="px-4 py-2 text-sm font-medium transition-colors focus:outline-none {{ $operationMode === 'slot' ? 'bg-sky-500 text-white' : 'bg-white text-slate-600 hover:bg-sky-50' }}"
+                    aria-pressed="{{ $operationMode === 'slot' ? 'true' : 'false' }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
+                        {{ $operationMode === 'slot'
+                            ? 'border-sky-800 bg-sky-700 text-white shadow-sky-300 focus:ring-sky-500'
+                            : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-slate-400 hover:bg-slate-200 focus:ring-slate-400' }}"
                 >
-                    ＋ 時間枠を作成
+                    <span aria-hidden="true">＋</span>
+                    時間枠を作成
+                    <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'slot' ? 'bg-white text-sky-800' : 'bg-slate-300 text-slate-700' }}">
+                        {{ $operationMode === 'slot' ? 'ON 使用中' : 'OFF' }}
+                    </span>
                 </button>
                 <button
                     type="button"
                     wire:click="setOperationMode('block')"
-                    class="border-l border-slate-300 px-4 py-2 text-sm font-medium transition-colors focus:outline-none {{ $operationMode === 'block' ? 'bg-red-500 text-white' : 'bg-white text-slate-600 hover:bg-red-50' }}"
+                    aria-pressed="{{ $operationMode === 'block' ? 'true' : 'false' }}"
+                    class="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-sm font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2
+                        {{ $operationMode === 'block'
+                            ? 'border-rose-800 bg-rose-700 text-white shadow-rose-300 focus:ring-rose-500'
+                            : 'border-slate-300 bg-slate-100 text-slate-700 hover:border-slate-400 hover:bg-slate-200 focus:ring-slate-400' }}"
                 >
-                    ✕ ブロックを作成
+                    <span aria-hidden="true">✕</span>
+                    ブロックを作成
+                    <span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold leading-none {{ $operationMode === 'block' ? 'bg-white text-rose-800' : 'bg-slate-300 text-slate-700' }}">
+                        {{ $operationMode === 'block' ? 'ON 使用中' : 'OFF' }}
+                    </span>
                 </button>
+            </div>
+
+            <div class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">
+                <span class="h-2 w-2 rounded-full {{ $operationMode === 'slot' ? 'bg-sky-500' : 'bg-rose-500' }}"></span>
+                {{ $operationMode === 'slot' ? '現在モード: 時間枠作成' : '現在モード: ブロック作成' }}
             </div>
 
             @if ($operationMode === 'block')
@@ -96,7 +117,6 @@
 </x-filament-panels::page>
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css">
     <style>
         #slot-calendar {
             min-height: 720px;
