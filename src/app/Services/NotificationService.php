@@ -7,6 +7,7 @@ use App\Mail\ReservationCanceled;
 use App\Mail\ReservationConfirmed;
 use App\Models\Reservation;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
@@ -30,6 +31,10 @@ class NotificationService
     public function sendReservationConfirmedToUser(Reservation $reservation): void
     {
         try {
+            if ($this->shouldSkipUserNotification($reservation)) {
+                return;
+            }
+
             $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
@@ -55,6 +60,10 @@ class NotificationService
     public function sendReservationCanceledToUser(Reservation $reservation): void
     {
         try {
+            if ($this->shouldSkipUserNotification($reservation)) {
+                return;
+            }
+
             $settings = SystemSetting::getSingleton();
             $this->applyFromSettings($settings);
 
@@ -136,6 +145,13 @@ class NotificationService
     private function isAdminNotificationConfigured(?SystemSetting $settings): bool
     {
         return $settings?->hasAdminNotificationSettings() ?? false;
+    }
+
+    private function shouldSkipUserNotification(Reservation $reservation): bool
+    {
+        $reservation->loadMissing('user');
+
+        return ! $reservation->user instanceof User || $reservation->user->isDirectReservationGuest();
     }
 
     /**

@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
@@ -26,6 +27,12 @@ class UserResource extends Resource
     protected static ?string $modelLabel = 'ユーザー';
 
     protected static ?string $pluralModelLabel = 'ユーザー';
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->where('email', 'not like', User::directReservationGuestEmailLikePattern());
+    }
 
     public static function form(Form $form): Form
     {

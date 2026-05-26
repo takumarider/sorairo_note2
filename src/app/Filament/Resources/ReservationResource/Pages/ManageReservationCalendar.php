@@ -47,6 +47,8 @@ class ManageReservationCalendar extends Page
 
     public ?int $directReservationUserId = null;
 
+    public string $directReservationGuestName = '';
+
     public ?int $directReservationMenuId = null;
 
     public array $directReservationOptionIds = [];
@@ -117,6 +119,7 @@ class ManageReservationCalendar extends Page
     {
         $this->pendingDirectReservationStart = $start;
         $this->pendingDirectReservationEnd = $end;
+        $this->directReservationGuestName = '';
         $this->directReservationOptionIds = [];
         $this->directReservationSlotId = null;
 
@@ -140,6 +143,7 @@ class ManageReservationCalendar extends Page
 
         $this->pendingDirectReservationStart = null;
         $this->pendingDirectReservationEnd = null;
+        $this->directReservationGuestName = '';
         $this->directReservationOptionIds = [];
         $this->directReservationSlotId = null;
 
@@ -195,6 +199,8 @@ class ManageReservationCalendar extends Page
 
     public function createDirectReservationFromCalendar(string $start, string $end): bool
     {
+        $createdGuestUser = null;
+
         try {
             if (! Auth::user()?->is_admin) {
                 throw ValidationException::withMessages([
@@ -211,9 +217,17 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            if (! $this->directReservationUserId) {
+            $guestName = trim($this->directReservationGuestName);
+
+            if (! $this->directReservationUserId && $guestName === '') {
                 throw ValidationException::withMessages([
-                    'user_id' => '利用者を選択してください。',
+                    'user_id' => '既存ユーザーを選択するか、仮名を入力してください。',
+                ]);
+            }
+
+            if ($this->directReservationUserId && $guestName !== '') {
+                throw ValidationException::withMessages([
+                    'user_id' => '既存ユーザー選択と仮名入力はどちらか一方のみ指定してください。',
                 ]);
             }
 
@@ -223,12 +237,24 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            $user = User::query()->find($this->directReservationUserId);
+            if ($this->directReservationUserId) {
+                $user = User::query()->find($this->directReservationUserId);
+            } else {
+                $createdGuestUser = User::createDirectReservationGuest($guestName);
+                $user = $createdGuestUser;
+            }
+
             $menu = Menu::query()->find($this->directReservationMenuId);
 
-            if (! $user || ! $menu || ! $menu->is_active) {
+            if (! $user || (! $menu || ! $menu->is_active)) {
                 throw ValidationException::withMessages([
                     'menu_id' => '利用者またはメニューの指定が不正です。',
+                ]);
+            }
+
+            if ($this->directReservationUserId && $user->isDirectReservationGuest()) {
+                throw ValidationException::withMessages([
+                    'user_id' => '既存ユーザーに仮ユーザーは指定できません。',
                 ]);
             }
 
@@ -244,6 +270,10 @@ class ManageReservationCalendar extends Page
 
             return $this->createDirectTreatmentReservation($user, $menu, $startAt, $endAt);
         } catch (ValidationException $e) {
+            if ($createdGuestUser && ! $createdGuestUser->reservations()->exists()) {
+                $createdGuestUser->delete();
+            }
+
             $message = collect($e->errors())
                 ->flatten()
                 ->first() ?? 'ダイレクト予約の作成に失敗しました。';
@@ -919,6 +949,7 @@ class ManageReservationCalendar extends Page
     public function getDirectReservationUsers(): array
     {
         return User::query()
+            ->where('email', 'not like', User::directReservationGuestEmailLikePattern())
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (User $user): array => [
