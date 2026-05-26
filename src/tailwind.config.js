@@ -5,7 +5,6 @@ import forms from "@tailwindcss/forms";
 export default {
     content: [
         "./vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php",
-        "./vendor/filament/*/resources/**/*.blade.php",
         "./storage/framework/views/*.php",
         "./app/Filament/**/*.php",
         "./resources/views/**/*.blade.php",
