@@ -24,7 +24,7 @@ class ReservationCancellationPolicyTest extends TestCase
 
         SystemSetting::getSingleton()->update([
             'user_cancel_deadline_hours' => 24,
-            'welcome_contact_number' => '03-1234-5678',
+            'welcome_contact_number' => 'インスタDMまでご連絡ください',
         ]);
 
         $reservation = Reservation::create([
@@ -41,7 +41,7 @@ class ReservationCancellationPolicyTest extends TestCase
 
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
-        $response->assertJsonPath('message', 'キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせ番号（03-1234-5678）をご確認ください。');
+        $response->assertJsonPath('message', 'キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせ（インスタDMまでご連絡ください）をご確認ください。');
         $this->assertSame('confirmed', $reservation->fresh()->status);
 
         Carbon::setTestNow();

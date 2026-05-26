@@ -275,7 +275,7 @@
                             @endif
                             <p class="whitespace-pre-line"><span class="font-semibold text-slate-900">営業時間:</span> {{ $settings->welcome_business_hours ?: '管理画面から設定してください' }}</p>
                             <p><span class="font-semibold text-slate-900">定休日:</span> {{ $settings->welcome_regular_holiday ?: '管理画面から設定してください' }}</p>
-                            <p><span class="font-semibold text-slate-900">お問い合わせ:</span> {{ $settings->welcome_contact_number ?: '管理画面から設定してください' }}</p>
+                            <p><span class="font-semibold text-slate-900">お問い合わせ:</span> {{ $settings->welcome_contact_number ?: 'インスタのDMにご連絡ください' }}</p>
                             @if (filled($settings->welcome_business_note))
                                 @if ($shopParagraphMode === 'paragraph')
                                     @foreach ($toParagraphs($settings->welcome_business_note) as $paragraph)
