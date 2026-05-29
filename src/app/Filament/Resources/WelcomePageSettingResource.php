@@ -74,6 +74,23 @@ class WelcomePageSettingResource extends Resource
                     .'<div class="inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-slate-900">⑤ レイアウト: カード余白/角丸/影/フォント</div>'
                     .'</div>'))
                 ->columnSpanFull(),
+            Forms\Components\Placeholder::make('welcome_inline_slide_over_hint')
+                ->label('')
+                ->content(new HtmlString('<div x-data="{ slideOverOpen: false }" @keydown.escape.window="slideOverOpen = false" class="space-y-2">'
+                    .'<button type="button" @click="slideOverOpen = true" class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700">スライドオーバーを確認</button>'
+                    .'<p class="text-xs text-slate-500">管理画面限定の Inline CSS（sr-inline-*）反映確認用です。</p>'
+                    .'<div class="sr-inline-overlay" :data-open="slideOverOpen ? \"true\" : \"false\"" @click="slideOverOpen = false"></div>'
+                    .'<aside class="sr-inline-slide-over" :data-open="slideOverOpen ? \"true\" : \"false\"" @click.stop>'
+                    .'<div class="h-full overflow-y-auto p-5">'
+                    .'<div class="mb-4 flex items-center justify-between">'
+                    .'<h3 class="text-base font-semibold text-slate-900">スライドオーバー確認</h3>'
+                    .'<button type="button" @click="slideOverOpen = false" class="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-100">閉じる</button>'
+                    .'</div>'
+                    .'<p class="text-sm text-slate-600">sr-inline-overlay / sr-inline-slide-over が適用されています。</p>'
+                    .'</div>'
+                    .'</aside>'
+                    .'</div>'))
+                ->columnSpanFull(),
             Forms\Components\Placeholder::make('welcome_group_hero')
                 ->label('')
                 ->content(new HtmlString('<span class="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-900">青色の項目はヒーロー領域（バッジ/見出し/リード文/メイン画像）に反映されます。</span>'))
