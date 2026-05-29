@@ -1,4 +1,4 @@
-@import "../../../../vendor/filament/filament/dist/theme.css";
+@import "../../../../public/css/filament/filament/app.css";
 
 @config '../../../../tailwind.config.js';
 
