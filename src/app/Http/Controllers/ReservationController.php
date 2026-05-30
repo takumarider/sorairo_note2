@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,6 +24,36 @@ class ReservationController extends Controller
     public function __construct(
         private NotificationService $notificationService
     ) {}
+
+    /**
+     * 予約導線の入口。
+     * 未ログイン時は認証へ誘導し、ログイン・登録後にカレンダーへ戻す。
+     */
+    public function start(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'menu_id' => 'required|exists:menus,id',
+            'options' => 'nullable|array',
+            'options.*' => 'exists:menu_options,id',
+        ]);
+
+        $calendarParams = [
+            'menu_id' => $validated['menu_id'],
+        ];
+
+        if (! empty($validated['options'])) {
+            $calendarParams['options'] = $validated['options'];
+        }
+
+        if (! Auth::check()) {
+            $loginRedirect = redirect()->guest(route('login'));
+            $request->session()->put('url.intended', route('reservations.calendar', $calendarParams, false));
+
+            return $loginRedirect->with('status', '予約するためには「新規登録」が必要です。');
+        }
+
+        return redirect()->route('reservations.calendar', $calendarParams);
+    }
 
     /**
      * カレンダー画面（月表示で空き有無を表示）
@@ -39,7 +70,7 @@ class ReservationController extends Controller
         $menuId = $validated['menu_id'];
         $optionIds = $validated['options'] ?? [];
         $month = ! empty($validated['month'])
-            ? Carbon::createFromFormat('Y-m', $validated['month'], 'Asia/Tokyo')->startOfMonth()
+            ? $this->parseYearMonth($validated['month'])
             : now('Asia/Tokyo')->startOfMonth();
         $availabilityReason = null;
 
@@ -449,7 +480,12 @@ class ReservationController extends Controller
             return null;
         }
 
-        return Carbon::createFromFormat('Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
+        return $this->parseYearMonth($yearMonth);
+    }
+
+    private function parseYearMonth(string $yearMonth): Carbon
+    {
+        return Carbon::createFromFormat('!Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
     }
 
     private function resolveOptions(Menu $menu, array $optionIds)
