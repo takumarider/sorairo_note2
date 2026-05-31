@@ -38,7 +38,7 @@ class EventReservationFlowTest extends TestCase
         ]);
 
         ReservationPublicationMonth::create([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
             'is_published' => true,
         ]);
     }
