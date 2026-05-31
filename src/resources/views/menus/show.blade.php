@@ -138,7 +138,7 @@
                         </div>
                     @endif
 
-                    <form method="GET" action="{{ route('reservations.calendar') }}" id="reservation-form" @submit="syncHiddenOptions()">
+                    <form method="GET" action="{{ route('reservations.start') }}" id="reservation-form" @submit="syncHiddenOptions()">
                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                         <div id="selected-options-container"></div>
 
