@@ -1,9 +1,15 @@
 import "./bootstrap";
+import Alpine from "alpinejs";
 
 //jqueryを読み込む
 import $ from "jquery";
 window.$ = $;
 window.jQuery = $;
+
+if (!window.Alpine) {
+    window.Alpine = Alpine;
+    Alpine.start();
+}
 
 // jQuery の動作確認
 $(document).ready(function () {
