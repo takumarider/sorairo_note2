@@ -55,6 +55,12 @@ class ManageReservationCalendar extends Page
 
     public ?int $directReservationSlotId = null;
 
+    public bool $directReservationIsOther = false;
+
+    public string $directReservationOtherMenuName = '';
+
+    public array $selectedReservationOptionIds = [];
+
     protected function getHeaderActions(): array
     {
         return [
@@ -65,7 +71,7 @@ class ManageReservationCalendar extends Page
         ];
     }
 
-    public function getCalendarEvents(string $start, string $end): array
+    public function getCalendarEvents(string $start, string $end, ?string $viewType = null): array
     {
         $startDate = Carbon::parse($start, 'Asia/Tokyo')->startOfDay();
         $endDate = Carbon::parse($end, 'Asia/Tokyo')->startOfDay()->subDay();
@@ -75,6 +81,7 @@ class ManageReservationCalendar extends Page
         }
 
         $reservationEvents = Reservation::query()
+            ->where('status', '!=', 'canceled')
             ->with(['user', 'menu', 'options', 'slot'])
             ->where(function (Builder $query) use ($startDate, $endDate): void {
                 $query
@@ -100,6 +107,103 @@ class ManageReservationCalendar extends Page
             ->all();
     }
 
+    public function getCalendarBusinessHourSummary(string $start, string $end): array
+    {
+        $startDate = Carbon::parse($start, 'Asia/Tokyo')->startOfDay();
+        $endDate = Carbon::parse($end, 'Asia/Tokyo')->startOfDay()->subDay();
+
+        if ($endDate->lt($startDate)) {
+            $endDate = $startDate->copy();
+        }
+
+        $dayLabels = ['日', '月', '火', '水', '木', '金', '土'];
+
+        $regularSettings = BusinessHour::query()
+            ->whereNull('specific_date')
+            ->orderBy('day_of_week')
+            ->get();
+
+        $regularLabel = $regularSettings->isEmpty()
+            ? '曜日別設定なし'
+            : $regularSettings
+                ->map(function (BusinessHour $setting) use ($dayLabels): string {
+                    $day = $dayLabels[(int) $setting->day_of_week] ?? '不明';
+                    $timeLabel = $setting->is_closed
+                        ? '休業'
+                        : $this->formatBusinessHourLabel((string) $setting->open_time, (string) $setting->close_time);
+
+                    return $day.' '.$timeLabel;
+                })
+                ->implode(' / ');
+
+        $specificSettings = BusinessHour::query()
+            ->whereNotNull('specific_date')
+            ->whereBetween('specific_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->orderBy('specific_date')
+            ->get();
+
+        $specificLabel = $specificSettings->isEmpty()
+            ? 'この期間の特定日設定なし'
+            : $specificSettings
+                ->map(function (BusinessHour $setting): string {
+                    $date = Carbon::parse((string) $setting->specific_date, 'Asia/Tokyo');
+                    $dateLabel = $date->isoFormat('M/D(ddd)');
+                    $timeLabel = $setting->is_closed
+                        ? '休業'
+                        : $this->formatBusinessHourLabel((string) $setting->open_time, (string) $setting->close_time);
+
+                    return $dateLabel.' '.$timeLabel;
+                })
+                ->implode(' / ');
+
+        return [
+            'regular_label' => $regularLabel,
+            'specific_label' => $specificLabel,
+        ];
+    }
+
+    public function getCalendarBusinessHourByDate(string $start, string $end): array
+    {
+        $startDate = Carbon::parse($start, 'Asia/Tokyo')->startOfDay();
+        $endDate = Carbon::parse($end, 'Asia/Tokyo')->startOfDay()->subDay();
+
+        if ($endDate->lt($startDate)) {
+            $endDate = $startDate->copy();
+        }
+
+        $result = [];
+        $currentDate = $startDate->copy();
+
+        while ($currentDate->lte($endDate)) {
+            $setting = BusinessHour::getSettingForDate($currentDate);
+            $dateKey = $currentDate->toDateString();
+
+            if (! $setting) {
+                $result[$dateKey] = [
+                    'status' => 'unset',
+                    'label' => '未設定',
+                    'is_specific' => false,
+                ];
+
+                $currentDate->addDay();
+
+                continue;
+            }
+
+            $result[$dateKey] = [
+                'status' => $setting->is_closed ? 'closed' : 'open',
+                'label' => $setting->is_closed
+                    ? '休業'
+                    : $this->formatBusinessHourLabel((string) $setting->open_time, (string) $setting->close_time),
+                'is_specific' => $setting->specific_date !== null,
+            ];
+
+            $currentDate->addDay();
+        }
+
+        return $result;
+    }
+
     public function setOperationMode(string $mode): void
     {
         if (! in_array($mode, ['reservation', 'block', 'direct'], true)) {
@@ -115,6 +219,15 @@ class ManageReservationCalendar extends Page
         $this->directReservationSlotId = null;
     }
 
+    public function updatedDirectReservationIsOther(): void
+    {
+        if ($this->directReservationIsOther) {
+            $this->directReservationMenuId = null;
+            $this->directReservationOptionIds = [];
+            $this->directReservationSlotId = null;
+        }
+    }
+
     public function showDirectReservationModal(string $start, string $end): void
     {
         $this->pendingDirectReservationStart = $start;
@@ -122,6 +235,8 @@ class ManageReservationCalendar extends Page
         $this->directReservationGuestName = '';
         $this->directReservationOptionIds = [];
         $this->directReservationSlotId = null;
+        $this->directReservationIsOther = false;
+        $this->directReservationOtherMenuName = '';
 
         $this->dispatch('open-modal', id: 'direct-reservation-create-confirm');
     }
@@ -146,6 +261,8 @@ class ManageReservationCalendar extends Page
         $this->directReservationGuestName = '';
         $this->directReservationOptionIds = [];
         $this->directReservationSlotId = null;
+        $this->directReservationIsOther = false;
+        $this->directReservationOtherMenuName = '';
 
         $this->dispatch('close-modal', id: 'direct-reservation-create-confirm');
     }
@@ -231,9 +348,17 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            if (! $this->directReservationMenuId) {
+            $isOtherMode = $this->directReservationIsOther;
+
+            if (! $isOtherMode && ! $this->directReservationMenuId) {
                 throw ValidationException::withMessages([
                     'menu_id' => 'メニューを選択してください。',
+                ]);
+            }
+
+            if ($isOtherMode && trim($this->directReservationOtherMenuName) === '') {
+                throw ValidationException::withMessages([
+                    'other_menu_name' => 'その他（記入）を入力してください。',
                 ]);
             }
 
@@ -244,11 +369,19 @@ class ManageReservationCalendar extends Page
                 $user = $createdGuestUser;
             }
 
-            $menu = Menu::query()->find($this->directReservationMenuId);
+            $menu = $isOtherMode
+                ? $this->resolveDirectReservationOtherMenu()
+                : Menu::query()->find($this->directReservationMenuId);
 
             if (! $user || (! $menu || ! $menu->is_active)) {
                 throw ValidationException::withMessages([
                     'menu_id' => '利用者またはメニューの指定が不正です。',
+                ]);
+            }
+
+            if ($isOtherMode && $menu->is_event) {
+                throw ValidationException::withMessages([
+                    'menu_id' => 'その他メニューは通常メニューとして設定してください。',
                 ]);
             }
 
@@ -268,7 +401,7 @@ class ManageReservationCalendar extends Page
                 return $this->createDirectEventReservation($user, $menu, $startAt, $endAt);
             }
 
-            return $this->createDirectTreatmentReservation($user, $menu, $startAt, $endAt);
+            return $this->createDirectTreatmentReservation($user, $menu, $startAt, $endAt, $isOtherMode);
         } catch (ValidationException $e) {
             if ($createdGuestUser && ! $createdGuestUser->reservations()->exists()) {
                 $createdGuestUser->delete();
@@ -379,6 +512,7 @@ class ManageReservationCalendar extends Page
         }
 
         $this->selectedReservation = $payload;
+        $this->selectedReservationOptionIds = array_map('intval', $payload['option_ids'] ?? []);
         $this->dispatch('open-modal', id: 'reservation-calendar-detail');
     }
 
@@ -456,6 +590,139 @@ class ManageReservationCalendar extends Page
             ->send();
     }
 
+    public function updateSelectedReservationOptions(): void
+    {
+        if (! $this->selectedReservation || ! isset($this->selectedReservation['id'])) {
+            return;
+        }
+
+        try {
+            if (! Auth::user()?->is_admin) {
+                throw ValidationException::withMessages([
+                    'auth' => 'この操作を実行する権限がありません。',
+                ]);
+            }
+
+            $reservation = Reservation::query()
+                ->with(['menu', 'options', 'slot'])
+                ->find((int) $this->selectedReservation['id']);
+
+            if (! $reservation) {
+                throw ValidationException::withMessages([
+                    'reservation' => '予約情報を取得できませんでした。',
+                ]);
+            }
+
+            if ($reservation->status !== 'confirmed') {
+                throw ValidationException::withMessages([
+                    'status' => '確定済み予約のみオプションを変更できます。',
+                ]);
+            }
+
+            $menu = $reservation->menu;
+            if (! $menu) {
+                throw ValidationException::withMessages([
+                    'menu' => 'メニュー情報を取得できませんでした。',
+                ]);
+            }
+
+            $startAt = $this->resolveReservationDateTime($reservation, 'start');
+            if (! $startAt) {
+                throw ValidationException::withMessages([
+                    'start' => '予約開始時刻を解決できませんでした。',
+                ]);
+            }
+
+            $activeOptions = $this->resolveActiveMenuOptions($menu);
+            $activeOptionIds = $activeOptions
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            $requestedOptionIds = collect($this->selectedReservationOptionIds)
+                ->map(fn ($id): int => (int) $id)
+                ->filter(fn (int $id): bool => $id > 0)
+                ->unique()
+                ->values();
+
+            $selectedOptionIds = $requestedOptionIds
+                ->filter(fn (int $id): bool => in_array($id, $activeOptionIds, true))
+                ->values();
+
+            if ($requestedOptionIds->count() !== $selectedOptionIds->count()) {
+                throw ValidationException::withMessages([
+                    'options' => '選択したオプションに無効な項目が含まれています。',
+                ]);
+            }
+
+            $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
+                ? (int) MenuOption::query()
+                    ->where('menu_id', $menu->id)
+                    ->whereIn('id', $selectedOptionIds->all())
+                    ->sum('duration')
+                : 0;
+
+            $totalDuration = (int) $menu->duration + $selectedOptionDuration;
+            if ($totalDuration <= 0) {
+                throw ValidationException::withMessages([
+                    'duration' => '合計所要時間が不正なため更新できません。',
+                ]);
+            }
+
+            $resolvedEndAt = $startAt->copy()->addMinutes($totalDuration);
+
+            if ($this->hasTimeBlockConflict($startAt, $resolvedEndAt)) {
+                throw ValidationException::withMessages([
+                    'block' => '変更後の時間帯はブロックされているため更新できません。',
+                ]);
+            }
+
+            DB::transaction(function () use ($reservation, $startAt, $resolvedEndAt, $selectedOptionIds): void {
+                Reservation::query()
+                    ->whereDate('date', $startAt->toDateString())
+                    ->where('status', 'confirmed')
+                    ->lockForUpdate()
+                    ->get(['id']);
+
+                if ($this->hasReservationTimeConflict($startAt, $resolvedEndAt, (int) $reservation->id)) {
+                    throw ValidationException::withMessages([
+                        'conflict' => '変更後の時間帯は既存予約と重複するため更新できません。',
+                    ]);
+                }
+
+                $reservation->options()->sync($selectedOptionIds->all());
+                $reservation->update([
+                    'end_time' => $resolvedEndAt->format('H:i'),
+                ]);
+            });
+
+            $payload = $this->buildReservationPayload($reservation->fresh(['user', 'menu', 'options', 'slot']));
+            if (! $payload) {
+                throw ValidationException::withMessages([
+                    'reservation' => '更新後の予約情報を取得できませんでした。',
+                ]);
+            }
+
+            $this->selectedReservation = $payload;
+            $this->selectedReservationOptionIds = array_map('intval', $payload['option_ids'] ?? []);
+            $this->dispatch('reservation-calendar-refetch');
+
+            Notification::make()
+                ->title('オプションを更新しました。')
+                ->success()
+                ->send();
+        } catch (ValidationException $e) {
+            $message = collect($e->errors())
+                ->flatten()
+                ->first() ?? 'オプションの更新に失敗しました。';
+
+            Notification::make()
+                ->title((string) $message)
+                ->danger()
+                ->send();
+        }
+    }
+
     protected function buildCalendarEvent(Reservation $reservation): ?array
     {
         $startAt = $this->resolveReservationDateTime($reservation, 'start');
@@ -471,7 +738,7 @@ class ManageReservationCalendar extends Page
 
         return [
             'id' => (string) $reservation->id,
-            'title' => sprintf('%s %s / %s', $startAt->format('H:i'), $customerName, $menuName),
+            'title' => sprintf('%s / %s', $customerName, $menuName),
             'start' => $startAt->format('Y-m-d\TH:i:s'),
             'end' => $endAt->format('Y-m-d\TH:i:s'),
             'backgroundColor' => $status['background'],
@@ -559,10 +826,16 @@ class ManageReservationCalendar extends Page
 
         return [
             'id' => $reservation->id,
+            'menu_id' => $reservation->menu?->id,
+            'status' => $reservation->status,
             'number' => str_pad((string) $reservation->id, 6, '0', STR_PAD_LEFT),
             'customer_name' => $reservation->user?->name ?? '未設定',
             'customer_email' => $reservation->user?->email ?? '未設定',
             'menu_name' => $reservation->menu?->name ?? '未設定',
+            'option_ids' => $reservation->options
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all(),
             'menu_price_label' => $this->formatPrice($menuPrice),
             'menu_duration_label' => $menuDuration > 0 ? $menuDuration.'分' : '未設定',
             'options' => $reservation->options
@@ -718,12 +991,20 @@ class ManageReservationCalendar extends Page
             ->all();
     }
 
+    protected function formatBusinessHourLabel(string $openTime, string $closeTime): string
+    {
+        $open = Carbon::parse($openTime, 'Asia/Tokyo')->format('H:i');
+        $close = Carbon::parse($closeTime, 'Asia/Tokyo')->format('H:i');
+
+        return $open.'-'.$close;
+    }
+
     protected function formatPrice(int $price): string
     {
         return '¥'.number_format($price);
     }
 
-    protected function createDirectTreatmentReservation(User $user, Menu $menu, Carbon $startAt, Carbon $endAt): bool
+    protected function createDirectTreatmentReservation(User $user, Menu $menu, Carbon $startAt, Carbon $endAt, bool $useSelectedRange = false): bool
     {
         $businessSetting = BusinessHour::getSettingForDate($startAt->copy()->startOfDay());
 
@@ -750,59 +1031,48 @@ class ManageReservationCalendar extends Page
             ]);
         }
 
-        $activeOptions = $this->resolveActiveMenuOptions($menu);
-        $activeOptionIds = $activeOptions
-            ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->all();
-        $requestedOptionIds = collect($this->directReservationOptionIds)
-            ->map(fn ($id): int => (int) $id)
-            ->filter(fn (int $id): bool => $id > 0)
-            ->unique()
-            ->values();
+        $selectedOptionIds = collect();
+        $resolvedEndAt = $endAt;
 
-        $selectedOptionIds = $requestedOptionIds
-            ->filter(fn ($id): bool => in_array((int) $id, $activeOptionIds, true))
-            ->map(fn ($id): int => (int) $id)
-            ->values();
+        if (! $useSelectedRange) {
+            $activeOptions = $this->resolveActiveMenuOptions($menu);
+            $activeOptionIds = $activeOptions
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+            $requestedOptionIds = collect($this->directReservationOptionIds)
+                ->map(fn ($id): int => (int) $id)
+                ->filter(fn (int $id): bool => $id > 0)
+                ->unique()
+                ->values();
 
-        if ($requestedOptionIds->count() !== $selectedOptionIds->count()) {
-            throw ValidationException::withMessages([
-                'options' => '選択したオプションに無効な項目が含まれています。',
-            ]);
-        }
+            $selectedOptionIds = $requestedOptionIds
+                ->filter(fn ($id): bool => in_array((int) $id, $activeOptionIds, true))
+                ->map(fn ($id): int => (int) $id)
+                ->values();
 
-        $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
-            ? (int) MenuOption::query()
-                ->where('menu_id', $menu->id)
-                ->whereIn('id', $selectedOptionIds->all())
-                ->sum('duration')
-            : 0;
+            if ($requestedOptionIds->count() !== $selectedOptionIds->count()) {
+                throw ValidationException::withMessages([
+                    'options' => '選択したオプションに無効な項目が含まれています。',
+                ]);
+            }
 
-        $totalDuration = (int) $menu->duration + $selectedOptionDuration;
+            $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
+                ? (int) MenuOption::query()
+                    ->where('menu_id', $menu->id)
+                    ->whereIn('id', $selectedOptionIds->all())
+                    ->sum('duration')
+                : 0;
 
-        if ($totalDuration <= 0) {
-            throw ValidationException::withMessages([
-                'duration' => '選択した時間帯がメニュー所要時間と一致しません。',
-            ]);
-        }
+            $totalDuration = (int) $menu->duration + $selectedOptionDuration;
 
-        $resolvedEndAt = $startAt->copy()->addMinutes($totalDuration);
+            if ($totalDuration <= 0) {
+                throw ValidationException::withMessages([
+                    'duration' => '選択した時間帯がメニュー所要時間と一致しません。',
+                ]);
+            }
 
-        $availabilityService = new AvailabilityService;
-        $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
-        if (! in_array($startAt->format('H:i'), $availableTimes, true)) {
-            throw ValidationException::withMessages([
-                'start_time' => 'この時間帯は既に予約されています。',
-            ]);
-        }
-
-        DB::transaction(function () use ($user, $menu, $startAt, $resolvedEndAt, $selectedOptionIds): void {
-            Reservation::query()
-                ->whereDate('date', $startAt->toDateString())
-                ->where('status', 'confirmed')
-                ->lockForUpdate()
-                ->get();
+            $resolvedEndAt = $startAt->copy()->addMinutes($totalDuration);
 
             $availabilityService = new AvailabilityService;
             $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
@@ -810,6 +1080,30 @@ class ManageReservationCalendar extends Page
                 throw ValidationException::withMessages([
                     'start_time' => 'この時間帯は既に予約されています。',
                 ]);
+            }
+        }
+
+        DB::transaction(function () use ($user, $menu, $startAt, $resolvedEndAt, $selectedOptionIds, $useSelectedRange): void {
+            Reservation::query()
+                ->whereDate('date', $startAt->toDateString())
+                ->where('status', 'confirmed')
+                ->lockForUpdate()
+                ->get();
+
+            if ($useSelectedRange) {
+                if ($this->hasReservationTimeConflict($startAt, $resolvedEndAt, 0)) {
+                    throw ValidationException::withMessages([
+                        'start_time' => 'この時間帯は既に予約されています。',
+                    ]);
+                }
+            } else {
+                $availabilityService = new AvailabilityService;
+                $availableTimes = $availabilityService->getAvailableTimes($menu, $selectedOptionIds->all(), $startAt->toDateString());
+                if (! in_array($startAt->format('H:i'), $availableTimes, true)) {
+                    throw ValidationException::withMessages([
+                        'start_time' => 'この時間帯は既に予約されています。',
+                    ]);
+                }
             }
 
             $reservation = Reservation::create([
@@ -938,6 +1232,30 @@ class ManageReservationCalendar extends Page
             ->exists();
     }
 
+    protected function hasReservationTimeConflict(Carbon $startAt, Carbon $endAt, int $excludeReservationId): bool
+    {
+        $reservations = Reservation::query()
+            ->whereDate('date', $startAt->toDateString())
+            ->where('status', 'confirmed')
+            ->whereKeyNot($excludeReservationId)
+            ->get(['date', 'start_time', 'end_time']);
+
+        foreach ($reservations as $reserved) {
+            $reservedStartAt = $this->resolveReservationDateTime($reserved, 'start');
+            $reservedEndAt = $this->resolveReservationDateTime($reserved, 'end');
+
+            if (! $reservedStartAt || ! $reservedEndAt) {
+                continue;
+            }
+
+            if ($reservedStartAt->lt($endAt) && $reservedEndAt->gt($startAt)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected function resolveActiveMenuOptions(Menu $menu): Collection
     {
         return MenuOption::query()
@@ -973,6 +1291,14 @@ class ManageReservationCalendar extends Page
             ->all();
     }
 
+    protected function resolveDirectReservationOtherMenu(): ?Menu
+    {
+        return Menu::query()
+            ->where('is_active', true)
+            ->where('name', 'その他')
+            ->first();
+    }
+
     public function getDirectReservationMenuOptions(): array
     {
         if (! $this->directReservationMenuId) {
@@ -981,6 +1307,27 @@ class ManageReservationCalendar extends Page
 
         $menu = Menu::query()->find($this->directReservationMenuId);
         if (! $menu || $menu->is_event) {
+            return [];
+        }
+
+        return $this->resolveActiveMenuOptions($menu)
+            ->map(fn (MenuOption $option): array => [
+                'id' => $option->id,
+                'name' => $option->name,
+                'duration' => (int) $option->duration,
+                'price' => (int) $option->price,
+            ])
+            ->all();
+    }
+
+    public function getSelectedReservationMenuOptions(): array
+    {
+        if (! $this->selectedReservation || ! isset($this->selectedReservation['menu_id'])) {
+            return [];
+        }
+
+        $menu = Menu::query()->find((int) $this->selectedReservation['menu_id']);
+        if (! $menu) {
             return [];
         }
 
