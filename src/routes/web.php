@@ -30,6 +30,8 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/reservations/calendar', [ReservationController::class, 'calendar'])->name('reservations.calendar');
     Route::get('/reservations/times', [ReservationController::class, 'times'])->name('reservations.times');
+    Route::get('/reservations/same-day/times', [ReservationController::class, 'sameDayTimes'])->name('reservations.same-day.times');
+    Route::get('/reservations/same-day/menus', [ReservationController::class, 'sameDayMenus'])->name('reservations.same-day.menus');
     Route::get('/reservations/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
     Route::post('/reservations', [ReservationController::class, 'store'])->name('reservations.store');
     Route::get('/reservations/{reservation}/complete', [ReservationController::class, 'complete'])->name('reservations.complete');

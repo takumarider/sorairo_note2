@@ -72,10 +72,11 @@
 
                     $start = $month->clone()->startOfMonth()->startOfWeek();
                     $end = $month->clone()->endOfMonth()->endOfWeek();
+                    $today = now('Asia/Tokyo')->startOfDay();
                     $availableDateList = [];
                     for ($d = $start->copy(); $d < $end; $d->addDay()) {
                         $key = $d->toDateString();
-                        if (($availableDates[$key] ?? false) && ! $d->isPast()) {
+                        if (($availableDates[$key] ?? false) && $d->gte($today)) {
                             $availableDateList[] = $d->copy();
                         }
                     }

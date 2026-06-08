@@ -25,6 +25,11 @@
                         メニューを見る
                     </a>
                     @auth
+                        <a href="{{ route('reservations.same-day.times') }}"
+                           class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-emerald-400 hover:to-teal-500 transition shadow-sm"
+                           aria-label="今日の予約">
+                            今日の予約
+                        </a>
                         <a href="{{ route('mypage') }}"
                            class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 transition shadow-sm"
                            aria-label="マイページ">
@@ -107,7 +112,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 pb-2 sm:hidden">
+        <div class="grid {{ $currentUser ? 'grid-cols-4' : 'grid-cols-3' }} gap-2 pb-2 sm:hidden">
             <a href="{{ route('menus.index') }}"
                class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
                       transition-all duration-150 ease-out
@@ -116,9 +121,19 @@
                           ? 'bg-sky-600 text-white shadow-sky-300 shadow-md'
                           : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
                aria-label="メニュー">
-                サービス
+                メニュー
             </a>
             @auth
+                <a href="{{ route('reservations.same-day.times') }}"
+                   class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
+                          transition-all duration-150 ease-out
+                          active:scale-95 active:brightness-90
+                          {{ request()->routeIs('reservations.same-day.*')
+                              ? 'bg-emerald-600 text-white shadow-emerald-300 shadow-md'
+                              : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
+                   aria-label="今日の予約">
+                    今日の予約
+                </a>
                 <a href="{{ route('mypage') }}"
                    class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
                           transition-all duration-150 ease-out
@@ -163,6 +178,10 @@
             <div class="pt-2 pb-3 space-y-1">
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('お知らせ') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('reservations.same-day.times')" :active="request()->routeIs('reservations.same-day.*')">
+                    {{ __('今日の予約') }}
                 </x-responsive-nav-link>
 
                 @if($isAdmin)

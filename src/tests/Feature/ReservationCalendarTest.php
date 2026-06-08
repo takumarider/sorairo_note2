@@ -270,4 +270,30 @@ class ReservationCalendarTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_calendar_includes_today_when_available(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create();
+            $user = User::factory()->create();
+
+            $response = $this->actingAs($user)->get(route('reservations.calendar', [
+                'menu_id' => $menu->id,
+                'month' => '2026-06',
+            ]));
+
+            $response->assertOk();
+            $response->assertSee('value="2026-06-08"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 }
