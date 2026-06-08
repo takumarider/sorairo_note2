@@ -31,6 +31,9 @@ class ListReservations extends ListRecords
             'active' => Tab::make('予約中')
                 ->badge($this->applyActiveScope(Reservation::query(), $today)->count())
                 ->modifyQueryUsing(fn (Builder $query) => $this->applyActiveScope($query, $today)),
+            'canceled' => Tab::make('キャンセル')
+                ->badge($this->applyCanceledScope(Reservation::query())->count())
+                ->modifyQueryUsing(fn (Builder $query) => $this->applyCanceledScope($query)),
             'ended' => Tab::make('終了')
                 ->badge($this->applyEndedScope(Reservation::query(), $today)->count())
                 ->modifyQueryUsing(fn (Builder $query) => $this->applyEndedScope($query, $today)),
@@ -40,7 +43,7 @@ class ListReservations extends ListRecords
     protected function applyActiveScope(Builder $query, string $today): Builder
     {
         return $query
-            ->where('status', '!=', 'completed')
+            ->whereNotIn('status', ['completed', 'canceled'])
             ->where(function (Builder $subQuery) use ($today): void {
                 $subQuery
                     ->whereDate('date', '>=', $today)
@@ -51,11 +54,17 @@ class ListReservations extends ListRecords
     protected function applyEndedScope(Builder $query, string $today): Builder
     {
         return $query
+            ->where('status', '!=', 'canceled')
             ->where(function (Builder $subQuery) use ($today): void {
                 $subQuery
                     ->where('status', 'completed')
                     ->orWhereDate('date', '<', $today)
                     ->orWhereHas('slot', fn (Builder $slotQuery) => $slotQuery->whereDate('date', '<', $today));
             });
+    }
+
+    protected function applyCanceledScope(Builder $query): Builder
+    {
+        return $query->where('status', 'canceled');
     }
 }
