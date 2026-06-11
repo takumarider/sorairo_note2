@@ -138,7 +138,7 @@
                         </div>
                     @endif
 
-                    <form method="GET" action="{{ route('reservations.calendar') }}" id="reservation-form" @submit="syncHiddenOptions()">
+                    <form method="GET" action="{{ route('reservations.start') }}" id="reservation-form" @submit="syncHiddenOptions()">
                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                         <div id="selected-options-container"></div>
 
@@ -147,6 +147,12 @@
                                     class="flex-1 text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2 transition">
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
+                            @if(! $menu->is_event)
+                                <a href="{{ route('reservations.same-day.times') }}"
+                                   class="px-5 py-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-100 transition whitespace-nowrap">
+                                    今日予約する
+                                </a>
+                            @endif
                             <a href="{{ route('menus.index') }}"
                                class="px-5 py-3.5 rounded-xl bg-sky-50 text-sky-800 font-semibold border border-sky-200 hover:bg-sky-100 transition">
                                 戻る
@@ -162,6 +168,12 @@
                                     class="w-full text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm active:scale-[0.99] hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 transition">
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
+                            @if(! $menu->is_event)
+                                <a href="{{ route('reservations.same-day.times') }}"
+                                   class="mt-2 block w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                                    今日予約する
+                                </a>
+                            @endif
                         </div>
                     </form>
                 </div>

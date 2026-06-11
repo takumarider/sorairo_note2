@@ -20,7 +20,7 @@ class MypageController extends Controller
 
         $reservations = $user
             ->reservations()
-            ->with(['menu', 'slot'])
+            ->with(['menu', 'slot', 'options'])
             ->whereDate('date', '>=', now()->toDateString())
             ->where('status', 'confirmed')
             ->orderBy('date')

@@ -6,6 +6,7 @@ use App\Models\BusinessHour;
 use App\Models\Menu;
 use App\Models\ReservationPublicationMonth;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -32,7 +33,7 @@ class ReservationCalendarTest extends TestCase
         ]);
 
         ReservationPublicationMonth::create([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
             'is_published' => true,
         ]);
     }
@@ -45,8 +46,56 @@ class ReservationCalendarTest extends TestCase
         $response = $this->actingAs($user)->get(route('menus.show', ['menu' => $menu->id]));
 
         $response->assertOk();
-        $response->assertSee('action="'.route('reservations.calendar').'"', false);
+        $response->assertSee('action="'.route('reservations.start').'"', false);
         $response->assertSee('name="menu_id" value="'.$menu->id.'"', false);
+    }
+
+    public function test_guest_can_browse_menu_pages(): void
+    {
+        $menu = Menu::factory()->create();
+
+        $this->get(route('menus.index'))->assertOk();
+        $this->get(route('menus.show', ['menu' => $menu->id]))->assertOk();
+    }
+
+    public function test_guest_is_redirected_to_login_when_opening_calendar(): void
+    {
+        $menu = Menu::factory()->create();
+
+        $response = $this->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+        ]));
+
+        $response->assertRedirect(route('login'));
+    }
+
+    public function test_guest_is_redirected_to_login_from_start_route_with_message_and_intended(): void
+    {
+        $menu = Menu::factory()->create();
+
+        $response = $this->get(route('reservations.start', [
+            'menu_id' => $menu->id,
+        ]));
+
+        $response->assertRedirect(route('login'));
+        $response->assertSessionHas('status', '予約するためには「新規登録」が必要です。');
+        $response->assertSessionHas('url.intended', route('reservations.calendar', [
+            'menu_id' => $menu->id,
+        ], false));
+    }
+
+    public function test_authenticated_user_is_redirected_to_calendar_from_start_route(): void
+    {
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('reservations.start', [
+            'menu_id' => $menu->id,
+        ]));
+
+        $response->assertRedirect(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+        ]));
     }
 
     public function test_user_can_open_calendar_with_menu_id(): void
@@ -111,7 +160,7 @@ class ReservationCalendarTest extends TestCase
     public function test_current_month_hides_next_month_link_when_unpublished(): void
     {
         ReservationPublicationMonth::updateOrCreate([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
         ], [
             'is_published' => false,
         ]);
@@ -131,14 +180,14 @@ class ReservationCalendarTest extends TestCase
     public function test_next_month_calendar_redirects_when_unpublished(): void
     {
         ReservationPublicationMonth::updateOrCreate([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
         ], [
             'is_published' => false,
         ]);
 
         $menu = Menu::factory()->create();
         $user = User::factory()->create();
-        $nextMonth = now('Asia/Tokyo')->addMonth()->format('Y-m');
+        $nextMonth = now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m');
 
         $response = $this->actingAs($user)->get(route('reservations.calendar', [
             'menu_id' => $menu->id,
@@ -155,14 +204,14 @@ class ReservationCalendarTest extends TestCase
     public function test_times_redirects_when_next_month_is_unpublished(): void
     {
         ReservationPublicationMonth::updateOrCreate([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
         ], [
             'is_published' => false,
         ]);
 
         $menu = Menu::factory()->create();
         $user = User::factory()->create();
-        $nextMonthDate = now('Asia/Tokyo')->addMonth()->startOfMonth()->addDays(1)->toDateString();
+        $nextMonthDate = now('Asia/Tokyo')->startOfMonth()->addMonth()->addDays(1)->toDateString();
 
         $response = $this->actingAs($user)->get(route('reservations.times', [
             'menu_id' => $menu->id,
@@ -179,14 +228,14 @@ class ReservationCalendarTest extends TestCase
     public function test_next_month_calendar_is_available_after_publication(): void
     {
         ReservationPublicationMonth::updateOrCreate([
-            'year_month' => now('Asia/Tokyo')->addMonth()->format('Y-m'),
+            'year_month' => now('Asia/Tokyo')->startOfMonth()->addMonth()->format('Y-m'),
         ], [
             'is_published' => true,
         ]);
 
         $menu = Menu::factory()->create();
         $user = User::factory()->create();
-        $nextMonth = now('Asia/Tokyo')->addMonth();
+        $nextMonth = now('Asia/Tokyo')->startOfMonth()->addMonth();
 
         $response = $this->actingAs($user)->get(route('reservations.calendar', [
             'menu_id' => $menu->id,
@@ -195,5 +244,56 @@ class ReservationCalendarTest extends TestCase
 
         $response->assertOk();
         $response->assertSee($nextMonth->isoFormat('Y年M月'));
+    }
+
+    public function test_calendar_month_parsing_does_not_skip_june_on_month_end(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 5, 31, 12, 0, 0, 'Asia/Tokyo'));
+
+        ReservationPublicationMonth::updateOrCreate([
+            'year_month' => '2026-06',
+        ], [
+            'is_published' => true,
+        ]);
+
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+            'month' => '2026-06',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('2026年6月');
+        $response->assertDontSee('2026年7月');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_calendar_includes_today_when_available(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create();
+            $user = User::factory()->create();
+
+            $response = $this->actingAs($user)->get(route('reservations.calendar', [
+                'menu_id' => $menu->id,
+                'month' => '2026-06',
+            ]));
+
+            $response->assertOk();
+            $response->assertSee('value="2026-06-08"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

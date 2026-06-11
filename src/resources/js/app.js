@@ -6,8 +6,10 @@ import $ from "jquery";
 window.$ = $;
 window.jQuery = $;
 
-window.Alpine = Alpine;
-Alpine.start();
+if (!window.Alpine) {
+    window.Alpine = Alpine;
+    Alpine.start();
+}
 
 // jQuery の動作確認
 $(document).ready(function () {

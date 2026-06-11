@@ -57,7 +57,10 @@
                         
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">料金</h3>
-                            <p class="text-2xl font-bold text-blue-600">¥{{ number_format($reservation->menu->price) }}</p>
+                            @php
+                                $totalPrice = (int) ($reservation->menu->price ?? 0) + (int) $reservation->options->sum('price');
+                            @endphp
+                            <p class="text-2xl font-bold text-blue-600">¥{{ number_format($totalPrice) }}</p>
                         </div>
                         
                         <div class="pb-4">
