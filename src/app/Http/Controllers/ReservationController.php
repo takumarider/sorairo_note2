@@ -174,6 +174,76 @@ class ReservationController extends Controller
     }
 
     /**
+     * 当日専用: 時間選択画面
+     */
+    public function sameDayTimes()
+    {
+        $today = now('Asia/Tokyo')->startOfDay();
+        $date = $today->toDateString();
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return view('reservations.same-day-times', [
+                'date' => $today,
+                'availableTimes' => [],
+                'availabilityReason' => self::MONTH_UNPUBLISHED_REASON,
+            ]);
+        }
+
+        $availableTimes = $this->getSameDayAvailableTimes($date);
+
+        return view('reservations.same-day-times', [
+            'date' => $today,
+            'availableTimes' => $availableTimes,
+            'availabilityReason' => empty($availableTimes) ? 'fully_booked' : 'available',
+        ]);
+    }
+
+    /**
+     * 当日専用: メニュー選択画面
+     */
+    public function sameDayMenus(Request $request)
+    {
+        $validated = $request->validate([
+            'start_time' => 'required|date_format:H:i',
+        ]);
+
+        $today = now('Asia/Tokyo')->startOfDay();
+        $date = $today->toDateString();
+        $startTime = $validated['start_time'];
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return redirect()->route('reservations.same-day.times')
+                ->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+        }
+
+        $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $date.' '.$startTime, 'Asia/Tokyo');
+        if ($startDateTime->lt(now('Asia/Tokyo'))) {
+            return redirect()->route('reservations.same-day.times')
+                ->withErrors(['start_time' => '当日のこの時間は選択できません。']);
+        }
+
+        $availabilityService = new AvailabilityService;
+        $menus = Menu::query()
+            ->treatments()
+            ->where('is_active', true)
+            ->with(['options' => fn ($query) => $query->active()])
+            ->orderedForDisplay()
+            ->get()
+            ->filter(function (Menu $menu) use ($availabilityService, $date, $startTime): bool {
+                $availableTimes = $availabilityService->getAvailableTimes($menu, [], $date);
+
+                return in_array($startTime, $availableTimes, true);
+            })
+            ->values();
+
+        return view('reservations.same-day-menus', [
+            'date' => $today,
+            'startTime' => $startTime,
+            'menus' => $menus,
+        ]);
+    }
+
+    /**
      * 予約確認画面
      */
     public function confirm(Request $request)
@@ -360,6 +430,18 @@ class ReservationController extends Controller
                         ]);
                     }
 
+                    $slotStartDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $slot->date->toDateString().' '.$slot->start_time->format('H:i'),
+                        'Asia/Tokyo'
+                    );
+
+                    if ($slotStartDateTime->lt(now('Asia/Tokyo'))) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
+                    }
+
                     $confirmedCount = Reservation::query()
                         ->where('slot_id', $slot->id)
                         ->where('status', 'confirmed')
@@ -388,6 +470,12 @@ class ReservationController extends Controller
                         "$date $startTime",
                         'Asia/Tokyo'
                     );
+
+                    if ($startDateTime->lt(now('Asia/Tokyo'))) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
+                    }
 
                     $totalDuration = $menu->duration;
                     foreach ($options as $option) {
@@ -495,5 +583,29 @@ class ReservationController extends Controller
         }
 
         return MenuOption::whereIn('id', $optionIds)->where('menu_id', $menu->id)->active()->get();
+    }
+
+    private function getSameDayAvailableTimes(string $date): array
+    {
+        $availabilityService = new AvailabilityService;
+        $menus = Menu::query()
+            ->treatments()
+            ->where('is_active', true)
+            ->orderedForDisplay()
+            ->get();
+
+        $timeMap = [];
+
+        foreach ($menus as $menu) {
+            $times = $availabilityService->getAvailableTimes($menu, [], $date);
+            foreach ($times as $time) {
+                $timeMap[$time] = true;
+            }
+        }
+
+        $availableTimes = array_keys($timeMap);
+        sort($availableTimes);
+
+        return $availableTimes;
     }
 }

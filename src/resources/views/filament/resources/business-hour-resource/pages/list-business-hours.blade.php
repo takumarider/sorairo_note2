@@ -141,7 +141,7 @@
                             <td class="px-4 py-2.5">
                                 <span class="font-mono text-slate-800">{{ $date->format('m/d') }}</span>
                                 @if($isToday)
-                                    <span class="ml-1.5 rounded bg-sky-500 px-1.5 py-0.5 text-xs font-bold text-white">今日</span>
+                                    <span class="ml-1.5 rounded bg-sky-500 px-1.5 py-0.5 text-xs font-bold text-white">今日予約する</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2.5 font-semibold
