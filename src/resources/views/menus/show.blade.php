@@ -150,7 +150,7 @@
                             @if(! $menu->is_event)
                                 <a href="{{ route('reservations.same-day.times') }}"
                                    class="px-5 py-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-100 transition whitespace-nowrap">
-                                    今日の予約
+                                    今日予約する
                                 </a>
                             @endif
                             <a href="{{ route('menus.index') }}"
@@ -171,7 +171,7 @@
                             @if(! $menu->is_event)
                                 <a href="{{ route('reservations.same-day.times') }}"
                                    class="mt-2 block w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
-                                    今日の予約
+                                    今日予約する
                                 </a>
                             @endif
                         </div>

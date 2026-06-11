@@ -63,7 +63,7 @@ class SameDayReservationFlowTest extends TestCase
             $response = $this->actingAs($user)->get(route('reservations.same-day.times'));
 
             $response->assertOk();
-            $response->assertSee('今日の予約');
+            $response->assertSee('今日予約する');
             $response->assertSee('value="10:00"', false);
         } finally {
             Carbon::setTestNow();

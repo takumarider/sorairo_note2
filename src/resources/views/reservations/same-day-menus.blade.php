@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-slate-800 leading-tight">
-            今日の予約
+            今日予約する
         </h2>
     </x-slot>
 

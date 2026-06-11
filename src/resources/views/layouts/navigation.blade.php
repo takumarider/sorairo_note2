@@ -27,8 +27,8 @@
                     @auth
                         <a href="{{ route('reservations.same-day.times') }}"
                            class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-emerald-400 hover:to-teal-500 transition shadow-sm"
-                           aria-label="今日の予約">
-                            今日の予約
+                           aria-label="今日予約する">
+                            今日予約する
                         </a>
                         <a href="{{ route('mypage') }}"
                            class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 transition shadow-sm"
@@ -131,8 +131,8 @@
                           {{ request()->routeIs('reservations.same-day.*')
                               ? 'bg-emerald-600 text-white shadow-emerald-300 shadow-md'
                               : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
-                   aria-label="今日の予約">
-                    今日の予約
+                   aria-label="今日予約する">
+                    今日予約する
                 </a>
                 <a href="{{ route('mypage') }}"
                    class="inline-flex items-center justify-center rounded-lg px-3 py-2 text-[13px] font-semibold shadow-sm
@@ -181,7 +181,7 @@
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('reservations.same-day.times')" :active="request()->routeIs('reservations.same-day.*')">
-                    {{ __('今日の予約') }}
+                    {{ __('今日予約する') }}
                 </x-responsive-nav-link>
 
                 @if($isAdmin)
