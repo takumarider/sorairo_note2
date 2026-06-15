@@ -47,7 +47,7 @@
                                         </div>
                                     </div>
 
-                                    <form method="GET" action="{{ route('reservations.confirm') }}" class="mt-4 space-y-3">
+                                    <form method="GET" action="{{ route('reservations.confirm') }}" class="mt-4 space-y-3" data-loading-overlay="true" data-loading-message="予約内容を確認しています。しばらくお待ちください。">
                                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                                         <input type="hidden" name="date" value="{{ $date->toDateString() }}">
                                         <input type="hidden" name="start_time" value="{{ $startTime }}">

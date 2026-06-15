@@ -73,7 +73,7 @@
                     }
                 @endphp
 
-                <form method="GET" action="{{ route('reservations.confirm') }}" class="space-y-5">
+                <form method="GET" action="{{ route('reservations.confirm') }}" class="space-y-5" data-loading-overlay="true" data-loading-message="予約内容を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     <input type="hidden" name="date" value="{{ $date->toDateString() }}">
                     @foreach($optionIds as $optionId)

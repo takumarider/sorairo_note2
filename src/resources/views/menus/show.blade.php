@@ -138,7 +138,12 @@
                         </div>
                     @endif
 
-                    <form method="GET" action="{{ route('reservations.start') }}" id="reservation-form" @submit="syncHiddenOptions()">
+                      <form method="GET"
+                          action="{{ route('reservations.start') }}"
+                          id="reservation-form"
+                          data-loading-overlay="true"
+                          data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。"
+                          @submit="syncHiddenOptions()">
                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                         <div id="selected-options-container"></div>
 

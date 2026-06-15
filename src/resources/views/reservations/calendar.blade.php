@@ -97,7 +97,9 @@
                 @endif
 
                 <div class="mb-5 flex items-center justify-between gap-3">
-                    <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->subMonth()->format('Y-m') }}"
+                          <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->subMonth()->format('Y-m') }}"
+                              data-loading-overlay="true"
+                              data-loading-message="空き状況を読み込んでいます。しばらくお待ちください。"
                        class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                         ← 前月
                     </a>
@@ -108,13 +110,15 @@
                         </span>
                     @else
                         <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->addMonth()->format('Y-m') }}"
+                            data-loading-overlay="true"
+                            data-loading-message="空き状況を読み込んでいます。しばらくお待ちください。"
                             class="rounded-xl border border-sky-600 !bg-sky-600 px-3 py-2 text-sm font-semibold !text-white shadow-sm transition hover:!bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
                             翌月 →
                         </a>
                     @endif
                 </div>
 
-                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-mobile">
+                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-mobile" data-loading-overlay="true" data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     @foreach($optionIds as $optionId)
                         <input type="hidden" name="options[]" value="{{ $optionId }}">
@@ -147,7 +151,7 @@
                     @endif
                 </form>
 
-                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-desktop">
+                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-desktop" data-loading-overlay="true" data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     @foreach($optionIds as $optionId)
                         <input type="hidden" name="options[]" value="{{ $optionId }}">

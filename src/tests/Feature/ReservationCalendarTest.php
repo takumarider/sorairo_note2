@@ -48,6 +48,7 @@ class ReservationCalendarTest extends TestCase
         $response->assertOk();
         $response->assertSee('action="'.route('reservations.start').'"', false);
         $response->assertSee('name="menu_id" value="'.$menu->id.'"', false);
+        $response->assertSee('data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。"', false);
     }
 
     public function test_guest_can_browse_menu_pages(): void
@@ -295,5 +296,29 @@ class ReservationCalendarTest extends TestCase
         } finally {
             Carbon::setTestNow();
         }
+    }
+
+    public function test_reservation_calendar_and_confirm_pages_include_loading_overlay_markup(): void
+    {
+        $menu = Menu::factory()->create();
+        $user = User::factory()->create();
+        $date = now('Asia/Tokyo')->addDay()->toDateString();
+
+        $calendarResponse = $this->actingAs($user)->get(route('reservations.calendar', [
+            'menu_id' => $menu->id,
+        ]));
+
+        $calendarResponse->assertOk();
+        $calendarResponse->assertSee('id="reservation-loading-overlay"', false);
+        $calendarResponse->assertSee('data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。"', false);
+
+        $confirmResponse = $this->actingAs($user)->get(route('reservations.confirm', [
+            'menu_id' => $menu->id,
+            'date' => $date,
+            'start_time' => '10:00',
+        ]));
+
+        $confirmResponse->assertOk();
+        $confirmResponse->assertSee('data-loading-message="予約を確定しています。完了までそのままお待ちください。"', false);
     }
 }

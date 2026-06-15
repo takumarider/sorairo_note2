@@ -74,6 +74,8 @@
                 <!-- 予約ボタン -->
                 <form method="POST"
                         action="{{ route('reservations.store') }}"
+                    data-loading-overlay="true"
+                    data-loading-message="予約を確定しています。完了までそのままお待ちください。"
                         x-data="{ submitting: false }"
                         @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
                     @csrf
