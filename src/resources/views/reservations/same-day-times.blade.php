@@ -32,7 +32,7 @@
                         {{ $reasonMessages[$availabilityReason] ?? '本日ご案内できる時間がありません。' }}
                     </div>
                 @else
-                    <form method="GET" action="{{ route('reservations.same-day.menus') }}" class="space-y-5">
+                    <form method="GET" action="{{ route('reservations.same-day.menus') }}" class="space-y-5" data-loading-overlay="true" data-loading-message="予約可能なメニューを確認しています。しばらくお待ちください。">
                         <div>
                             <h2 class="text-base font-bold text-slate-900 sm:text-lg">時間を選択してください</h2>
                             <p class="mt-1 text-xs text-slate-500">この時間に予約可能な通常メニューのみ、次の画面で表示されます。</p>

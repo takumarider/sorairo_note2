@@ -148,4 +148,38 @@ class SameDayReservationFlowTest extends TestCase
             Carbon::setTestNow();
         }
     }
+
+    public function test_same_day_flow_pages_include_loading_overlay_messages(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            Menu::factory()->create([
+                'name' => 'ベーシックメニュー',
+                'is_event' => false,
+                'is_active' => true,
+                'duration' => 60,
+            ]);
+
+            $user = User::factory()->create();
+
+            $timesResponse = $this->actingAs($user)->get(route('reservations.same-day.times'));
+            $timesResponse->assertOk();
+            $timesResponse->assertSee('data-loading-message="予約可能なメニューを確認しています。しばらくお待ちください。"', false);
+
+            $menusResponse = $this->actingAs($user)->get(route('reservations.same-day.menus', [
+                'start_time' => '10:00',
+            ]));
+            $menusResponse->assertOk();
+            $menusResponse->assertSee('data-loading-message="予約内容を確認しています。しばらくお待ちください。"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 }
