@@ -35,6 +35,12 @@ class ManageReservationCalendar extends Page
 
     public string $operationMode = 'reservation';
 
+    public bool $showReservationEvents = true;
+
+    public bool $showEventSlotEvents = true;
+
+    public bool $showBlockEvents = true;
+
     public string $blockReason = '';
 
     public ?string $pendingBlockStart = null;
@@ -58,6 +64,12 @@ class ManageReservationCalendar extends Page
     public bool $directReservationIsOther = false;
 
     public string $directReservationOtherMenuName = '';
+
+    public string $directReservationEventSlotSearch = '';
+
+    public bool $directReservationHideFullSlots = false;
+
+    public string $directReservationEventSlotSort = 'time';
 
     public array $selectedReservationOptionIds = [];
 
@@ -102,7 +114,8 @@ class ManageReservationCalendar extends Page
         $blockEvents = $this->getTimeBlockEvents($startDate, $endDate);
 
         return collect(array_merge($blockEvents, $reservationEvents, $slotEvents))
-            ->sortBy('start')
+            ->filter(fn (array $event): bool => $this->shouldShowCalendarEvent($event))
+            ->sortBy(fn (array $event): string => $this->getCalendarEventSortKey($event))
             ->values()
             ->all();
     }
@@ -217,6 +230,9 @@ class ManageReservationCalendar extends Page
     {
         $this->directReservationOptionIds = [];
         $this->directReservationSlotId = null;
+        $this->directReservationEventSlotSearch = '';
+        $this->directReservationHideFullSlots = false;
+        $this->directReservationEventSlotSort = 'time';
     }
 
     public function updatedDirectReservationIsOther(): void
@@ -237,8 +253,41 @@ class ManageReservationCalendar extends Page
         $this->directReservationSlotId = null;
         $this->directReservationIsOther = false;
         $this->directReservationOtherMenuName = '';
-
+        $this->directReservationEventSlotSearch = '';
+        $this->directReservationHideFullSlots = false;
+        $this->directReservationEventSlotSort = 'time';
         $this->dispatch('open-modal', id: 'direct-reservation-create-confirm');
+    }
+
+    public function toggleCalendarEventVisibility(string $type): void
+    {
+        switch ($type) {
+            case 'reservation':
+                $this->showReservationEvents = ! $this->showReservationEvents;
+                break;
+            case 'slot':
+                $this->showEventSlotEvents = ! $this->showEventSlotEvents;
+                break;
+            case 'block':
+                $this->showBlockEvents = ! $this->showBlockEvents;
+                break;
+        }
+
+        $this->dispatch('reservation-calendar-refetch');
+    }
+
+    public function setDirectReservationEventSlotSort(string $sort): void
+    {
+        if (! in_array($sort, ['time', 'remaining_capacity'], true)) {
+            return;
+        }
+
+        $this->directReservationEventSlotSort = $sort;
+    }
+
+    public function toggleDirectReservationHideFullSlots(): void
+    {
+        $this->directReservationHideFullSlots = ! $this->directReservationHideFullSlots;
     }
 
     public function confirmCreateDirectReservation(): void
@@ -752,6 +801,9 @@ class ManageReservationCalendar extends Page
                 'statusLabel' => $status['label'],
                 'customerName' => $customerName,
                 'menuName' => $menuName,
+                'timeLabel' => $startAt->format('H:i').' - '.$endAt->format('H:i'),
+                'statusKey' => $reservation->status,
+                'tooltip' => sprintf('%s / %s / %s', $customerName, $menuName, $status['label']),
             ],
         ];
     }
@@ -805,6 +857,20 @@ class ManageReservationCalendar extends Page
                 'capacity' => $slot->capacity,
                 'confirmed_count' => $confirmedCount,
                 'remaining_capacity' => $remainingCapacity,
+                'timeLabel' => $startAt->format('H:i').' - '.$endAt->format('H:i'),
+                'capacityLabel' => $slot->capacity !== null ? $slot->capacity.'名' : '未設定',
+                'confirmedCountLabel' => $confirmedCount.'名',
+                'remainingCapacityLabel' => $remainingCapacity !== null ? $remainingCapacity.'名' : '未設定',
+                'statusLabel' => $isFull ? '満席' : '受付中',
+                'isFull' => $isFull,
+                'tooltip' => sprintf(
+                    '%s / %s / 定員%s / 予約済み%s / 残枠%s',
+                    $menuName,
+                    $startAt->format('H:i').' - '.$endAt->format('H:i'),
+                    $slot->capacity !== null ? (string) $slot->capacity : '未設定',
+                    (string) $confirmedCount,
+                    $remainingCapacity !== null ? (string) $remainingCapacity : '未設定',
+                ),
             ],
         ];
     }
@@ -985,10 +1051,45 @@ class ManageReservationCalendar extends Page
                 'extendedProps' => [
                     'type' => 'block',
                     'block_id' => $block->id,
+                    'tooltip' => sprintf('%s / %s - %s', $block->reason ?: '時間帯ブロック', $block->start_at->format('H:i'), $block->end_at->format('H:i')),
                 ],
             ])
             ->values()
             ->all();
+    }
+
+    protected function shouldShowCalendarEvent(array $event): bool
+    {
+        $type = $event['extendedProps']['type'] ?? null;
+
+        return match ($type) {
+            'reservation' => $this->showReservationEvents,
+            'slot' => $this->showEventSlotEvents,
+            'block' => $this->showBlockEvents,
+            default => true,
+        };
+    }
+
+    protected function getCalendarEventSortKey(array $event): string
+    {
+        $type = $event['extendedProps']['type'] ?? '';
+        $statusKey = (string) ($event['extendedProps']['statusKey'] ?? '');
+
+        $typeOrder = match ($type) {
+            'block' => 0,
+            'slot' => 1,
+            'reservation' => 2,
+            default => 3,
+        };
+
+        $statusOrder = match ($statusKey) {
+            'confirmed' => 0,
+            'completed' => 1,
+            'canceled' => 2,
+            default => 3,
+        };
+
+        return sprintf('%s|%02d|%02d|%s', $event['start'] ?? '', $typeOrder, $statusOrder, $event['title'] ?? '');
     }
 
     protected function formatBusinessHourLabel(string $openTime, string $closeTime): string
@@ -1163,9 +1264,9 @@ class ManageReservationCalendar extends Page
                 'Asia/Tokyo',
             );
 
-            if (! $slotStartAt->equalTo($startAt) || ! $slotEndAt->equalTo($endAt)) {
+            if ($slotStartAt->toDateString() !== $startAt->toDateString()) {
                 throw ValidationException::withMessages([
-                    'slot_id' => 'カレンダーで選択した時間帯とイベント時間枠が一致しません。',
+                    'slot_id' => '選択したイベント時間枠の日付が一致しません。',
                 ]);
             }
 
@@ -1207,8 +1308,8 @@ class ManageReservationCalendar extends Page
                 'menu_id' => $menu->id,
                 'slot_id' => $slot->id,
                 'date' => $slot->date->toDateString(),
-                'start_time' => $slot->start_time->format('H:i'),
-                'end_time' => $slot->end_time->format('H:i'),
+                'start_time' => $slotStartAt->format('H:i'),
+                'end_time' => $slotEndAt->format('H:i'),
                 'status' => 'confirmed',
             ]);
         });
@@ -1355,29 +1456,72 @@ class ManageReservationCalendar extends Page
         $startAt = Carbon::parse($this->pendingDirectReservationStart, 'Asia/Tokyo');
         $endAt = Carbon::parse($this->pendingDirectReservationEnd, 'Asia/Tokyo');
 
-        return Slot::query()
+        $slots = Slot::query()
             ->withCount([
                 'reservations as confirmed_reservations_count' => fn (Builder $query) => $query->where('status', 'confirmed'),
             ])
             ->where('menu_id', $menu->id)
             ->whereDate('date', $startAt->toDateString())
-            ->where('start_time', $startAt->format('H:i'))
-            ->where('end_time', $endAt->format('H:i'))
             ->orderBy('start_time')
-            ->get()
-            ->map(function (Slot $slot): array {
+            ->orderBy('end_time')
+            ->get();
+
+        $search = mb_strtolower(trim($this->directReservationEventSlotSearch));
+
+        return $slots
+            ->map(function (Slot $slot) use ($startAt, $endAt): array {
                 $remainingCapacity = $slot->remainingCapacity();
+                $isFull = $remainingCapacity !== null && $remainingCapacity <= 0;
 
                 return [
                     'id' => $slot->id,
                     'label' => sprintf(
-                        '%s - %s（残り %s名）',
+                        '%s - %s（%s / 残り %s名）',
                         $slot->start_time->format('H:i'),
                         $slot->end_time->format('H:i'),
+                        $slot->menu?->name ?? 'イベント枠',
                         $remainingCapacity !== null ? (string) $remainingCapacity : '未設定'
                     ),
+                    'time_label' => $slot->start_time->format('H:i').' - '.$slot->end_time->format('H:i'),
+                    'menu_name' => $slot->menu?->name ?? 'イベント枠',
+                    'capacity_label' => $slot->capacity !== null ? $slot->capacity.'名' : '未設定',
+                    'confirmed_count_label' => $slot->confirmedCount().'名',
+                    'remaining_capacity_label' => $remainingCapacity !== null ? $remainingCapacity.'名' : '未設定',
+                    'status_label' => $isFull ? '満席' : '受付中',
+                    'status_badge_class' => $isFull ? 'bg-rose-50 text-rose-700 ring-rose-200' : 'bg-teal-50 text-teal-700 ring-teal-200',
+                    'is_full' => $isFull,
+                    'is_selected_range' => $slot->start_time->format('H:i') === $startAt->format('H:i')
+                        && $slot->end_time->format('H:i') === $endAt->format('H:i'),
+                    'search_text' => mb_strtolower(implode(' ', [
+                        (string) $slot->id,
+                        $slot->start_time->format('H:i'),
+                        $slot->end_time->format('H:i'),
+                        $slot->menu?->name ?? '',
+                        $remainingCapacity !== null ? (string) $remainingCapacity : '',
+                        $isFull ? '満席' : '受付中',
+                    ])),
+                    'sort_time' => $slot->start_time->format('H:i'),
+                    'sort_remaining_capacity' => $remainingCapacity ?? PHP_INT_MAX,
                 ];
             })
+            ->filter(function (array $slot) use ($search): bool {
+                if ($this->directReservationHideFullSlots && ($slot['is_full'] ?? false)) {
+                    return false;
+                }
+
+                if ($search === '') {
+                    return true;
+                }
+
+                return str_contains((string) ($slot['search_text'] ?? ''), $search);
+            })
+            ->sortBy(function (array $slot): string {
+                return match ($this->directReservationEventSlotSort) {
+                    'remaining_capacity' => sprintf('%06d|%s', (int) ($slot['sort_remaining_capacity'] ?? PHP_INT_MAX), (string) ($slot['sort_time'] ?? '')),
+                    default => sprintf('%s|%06d', (string) ($slot['sort_time'] ?? ''), (int) ($slot['sort_remaining_capacity'] ?? PHP_INT_MAX)),
+                };
+            })
+            ->values()
             ->all();
     }
 }

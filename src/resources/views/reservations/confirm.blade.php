@@ -1,6 +1,10 @@
 <x-app-layout>
+    @php
+        $isEvent = (bool) $menu->is_event;
+    @endphp
+
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl {{ $isEvent ? 'text-violet-900' : 'text-gray-800' }} leading-tight">
             {{ __('予約内容確認') }}
         </h2>
     </x-slot>
@@ -64,10 +68,10 @@
                 @endif
 
                 <!-- 料金 -->
-                <div class="bg-blue-50 rounded-lg p-6 mt-8 mb-8">
+                <div class="rounded-lg p-6 mt-8 mb-8 {{ $isEvent ? 'reservation-flow-price-card--event' : 'bg-blue-50' }}">
                     <div class="flex justify-between items-center">
                         <p class="text-lg font-semibold text-gray-900">合計料金</p>
-                        <p class="text-3xl font-bold text-blue-600">¥{{ number_format($totalPrice) }}</p>
+                        <p class="text-3xl font-bold {{ $isEvent ? 'text-violet-700' : 'text-blue-600' }}">¥{{ number_format($totalPrice) }}</p>
                     </div>
                 </div>
 
@@ -92,14 +96,16 @@
                     <div class="flex gap-4">
                         <button type="submit"
                                 :disabled="submitting"
-                                :class="submitting ? 'bg-blue-500 cursor-not-allowed opacity-70' : 'bg-blue-600 hover:bg-blue-700'"
-                                class="flex-1 px-6 py-3 text-white rounded-lg transition font-semibold text-center">
+                                :class="submitting
+                                    ? '{{ $isEvent ? 'from-violet-400 via-rose-400 to-orange-300 border-rose-300' : 'bg-blue-500' }} cursor-not-allowed opacity-70'
+                                    : '{{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}'"
+                                class="flex-1 px-6 py-3 text-white rounded-lg transition font-semibold text-center border focus:outline-none focus:ring-2 focus:ring-offset-2">
                             <span x-show="!submitting">予約を確定する</span>
                             <span x-show="submitting" x-cloak>確定中...</span>
                         </button>
                         <a href="{{ route('reservations.calendar', ['menu_id' => $menu->id]) }}"
                            :class="submitting ? 'pointer-events-none opacity-50' : ''"
-                           class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                           class="px-6 py-3 rounded-lg border transition font-semibold {{ $isEvent ? 'reservation-flow-ghost-btn--event' : 'bg-gray-200 text-gray-700 border-gray-200 hover:bg-gray-300' }}">
                             戻る
                         </a>
                     </div>

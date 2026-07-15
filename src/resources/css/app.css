@@ -3,6 +3,62 @@
 @tailwind utilities;
 
 @layer components {
+    .reservation-flow-header--standard {
+        @apply bg-gradient-to-r from-cyan-50 to-sky-50 ring-cyan-100;
+    }
+
+    .reservation-flow-header--event {
+        @apply bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50 ring-rose-100;
+    }
+
+    .reservation-flow-step-text--standard {
+        @apply text-cyan-700;
+    }
+
+    .reservation-flow-step-text--event {
+        @apply text-violet-700;
+    }
+
+    .reservation-flow-price-card--standard {
+        @apply bg-cyan-50;
+    }
+
+    .reservation-flow-price-card--event {
+        @apply bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50;
+    }
+
+    .reservation-flow-price-text--standard {
+        @apply text-cyan-700;
+    }
+
+    .reservation-flow-price-text--event {
+        @apply text-violet-700;
+    }
+
+    .reservation-flow-primary-btn--standard {
+        @apply border-sky-500 bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-300;
+    }
+
+    .reservation-flow-primary-btn--event {
+        @apply border-rose-400 bg-gradient-to-r from-violet-500 via-rose-500 to-orange-400 text-white hover:from-violet-600 hover:via-rose-600 hover:to-orange-500 focus:ring-rose-300;
+    }
+
+    .reservation-flow-ghost-btn--standard {
+        @apply bg-sky-50 text-sky-800 border-sky-200 hover:bg-sky-100;
+    }
+
+    .reservation-flow-ghost-btn--event {
+        @apply bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50 text-violet-800 border-rose-200 hover:from-violet-100 hover:via-rose-100 hover:to-orange-100;
+    }
+
+    .reservation-flow-chip--event {
+        @apply bg-gradient-to-r from-violet-100 via-rose-100 to-orange-100 text-violet-800;
+    }
+
+    .reservation-flow-note--event {
+        @apply border-rose-200 bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50 text-violet-900;
+    }
+
     .reservation-complete-card {
         box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
     }
