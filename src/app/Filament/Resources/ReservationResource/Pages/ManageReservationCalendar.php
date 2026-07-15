@@ -1240,7 +1240,7 @@ class ManageReservationCalendar extends Page
             ]);
         }
 
-        DB::transaction(function () use ($user, $menu, $startAt, $endAt): void {
+        DB::transaction(function () use ($user, $menu, $startAt): void {
             $slot = Slot::query()
                 ->with('menu')
                 ->whereKey($this->directReservationSlotId)
