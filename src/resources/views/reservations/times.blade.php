@@ -1,6 +1,10 @@
 <x-app-layout>
+    @php
+        $isEvent = (bool) $menu->is_event;
+    @endphp
+
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 leading-tight">
+        <h2 class="font-semibold text-xl {{ $isEvent ? 'text-violet-900' : 'text-slate-800' }} leading-tight">
             予約時刻を選択
         </h2>
     </x-slot>
@@ -8,8 +12,8 @@
     <div class="py-6 sm:py-10">
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
             <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-7">
-                <div class="mb-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-4 ring-1 ring-cyan-100 sm:p-5">
-                    <p class="text-xs font-semibold tracking-wide text-cyan-700">STEP 2 / 2</p>
+                <div class="mb-6 rounded-2xl p-4 ring-1 sm:p-5 {{ $isEvent ? 'reservation-flow-header--event' : 'reservation-flow-header--standard' }}">
+                    <p class="text-xs font-semibold tracking-wide {{ $isEvent ? 'reservation-flow-step-text--event' : 'reservation-flow-step-text--standard' }}">STEP 2 / 2</p>
                     <div class="mt-2">
                         <h1 class="text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{{ $menu->name }}</h1>
                         <p class="mt-1 text-sm text-slate-600">{{ $date->isoFormat('Y年M月D日(dddd)') }}</p>
@@ -18,7 +22,7 @@
                     <div class="mt-3 grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap sm:gap-5">
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
                             <span class="text-xs text-slate-500">料金</span>
-                            <div class="font-bold text-cyan-700">¥{{ number_format($totalPrice) }}</div>
+                            <div class="font-bold {{ $isEvent ? 'reservation-flow-price-text--event' : 'reservation-flow-price-text--standard' }}">¥{{ number_format($totalPrice) }}</div>
                         </div>
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
                             <span class="text-xs text-slate-500">{{ $menu->is_event ? '時間枠' : '所要時間' }}</span>
@@ -73,7 +77,7 @@
                     }
                 @endphp
 
-                <form method="GET" action="{{ route('reservations.confirm') }}" class="space-y-5">
+                <form method="GET" action="{{ route('reservations.confirm') }}" class="space-y-5" data-loading-overlay="true" data-loading-message="予約内容を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     <input type="hidden" name="date" value="{{ $date->toDateString() }}">
                     @foreach($optionIds as $optionId)
@@ -94,10 +98,10 @@
                         <button type="submit"
                                 name="start_time"
                                 value="{{ $availableTimes[0] }}"
-                                class="w-full rounded-2xl border border-sky-300 bg-sky-50 px-4 py-3 text-left ring-1 ring-sky-100 transition hover:bg-sky-100 active:scale-[0.99]">
-                            <p class="text-xs font-semibold text-sky-700">最短で予約できる時間</p>
+                                class="w-full rounded-2xl border px-4 py-3 text-left ring-1 transition active:scale-[0.99] {{ $isEvent ? 'border-rose-300 bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50 ring-rose-100 hover:from-violet-100 hover:via-rose-100 hover:to-orange-100' : 'border-sky-300 bg-sky-50 ring-sky-100 hover:bg-sky-100' }}">
+                            <p class="text-xs font-semibold {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}">最短で予約できる時間</p>
                             <p class="mt-1 text-2xl font-bold text-slate-900">{{ $availableTimes[0] }}</p>
-                            <p class="mt-1 text-xs text-slate-600">
+                            <p class="mt-1 text-xs {{ $isEvent ? 'text-violet-700' : 'text-slate-600' }}">
                                 {{ $menu->is_event
                                     ? '終了 ' . data_get($eventSlotDetails, $availableTimes[0] . '.end_time', '--:--') . ' / 残り ' . data_get($eventSlotDetails, $availableTimes[0] . '.remaining_capacity', '-') . '席'
                                     : '終了予定 ' . \Carbon\Carbon::createFromFormat('H:i', $availableTimes[0])->addMinutes($totalDuration)->format('H:i') }}
@@ -121,24 +125,24 @@
                                             @endphp
                                             @if($slotStatus === 'user_already_reserved')
                                                 {{-- 同日予約済み：感謝メッセージで非活性表示 --}}
-                                                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2.5 text-center cursor-default">
-                                                    <span class="block text-base font-bold text-emerald-700">{{ $time }}</span>
-                                                    <span class="block text-[11px] font-semibold text-emerald-600 leading-tight mt-0.5">ご予約ありがとうございます。</span>
+                                                <div class="rounded-xl border border-orange-200 bg-orange-50 px-2 py-2.5 text-center cursor-default">
+                                                    <span class="block text-base font-bold text-orange-700">{{ $time }}</span>
+                                                    <span class="block text-[11px] font-semibold text-orange-700 leading-tight mt-0.5">ご予約ありがとうございます。</span>
                                                 </div>
                                             @elseif($slotStatus === 'fully_booked')
                                                 {{-- 定員いっぱい：満席表示で非活性 --}}
-                                                <div class="rounded-xl border border-slate-200 bg-slate-100 px-2 py-2.5 text-center cursor-default">
-                                                    <span class="block text-base font-bold text-slate-400">{{ $time }}</span>
-                                                    <span class="block text-[11px] font-semibold text-slate-400 mt-0.5">定員になりました</span>
+                                                <div class="rounded-xl border border-rose-200 bg-gradient-to-b from-violet-50 via-rose-50 to-orange-50 px-2 py-2.5 text-center cursor-default">
+                                                    <span class="block text-base font-bold text-violet-700">{{ $time }}</span>
+                                                    <span class="block text-[11px] font-semibold text-violet-700 mt-0.5">定員いっぱいになりました</span>
                                                 </div>
                                             @else
                                                 {{-- 予約可能：通常ボタン --}}
                                                 <button type="submit"
                                                         name="start_time"
                                                         value="{{ $time }}"
-                                                        class="rounded-xl border border-sky-300 bg-sky-50 px-2 py-2.5 text-center transition hover:border-sky-500 hover:bg-sky-100 active:scale-[0.99]">
+                                                        class="rounded-xl border px-2 py-2.5 text-center transition active:scale-[0.99] {{ $isEvent ? 'border-rose-300 bg-gradient-to-r from-violet-50 via-rose-50 to-orange-50 hover:border-rose-500 hover:from-violet-100 hover:via-rose-100 hover:to-orange-100' : 'border-sky-300 bg-sky-50 hover:border-sky-500 hover:bg-sky-100' }}">
                                                     <span class="block text-base font-bold text-slate-900">{{ $time }}</span>
-                                                    <span class="block text-[11px] text-slate-500">
+                                                    <span class="block text-[11px] {{ $isEvent ? 'text-violet-700' : 'text-slate-500' }}">
                                                         {{ $menu->is_event
                                                             ? '終了 ' . data_get($eventSlotDetails, $time . '.end_time', '--:--') . ' / 残り ' . data_get($eventSlotDetails, $time . '.remaining_capacity', '-') . '席'
                                                             : '終了 ' . \Carbon\Carbon::createFromFormat('H:i', $time)->addMinutes($totalDuration)->format('H:i') }}

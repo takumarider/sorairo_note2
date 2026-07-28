@@ -9,6 +9,10 @@
                         <span class="h-2 w-2 rounded-full bg-sky-500"></span>
                         <span id="calendar-current-range">{{ now('Asia/Tokyo')->startOfWeek()->format('Y年n月j日') }} - {{ now('Asia/Tokyo')->startOfWeek()->addDays(6)->format('n月j日') }}</span>
                     </div>
+                    <div class="mt-2 space-y-1 text-xs text-slate-600">
+                        <p id="calendar-business-hours-regular">営業形態: 読み込み中...</p>
+                        <p id="calendar-business-hours-specific">特定日: 読み込み中...</p>
+                    </div>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-700">
@@ -117,6 +121,34 @@
                     予約をクリックすると予約詳細、イベント枠をクリックするとイベント枠詳細を表示します。
                 @endif
             </p>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold">
+                <span class="text-slate-500">表示フィルタ</span>
+                <button
+                    type="button"
+                    wire:click="toggleCalendarEventVisibility('reservation')"
+                    aria-pressed="{{ $showReservationEvents ? 'true' : 'false' }}"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition {{ $showReservationEvents ? 'border-teal-200 bg-teal-50 text-teal-700' : 'border-slate-300 bg-slate-100 text-slate-500' }}"
+                >
+                    予約
+                </button>
+                <button
+                    type="button"
+                    wire:click="toggleCalendarEventVisibility('slot')"
+                    aria-pressed="{{ $showEventSlotEvents ? 'true' : 'false' }}"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition {{ $showEventSlotEvents ? 'border-sky-200 bg-sky-50 text-sky-700' : 'border-slate-300 bg-slate-100 text-slate-500' }}"
+                >
+                    イベント枠
+                </button>
+                <button
+                    type="button"
+                    wire:click="toggleCalendarEventVisibility('block')"
+                    aria-pressed="{{ $showBlockEvents ? 'true' : 'false' }}"
+                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition {{ $showBlockEvents ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-300 bg-slate-100 text-slate-500' }}"
+                >
+                    ブロック
+                </button>
+            </div>
         </section>
 
         <div class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -222,7 +254,7 @@
                     <div class="reservation-modal__panel-header reservation-modal__panel-header--wrap">
                         <div>
                             <h3 class="reservation-modal__panel-title">追加オプション</h3>
-                            <p class="reservation-modal__panel-copy">選択されているオプションをカードで表示します。</p>
+                            <p class="reservation-modal__panel-copy">選択中オプションの確認と変更ができます（確定予約のみ更新可能）。</p>
                         </div>
                         <div class="reservation-modal__chip-group">
                             <span class="reservation-modal__chip">追加料金 {{ $selectedReservation['option_total_price_label'] }}</span>
@@ -254,6 +286,36 @@
                             追加オプションはありません。
                         </div>
                     @endif
+
+                    <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p class="text-xs font-semibold tracking-wide text-slate-600">オプションを編集</p>
+                        <p class="mt-1 text-xs text-slate-500">保存時に終了時刻を自動再計算します。重複やブロック時間帯と競合する場合は更新できません。</p>
+
+                        @if (count($this->getSelectedReservationMenuOptions()))
+                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                @foreach ($this->getSelectedReservationMenuOptions() as $option)
+                                    <label class="flex items-start gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 {{ (($selectedReservation['status'] ?? null) === 'confirmed') ? '' : 'opacity-70' }}">
+                                        <input
+                                            type="checkbox"
+                                            wire:model.live="selectedReservationOptionIds"
+                                            value="{{ $option['id'] }}"
+                                            class="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+                                        >
+                                        <span class="min-w-0">
+                                            <span class="block font-semibold text-slate-900">{{ $option['name'] }}</span>
+                                            <span class="block text-xs text-slate-500">{{ number_format($option['price']) }}円 / {{ $option['duration'] }}分</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="mt-3 text-xs text-slate-500">この予約で選択可能なオプションはありません。</p>
+                        @endif
+
+                        @if (($selectedReservation['status'] ?? null) !== 'confirmed')
+                            <p class="mt-2 text-xs font-medium text-amber-700">この予約は確定ステータスではないため、オプションを更新できません。</p>
+                        @endif
+                    </div>
                 </section>
             </div>
         @else
@@ -262,6 +324,14 @@
 
         <x-slot name="footer">
             <div class="flex items-center justify-end gap-2">
+                @if ($selectedReservation)
+                    <x-filament::button
+                        color="primary"
+                        wire:click="updateSelectedReservationOptions"
+                    >
+                        オプションを更新
+                    </x-filament::button>
+                @endif
                 @if ($selectedReservation && ($selectedReservation['status_label'] ?? null) === '確定')
                     <x-filament::button
                         color="danger"
@@ -351,16 +421,17 @@
         </x-slot>
 
         <x-slot name="description">
-            既存ユーザーを選択するか、仮名を入力してメニューを選択し、カレンダーで選んだ時間帯で予約を確定します。
+            既存ユーザーを選択するか、仮名を入力してメニューを選択し、カレンダーで選んだ日付のイベント時間枠から予約を確定します。
         </x-slot>
 
         @php
-            $selectedMenu = collect($this->getDirectReservationMenus())->firstWhere('id', $directReservationMenuId);
+            $isOtherMode = (bool) $directReservationIsOther;
+            $selectedMenu = $isOtherMode ? null : collect($this->getDirectReservationMenus())->firstWhere('id', $directReservationMenuId);
             $isEventMenu = (bool) ($selectedMenu['is_event'] ?? false);
             $directUsers = $this->getDirectReservationUsers();
             $directMenus = $this->getDirectReservationMenus();
-            $directOptions = $this->getDirectReservationMenuOptions();
-            $directSlots = $this->getDirectReservationEventSlots();
+            $directOptions = $isOtherMode ? [] : $this->getDirectReservationMenuOptions();
+            $directSlots = $isOtherMode ? [] : $this->getDirectReservationEventSlots();
         @endphp
 
         <div class="space-y-4">
@@ -408,6 +479,7 @@
                     <span class="text-sm font-semibold text-slate-700">メニュー</span>
                     <select
                         wire:model.live="directReservationMenuId"
+                        @disabled($isOtherMode)
                         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
                     >
                         <option value="">選択してください</option>
@@ -418,26 +490,111 @@
                         @endforeach
                     </select>
                 </label>
-            </div>
 
-            @if ($directReservationMenuId)
-                @if ($isEventMenu)
-                    <label class="space-y-1">
-                        <span class="text-sm font-semibold text-slate-700">イベント時間枠</span>
-                        <select
-                            wire:model.live="directReservationSlotId"
-                            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                <div class="md:col-span-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                    <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                        <input
+                            type="checkbox"
+                            wire:model.live="directReservationIsOther"
+                            class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                         >
-                            <option value="">選択してください</option>
-                            @foreach ($directSlots as $slot)
-                                <option value="{{ $slot['id'] }}">{{ $slot['label'] }}</option>
-                            @endforeach
-                        </select>
+                        その他（記入）で予約する
                     </label>
 
-                    @if (empty($directSlots))
-                        <p class="text-xs text-amber-700">選択した時間帯に一致するイベント時間枠がありません。カレンダー上で枠の時間を選択してください。</p>
+                    @if ($isOtherMode)
+                        <label class="block space-y-1">
+                            <span class="text-xs font-semibold text-slate-700">その他（記入）</span>
+                            <input
+                                type="text"
+                                wire:model.live.debounce.300ms="directReservationOtherMenuName"
+                                maxlength="255"
+                                placeholder="例: その他メニュー（入力内容は保存されません）"
+                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                            >
+                        </label>
+                        <p class="text-xs text-slate-500">入力内容は予約作成時の補助情報です。DBには保存されません。</p>
                     @endif
+                </div>
+            </div>
+
+            @if ($directReservationMenuId && ! $isOtherMode)
+                @if ($isEventMenu)
+                    <div class="space-y-3 rounded-xl border border-sky-100 bg-sky-50/70 p-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-700">イベント時間枠</p>
+                                <p class="text-xs text-slate-500">時間や残枠で絞り込み、候補を選択してください。</p>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-500">{{ count($directSlots) }}件</span>
+                        </div>
+
+                        <div class="grid gap-2 md:grid-cols-2">
+                            <label class="space-y-1">
+                                <span class="text-xs font-semibold text-slate-700">検索</span>
+                                <input
+                                    type="text"
+                                    wire:model.live.debounce.300ms="directReservationEventSlotSearch"
+                                    placeholder="14:00 / 残枠 / メニュー名"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                                >
+                            </label>
+
+                            <div class="space-y-1">
+                                <span class="text-xs font-semibold text-slate-700">並び順</span>
+                                <div class="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        wire:click="setDirectReservationEventSlotSort('time')"
+                                        class="rounded-full border px-3 py-1.5 text-xs font-semibold {{ $directReservationEventSlotSort === 'time' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-600' }}"
+                                    >
+                                        時刻順
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="setDirectReservationEventSlotSort('remaining_capacity')"
+                                        class="rounded-full border px-3 py-1.5 text-xs font-semibold {{ $directReservationEventSlotSort === 'remaining_capacity' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-300 bg-white text-slate-600' }}"
+                                    >
+                                        残枠順
+                                    </button>
+                                    <button
+                                        type="button"
+                                        wire:click="toggleDirectReservationHideFullSlots"
+                                        class="rounded-full border px-3 py-1.5 text-xs font-semibold {{ $directReservationHideFullSlots ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-300 bg-white text-slate-600' }}"
+                                    >
+                                        {{ $directReservationHideFullSlots ? '満席を含める' : '満席を除く' }}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (empty($directSlots))
+                            <p class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">一致するイベント時間枠がありません。検索条件を変えるか、カレンダー上で別の枠を選択してください。</p>
+                        @else
+                            <div class="max-h-80 space-y-2 overflow-y-auto pr-1">
+                                @foreach ($directSlots as $slot)
+                                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm shadow-sm transition {{ $slot['is_selected_range'] ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/60' }}">
+                                        <input
+                                            type="radio"
+                                            wire:model.live="directReservationSlotId"
+                                            value="{{ $slot['id'] }}"
+                                            class="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                        >
+                                        <span class="min-w-0 flex-1 space-y-1">
+                                            <span class="flex flex-wrap items-center gap-2">
+                                                <span class="font-semibold text-slate-900">{{ $slot['time_label'] }}</span>
+                                                <span class="rounded-full border px-2 py-0.5 text-[11px] font-bold {{ $slot['status_badge_class'] }}">{{ $slot['status_label'] }}</span>
+                                                @if ($slot['is_selected_range'])
+                                                    <span class="rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[11px] font-bold text-emerald-700">選択中</span>
+                                                @endif
+                                            </span>
+                                            <span class="block truncate text-slate-700">{{ $slot['menu_name'] }}</span>
+                                            <span class="block text-xs text-slate-500">定員 {{ $slot['capacity_label'] }} / 予約済み {{ $slot['confirmed_count_label'] }} / 残枠 {{ $slot['remaining_capacity_label'] }}</span>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 @elseif (! empty($directOptions))
                     <div class="space-y-2">
                         <p class="text-sm font-semibold text-slate-700">追加オプション</p>
@@ -859,11 +1016,74 @@
             font-weight: 700;
         }
 
+        .calendar-business-hour-badge {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 9999px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-top: 0.2rem;
+            padding: 0.15rem 0.45rem;
+            white-space: nowrap;
+        }
+
+        .calendar-business-hour-badge--header {
+            margin-left: 0;
+        }
+
+        .calendar-business-hour-badge--day {
+            margin-left: 0.25rem;
+        }
+
+        .calendar-business-hour-badge--open {
+            background: #ecfeff;
+            border-color: #a5f3fc;
+            color: #0e7490;
+        }
+
+        .calendar-business-hour-badge--closed {
+            background: #fee2e2;
+            border-color: #fecaca;
+            color: #b91c1c;
+        }
+
+        .calendar-business-hour-badge--unset {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        .calendar-business-hour-badge--specific {
+            box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.08) inset;
+        }
+
         .fc .fc-button {
             background: #f59e0b;
             border: 1px solid #d97706;
             color: #fff;
             box-shadow: none;
+            font-size: 0.75rem;
+            line-height: 1.2;
+            padding: 0.3rem 0.55rem;
+        }
+
+        .fc .fc-toolbar.fc-header-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .fc .fc-toolbar-chunk {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .fc .fc-toolbar-chunk:last-child {
+            margin-left: auto;
+            justify-content: flex-end;
         }
 
         .fc .fc-button:hover,
@@ -883,6 +1103,59 @@
             border-radius: 10px;
             padding: 2px 4px;
             font-weight: 600;
+        }
+
+        .calendar-event {
+            display: flex;
+            flex-direction: column;
+            gap: 0.18rem;
+            min-width: 0;
+            width: 100%;
+            line-height: 1.25;
+        }
+
+        .calendar-event__top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.35rem;
+            min-width: 0;
+        }
+
+        .calendar-event__time,
+        .calendar-event__subtitle {
+            font-size: 0.68rem;
+            white-space: nowrap;
+        }
+
+        .calendar-event__title {
+            font-size: 0.78rem;
+            font-weight: 800;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .calendar-event__subtitle {
+            opacity: 0.92;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-event__badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            padding: 0.12rem 0.4rem;
+            font-size: 0.62rem;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .calendar-event--reservation .calendar-event__badge,
+        .calendar-event--slot .calendar-event__badge,
+        .calendar-event--block .calendar-event__badge {
+            background: rgba(255, 255, 255, 0.18);
         }
 
         .fc .fc-timegrid-event-harness .fc-event-main,
@@ -925,7 +1198,7 @@
 
             .fc .fc-toolbar-chunk {
                 display: flex;
-                justify-content: center;
+                justify-content: flex-end;
             }
         }
     </style>
@@ -955,6 +1228,9 @@
                 }
 
                 const rangeEl = document.getElementById('calendar-current-range');
+                const businessHoursRegularEl = document.getElementById('calendar-business-hours-regular');
+                const businessHoursSpecificEl = document.getElementById('calendar-business-hours-specific');
+                let businessHoursByDate = {};
                 const formatJaDate = (date) => {
                     const year = date.getFullYear();
                     const month = date.getMonth() + 1;
@@ -973,6 +1249,86 @@
                     endDate.setDate(endDate.getDate() - 1);
 
                     rangeEl.textContent = `${formatJaDate(startDate)} - ${formatJaDate(endDate)}`;
+                };
+
+                const updateBusinessHourSummary = (startStr, endStr) => {
+                    livewireComponent
+                        .call('getCalendarBusinessHourSummary', startStr, endStr)
+                        .then((summary) => {
+                            if (businessHoursRegularEl) {
+                                businessHoursRegularEl.textContent = `営業形態: ${summary.regular_label || '曜日別設定なし'}`;
+                            }
+
+                            if (businessHoursSpecificEl) {
+                                businessHoursSpecificEl.textContent = `特定日: ${summary.specific_label || 'この期間の特定日設定なし'}`;
+                            }
+                        })
+                        .catch(() => {
+                            if (businessHoursRegularEl) {
+                                businessHoursRegularEl.textContent = '営業形態: 取得できませんでした';
+                            }
+
+                            if (businessHoursSpecificEl) {
+                                businessHoursSpecificEl.textContent = '特定日: 取得できませんでした';
+                            }
+                        });
+                };
+
+                const buildBadgeLabel = (data) => {
+                    if (!data) {
+                        return '未設定';
+                    }
+
+                    return data.is_specific ? `特定 ${data.label}` : data.label;
+                };
+
+                const upsertBusinessHourBadge = (container, className, data) => {
+                    if (!container) {
+                        return;
+                    }
+
+                    let badge = container.querySelector(`.${className}`);
+
+                    if (!badge) {
+                        badge = document.createElement('div');
+                        badge.className = `calendar-business-hour-badge ${className}`;
+                        container.appendChild(badge);
+                    }
+
+                    const status = data?.status || 'unset';
+                    badge.className = `calendar-business-hour-badge ${className} calendar-business-hour-badge--${status}${data?.is_specific ? ' calendar-business-hour-badge--specific' : ''}`;
+                    badge.textContent = buildBadgeLabel(data);
+                };
+
+                const applyBusinessHourBadges = () => {
+                    calendarEl.querySelectorAll('.fc-col-header-cell[data-date]').forEach((cell) => {
+                        const dateStr = cell.getAttribute('data-date');
+                        const data = businessHoursByDate[dateStr] || { status: 'unset', label: '未設定', is_specific: false };
+                        const target = cell.querySelector('.fc-col-header-cell-cushion');
+
+                        upsertBusinessHourBadge(target, 'calendar-business-hour-badge--header', data);
+                    });
+
+                    calendarEl.querySelectorAll('.fc-daygrid-day[data-date]').forEach((cell) => {
+                        const dateStr = cell.getAttribute('data-date');
+                        const data = businessHoursByDate[dateStr] || { status: 'unset', label: '未設定', is_specific: false };
+                        const target = cell.querySelector('.fc-daygrid-day-top') || cell.querySelector('.fc-daygrid-day-number')?.parentElement;
+
+                        upsertBusinessHourBadge(target, 'calendar-business-hour-badge--day', data);
+                    });
+                };
+
+                const updateBusinessHourByDate = (startStr, endStr) => {
+                    livewireComponent
+                        .call('getCalendarBusinessHourByDate', startStr, endStr)
+                        .then((map) => {
+                            businessHoursByDate = map || {};
+                            applyBusinessHourBadges();
+                        })
+                        .catch(() => {
+                            businessHoursByDate = {};
+                            applyBusinessHourBadges();
+                        });
                 };
 
                 const calendar = new FullCalendar.Calendar(calendarEl, {
@@ -994,6 +1350,88 @@
                         minute: '2-digit',
                         hour12: false,
                     },
+                    eventClassNames: (arg) => {
+                        const type = arg.event.extendedProps && arg.event.extendedProps.type;
+
+                        return type ? ['calendar-event', `calendar-event--${type}`] : ['calendar-event'];
+                    },
+                    eventContent: (arg) => {
+                        const props = arg.event.extendedProps || {};
+                        const escapeHtml = (value) => String(value ?? '')
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/'/g, '&#039;');
+
+                        const badge = escapeHtml(props.statusLabel || props.status_label || '');
+                        const timeLabel = escapeHtml(props.timeLabel || arg.timeText || '');
+
+                        if ((props.type || '') === 'reservation') {
+                            return {
+                                html: `
+                                    <div class="calendar-event calendar-event--reservation">
+                                        <div class="calendar-event__top">
+                                            <span class="calendar-event__time">${timeLabel}</span>
+                                            <span class="calendar-event__badge">${badge}</span>
+                                        </div>
+                                        <div class="calendar-event__title">${escapeHtml(props.customerName || '')}</div>
+                                        <div class="calendar-event__subtitle">${escapeHtml(props.menuName || '')}</div>
+                                    </div>
+                                `,
+                            };
+                        }
+
+                        if ((props.type || '') === 'slot') {
+                            return {
+                                html: `
+                                    <div class="calendar-event calendar-event--slot">
+                                        <div class="calendar-event__top">
+                                            <span class="calendar-event__time">${timeLabel}</span>
+                                            <span class="calendar-event__badge">${badge}</span>
+                                        </div>
+                                        <div class="calendar-event__title">${escapeHtml(props.menuName || '')}</div>
+                                        <div class="calendar-event__subtitle">定員 ${escapeHtml(props.capacityLabel || '')} / 残枠 ${escapeHtml(props.remainingCapacityLabel || '')}</div>
+                                    </div>
+                                `,
+                            };
+                        }
+
+                        if ((props.type || '') === 'block') {
+                            return {
+                                html: `
+                                    <div class="calendar-event calendar-event--block">
+                                        <div class="calendar-event__top">
+                                            <span class="calendar-event__time">${timeLabel}</span>
+                                            <span class="calendar-event__badge">ブロック</span>
+                                        </div>
+                                        <div class="calendar-event__title">${escapeHtml(arg.event.title || '')}</div>
+                                        <div class="calendar-event__subtitle">${escapeHtml(props.tooltip || '')}</div>
+                                    </div>
+                                `,
+                            };
+                        }
+
+                        return {
+                            html: `
+                                <div class="calendar-event">
+                                    <div class="calendar-event__title">${escapeHtml(arg.event.title || '')}</div>
+                                </div>
+                            `,
+                        };
+                    },
+                    moreLinkContent: (arg) => {
+                        return {
+                            html: `<span class="text-xs font-bold text-sky-700">+他${arg.num}件</span>`,
+                        };
+                    },
+                    eventDidMount: (info) => {
+                        const tooltip = info.event.extendedProps && info.event.extendedProps.tooltip;
+
+                        if (tooltip) {
+                            info.el.title = tooltip;
+                        }
+                    },
                     buttonText: {
                         today: '今日',
                         month: '月',
@@ -1001,9 +1439,9 @@
                         day: '日',
                     },
                     headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay',
+                        left: 'title',
+                        center: '',
+                        right: 'prev,next today dayGridMonth,timeGridWeek,timeGridDay',
                     },
                     events: (fetchInfo, successCallback, failureCallback) => {
                         livewireComponent
@@ -1089,6 +1527,8 @@
                     },
                     datesSet: (info) => {
                         updateRangeLabel(info.start, info.end);
+                        updateBusinessHourSummary(info.startStr, info.endStr);
+                        updateBusinessHourByDate(info.startStr, info.endStr);
                     },
                 });
 

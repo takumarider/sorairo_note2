@@ -34,7 +34,7 @@
                         'time_label' => $reservation->start_time->format('H:i').' - '.$reservation->end_time->format('H:i'),
                         'menu_name' => $reservation->menu->name,
                         'is_event' => (bool) $reservation->menu->is_event,
-                        'price_label' => '¥'.number_format($reservation->menu->price),
+                        'price_label' => '¥'.number_format((int) ($reservation->menu->price ?? 0) + (int) $reservation->options->sum('price')),
                         'cancel_url' => route('reservations.cancel', $reservation),
                         'api_cancel_url' => url('/api/reservations/'.$reservation->id),
                     ];

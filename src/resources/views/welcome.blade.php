@@ -49,24 +49,40 @@
     <body class="min-h-screen {{ $themeBackgroundClass }} {{ $fontStyleClass }} text-slate-800 flex p-6 lg:p-10 items-center lg:justify-center flex-col">
         <header class="w-full lg:max-w-5xl max-w-[340px] text-sm mb-6 not-has-[nav]:hidden">
             @if (Route::has('login'))
-                <nav class="flex justify-end items-center gap-4 flex-wrap">
+                @php
+                    $headerButtonBase = 'shrink-0 inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2';
+                @endphp
+                <nav class="flex justify-end items-center gap-2 whitespace-nowrap overflow-x-auto">
                     @auth
-                        <a href="{{ route('dashboard') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ダッシュボード</a>
+                        <a
+                            href="{{ route('dashboard') }}"
+                            class="{{ $headerButtonBase }} bg-gradient-to-r from-slate-500 to-slate-700 text-white shadow-sm hover:from-slate-600 hover:to-slate-800 focus-visible:ring-slate-300"
+                        >
+                            ダッシュボード
+                        </a>
                     @else
-                        <a href="{{ route('login') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">ログイン</a>
+                        <a
+                            href="{{ route('menus.index') }}"
+                            class="{{ $headerButtonBase }} bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-sm hover:from-sky-600 hover:to-cyan-600 focus-visible:ring-sky-300"
+                        >
+                            メニューを見る
+                        </a>
+                        <a
+                            href="{{ route('login') }}"
+                            class="{{ $headerButtonBase }} bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-sm hover:from-sky-600 hover:to-cyan-600 focus-visible:ring-sky-300"
+                        >
+                            ログイン
+                        </a>
 
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="font-semibold text-slate-800 hover:text-sky-700 transition">新規登録</a>
+                            <a
+                                href="{{ route('register') }}"
+                                class="{{ $headerButtonBase }} border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 text-sky-800 hover:from-sky-100 hover:to-cyan-100 focus-visible:ring-sky-300"
+                            >
+                                新規登録
+                            </a>
                         @endif
                     @endauth
-                    <a
-                        href="{{ $settings->welcome_instagram_url ?: 'https://www.instagram.com/06sorairo30' }}"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border {{ $accentClasses['button'] }} font-semibold shadow hover:bg-white transition"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Instagram
-                    </a>
                 </nav>
             @endif
         </header>   
@@ -261,7 +277,7 @@
                         @endif
                     </div>
 
-                    <div class="{{ $cardRadiusClass }} bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 {{ $cardShadowClass }} {{ $cardPaddingShopClass }}">
+                    <div id="store-info" class="scroll-mt-6 {{ $cardRadiusClass }} bg-gradient-to-br from-sky-200/70 via-white to-cyan-200/70 backdrop-blur-lg border border-white/50 {{ $cardShadowClass }} {{ $cardPaddingShopClass }}">
                         <h3 class="{{ $shopTitleSizeClass }} font-bold {{ $shopTitleColorClass }} mb-3">{{ $settings->welcome_shop_title ?: '店舗情報' }}</h3>
                         <div class="space-y-3 {{ $shopBodySizeClass }} {{ $shopBodyColorClass }}">
                             @if (filled($settings->welcome_shop_description))
@@ -276,6 +292,14 @@
                             <p class="whitespace-pre-line"><span class="font-semibold text-slate-900">営業時間:</span> {{ $settings->welcome_business_hours ?: '管理画面から設定してください' }}</p>
                             <p><span class="font-semibold text-slate-900">定休日:</span> {{ $settings->welcome_regular_holiday ?: '管理画面から設定してください' }}</p>
                             <p><span class="font-semibold text-slate-900">お問い合わせ:</span> {{ $settings->welcome_contact_number ?: 'インスタのDMにご連絡ください' }}</p>
+                            <a
+                                href="{{ $settings->welcome_instagram_url ?: 'https://www.instagram.com/06sorairo30' }}"
+                                class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold shadow-md shadow-pink-200 hover:from-pink-600 hover:to-orange-500 transition"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Instagram
+                            </a>
                             @if (filled($settings->welcome_business_note))
                                 @if ($shopParagraphMode === 'paragraph')
                                     @foreach ($toParagraphs($settings->welcome_business_note) as $paragraph)

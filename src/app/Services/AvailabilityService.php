@@ -45,7 +45,7 @@ class AvailabilityService
 
             $summary['open_days']++;
 
-            if (! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times'])) {
+            if ($this->hasAvailableTime($menu, $optionIds, $date)) {
                 $summary['available_days']++;
             }
         }
@@ -69,9 +69,7 @@ class AvailabilityService
                 continue;
             }
 
-            $result[$date->toDateString()] = ! empty(
-                $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']
-            );
+            $result[$date->toDateString()] = $this->hasAvailableTime($menu, $optionIds, $date);
         }
 
         return $result;
@@ -80,6 +78,8 @@ class AvailabilityService
     public function getAvailableTimesWithReason(Menu $menu, array $optionIds, string $date): array
     {
         $dateCarbon = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+        $nowTokyo = now('Asia/Tokyo');
+        $isSameDayAsNow = $dateCarbon->isSameDay($nowTokyo);
         $businessSetting = BusinessHour::getSettingForDate($dateCarbon);
 
         if (! $businessSetting) {
@@ -119,6 +119,11 @@ class AvailabilityService
                 $dateCarbon->toDateString().' '.$candidate,
                 'Asia/Tokyo'
             );
+
+            if ($isSameDayAsNow && $startDateTime->lt($nowTokyo)) {
+                continue;
+            }
+
             $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
             $conflict = $this->hasConflict($startDateTime, $endDateTime, $reservedRanges);
@@ -156,7 +161,13 @@ class AvailabilityService
      */
     private function hasAvailableTime(Menu $menu, array $optionIds, Carbon $date): bool
     {
-        return ! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']);
+        $availability = $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString());
+
+        if ($menu->is_event) {
+            return ! empty($availability['slot_details'] ?? []);
+        }
+
+        return ! empty($availability['times'] ?? []);
     }
 
     /**
@@ -210,6 +221,9 @@ class AvailabilityService
 
     private function getEventAvailableTimesWithReason(Menu $menu, Carbon $dateCarbon): array
     {
+        $nowTokyo = now('Asia/Tokyo');
+        $isSameDayAsNow = $dateCarbon->isSameDay($nowTokyo);
+
         $slots = Slot::query()
             ->with('menu')
             ->withCount([
@@ -238,6 +252,15 @@ class AvailabilityService
 
         foreach ($slots as $slot) {
             $time = $slot->start_time->format('H:i');
+            $slotStartDateTime = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                $dateCarbon->toDateString().' '.$time,
+                'Asia/Tokyo'
+            );
+
+            if ($isSameDayAsNow && $slotStartDateTime->lt($nowTokyo)) {
+                continue;
+            }
 
             if ($userAlreadyReserved) {
                 $status = 'user_already_reserved';

@@ -34,7 +34,7 @@ class ReservationApiController extends Controller
         }
 
         $query = Reservation::query()
-            ->with('menu')
+            ->with(['menu', 'options'])
             ->where('status', 'confirmed')
             ->where(function (Builder $subQuery): void {
                 $today = now('Asia/Tokyo')->toDateString();
@@ -62,7 +62,7 @@ class ReservationApiController extends Controller
                     'date_label' => $reservation->date?->locale('ja')->isoFormat('Y年M月D日(ddd)') ?? '日付未設定',
                     'time_label' => sprintf('%s - %s', $reservation->start_time?->format('H:i') ?? '--:--', $reservation->end_time?->format('H:i') ?? '--:--'),
                     'menu_name' => $reservation->menu?->name ?? 'メニュー未設定',
-                    'price_label' => '¥'.number_format((int) ($reservation->menu?->price ?? 0)),
+                    'price_label' => '¥'.number_format((int) ($reservation->menu?->price ?? 0) + (int) $reservation->options->sum('price')),
                     'cancel_url' => route('reservations.cancel', $reservation),
                     'api_cancel_url' => url('/api/reservations/'.$reservation->id),
                 ];
@@ -134,6 +134,18 @@ class ReservationApiController extends Controller
                         ]);
                     }
 
+                    $slotStartDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $slot->date->toDateString().' '.$slot->start_time->format('H:i'),
+                        'Asia/Tokyo'
+                    );
+
+                    if ($slotStartDateTime->lt(now('Asia/Tokyo'))) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
+                    }
+
                     $confirmedCount = Reservation::query()
                         ->where('slot_id', $slot->id)
                         ->where('status', 'confirmed')
@@ -162,6 +174,13 @@ class ReservationApiController extends Controller
                         $validated['date'].' '.$validated['start_time'],
                         'Asia/Tokyo'
                     );
+
+                    if ($startDateTime->lt(now('Asia/Tokyo'))) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
+                    }
+
                     $endDateTime = $startDateTime->clone()->addMinutes($menu->duration + $options->sum('duration'));
 
                     Reservation::where('date', $startDateTime->toDateString())

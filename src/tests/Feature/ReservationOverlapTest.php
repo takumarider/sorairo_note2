@@ -8,6 +8,7 @@ use App\Models\Reservation;
 use App\Models\ReservationPublicationMonth;
 use App\Models\User;
 use App\Services\AvailabilityService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -179,5 +180,88 @@ class ReservationOverlapTest extends TestCase
         $mypageResponse->assertOk();
         $mypageResponse->assertSee('カットカラー');
         $mypageResponse->assertSee('11:00 - 12:00');
+    }
+
+    public function test_availability_excludes_past_times_on_same_day(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 15, 10, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create(['duration' => 60]);
+
+            $availableTimes = (new AvailabilityService)->getAvailableTimes($menu, [], '2026-06-08');
+
+            $this->assertNotContains('15:00', $availableTimes);
+            $this->assertContains('15:30', $availableTimes);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_web_store_rejects_past_time_on_same_day(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create(['duration' => 60]);
+            $user = User::factory()->create();
+
+            $response = $this->actingAs($user)->post('/reservations', [
+                'menu_id' => $menu->id,
+                'date' => '2026-06-08',
+                'start_time' => '10:00',
+                'options' => [],
+            ]);
+
+            $response->assertStatus(302);
+            $response->assertSessionHasErrors('start_time');
+            $this->assertDatabaseCount('reservations', 0);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_api_store_rejects_past_time_on_same_day(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create(['duration' => 60]);
+            $user = User::factory()->create();
+
+            $response = $this->actingAs($user)->postJson('/api/reservations', [
+                'menu_id' => $menu->id,
+                'date' => '2026-06-08',
+                'start_time' => '10:00',
+                'options' => [],
+            ]);
+
+            $response->assertStatus(422);
+            $response->assertJson([
+                'success' => false,
+                'message' => '当日のこの時間は選択できません。',
+            ]);
+            $this->assertDatabaseCount('reservations', 0);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 }

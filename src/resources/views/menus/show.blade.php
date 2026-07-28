@@ -1,6 +1,10 @@
 <x-app-layout>
+    @php
+        $isEvent = (bool) $menu->is_event;
+    @endphp
+
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-sky-900 leading-tight">
+        <h2 class="font-semibold text-xl {{ $isEvent ? 'text-violet-900' : 'text-sky-900' }} leading-tight">
             {{ $menu->name }}
         </h2>
     </x-slot>
@@ -10,8 +14,8 @@
          x-init="init()"
          data-requested-options='@json(array_map("intval", (array) request("options", [])))'>
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 sm:pb-6">
-            <div class="rounded-2xl bg-white shadow-sm ring-1 ring-sky-100 overflow-hidden">
-                <div class="aspect-[16/9] w-full overflow-hidden bg-gradient-to-br from-sky-50 to-cyan-50">
+            <div class="rounded-2xl bg-white shadow-sm ring-1 overflow-hidden {{ $isEvent ? 'ring-rose-100' : 'ring-sky-100' }}">
+                <div class="aspect-[16/9] w-full overflow-hidden {{ $isEvent ? 'bg-gradient-to-br from-violet-50 via-rose-50 to-orange-50' : 'bg-gradient-to-br from-sky-50 to-cyan-50' }}">
                     @if($menu->image_path)
                         <img src="{{ Storage::url($menu->image_path) }}" alt="{{ $menu->name }}" class="w-full h-full object-cover">
                     @else
@@ -22,34 +26,34 @@
                 </div>
 
                 <div class="p-5 sm:p-8">
-                    <p class="text-xs font-semibold tracking-wide text-sky-700">STEP 0 / 2</p>
+                    <p class="text-xs font-semibold tracking-wide {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}">STEP 0 / 2</p>
                     @if($menu->is_event)
-                        <p class="mt-2 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">EVENT MENU</p>
+                        <p class="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold reservation-flow-chip--event">EVENT MENU</p>
                     @endif
-                    <h1 class="text-2xl sm:text-3xl font-bold text-sky-950 mt-1 mb-4">{{ $menu->name }}</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold {{ $isEvent ? 'text-violet-950' : 'text-sky-950' }} mt-1 mb-4">{{ $menu->name }}</h1>
 
                     <div class="grid grid-cols-2 gap-3 mb-6">
-                        <div class="rounded-xl border border-sky-200 bg-sky-50 p-3">
-                            <p class="text-xs text-sky-700 font-semibold">合計料金</p>
+                        <div class="rounded-xl border p-3 {{ $isEvent ? 'border-rose-200 reservation-flow-price-card--event' : 'border-sky-200 bg-sky-50' }}">
+                            <p class="text-xs font-semibold {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}">合計料金</p>
                             <div class="flex items-center gap-2 mt-1">
-                                <svg class="w-5 h-5 text-sky-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                <span class="text-2xl font-bold text-sky-700" x-text="'¥' + Number(totalPriceValue).toLocaleString('ja-JP')"></span>
+                                <span class="text-2xl font-bold {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}" x-text="'¥' + Number(totalPriceValue).toLocaleString('ja-JP')"></span>
                             </div>
                             @if($menu->price_max)
-                                <p class="mt-1 text-xs text-sky-600">参考: ¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</p>
+                                <p class="mt-1 text-xs {{ $isEvent ? 'text-violet-600' : 'text-sky-600' }}">参考: ¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</p>
                             @endif
                         </div>
 
-                        <div class="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
-                            <p class="text-xs text-sky-700 font-semibold">{{ $menu->is_event ? '時間枠' : '合計所要時間' }}</p>
+                        <div class="rounded-xl border p-3 {{ $isEvent ? 'border-rose-100 reservation-flow-price-card--event' : 'border-sky-100 bg-sky-50/50' }}">
+                            <p class="text-xs font-semibold {{ $isEvent ? 'text-violet-700' : 'text-sky-700' }}">{{ $menu->is_event ? '時間枠' : '合計所要時間' }}</p>
                             <div class="flex items-center gap-2 mt-1">
-                                <svg class="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 {{ $isEvent ? 'text-violet-600' : 'text-sky-600' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 @if($menu->is_event)
-                                    <span class="text-xl font-bold text-sky-900">各開催時間でご案内</span>
+                                    <span class="text-xl font-bold text-violet-900">各開催時間でご案内</span>
                                 @else
                                     <span class="text-xl font-bold text-sky-900" x-text="totalDurationValue + '分'"></span>
                                 @endif
@@ -63,7 +67,7 @@
                     </div>
 
                     @if($menu->is_event)
-                        <div class="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                        <div class="mb-8 rounded-xl border p-4 text-sm reservation-flow-note--event">
                             イベントメニューです。日時ごとの枠と定員に応じて予約を受け付けます。
                         </div>
                     @endif
@@ -72,7 +76,7 @@
                         <div class="mb-8">
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-lg sm:text-xl font-bold text-sky-950">オプション</h2>
-                                <span class="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-700" x-text="selectedIds.length + '件選択中'"></span>
+                                <span class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $isEvent ? 'reservation-flow-chip--event' : 'bg-sky-100 text-sky-700' }}" x-text="selectedIds.length + '件選択中'"></span>
                             </div>
 
                             <div class="mb-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800">
@@ -138,17 +142,28 @@
                         </div>
                     @endif
 
-                    <form method="GET" action="{{ route('reservations.calendar') }}" id="reservation-form" @submit="syncHiddenOptions()">
+                      <form method="GET"
+                          action="{{ route('reservations.start') }}"
+                          id="reservation-form"
+                          data-loading-overlay="true"
+                          data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。"
+                          @submit="syncHiddenOptions()">
                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                         <div id="selected-options-container"></div>
 
                         <div class="hidden sm:flex gap-3">
                             <button type="submit"
-                                    class="flex-1 text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2 transition">
+                                    class="flex-1 text-center px-6 py-3.5 rounded-xl border font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition {{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
+                            @if(! $menu->is_event)
+                                <a href="{{ route('reservations.same-day.times') }}"
+                                   class="px-5 py-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-100 transition whitespace-nowrap">
+                                    今日予約する
+                                </a>
+                            @endif
                             <a href="{{ route('menus.index') }}"
-                               class="px-5 py-3.5 rounded-xl bg-sky-50 text-sky-800 font-semibold border border-sky-200 hover:bg-sky-100 transition">
+                               class="px-5 py-3.5 rounded-xl border font-semibold transition {{ $isEvent ? 'reservation-flow-ghost-btn--event' : 'reservation-flow-ghost-btn--standard' }}">
                                 戻る
                             </a>
                         </div>
@@ -159,9 +174,15 @@
                                 <span x-text="'合計 ' + Number(totalPriceValue).toLocaleString('ja-JP') + '円 / ' + totalDurationValue + '分'"></span>
                             </div>
                             <button type="submit"
-                                    class="w-full text-center px-6 py-3.5 rounded-xl bg-sky-500 text-white font-semibold shadow-sm active:scale-[0.99] hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 transition">
+                                    class="w-full text-center px-6 py-3.5 rounded-xl border font-semibold shadow-sm active:scale-[0.99] focus:outline-none focus:ring-2 transition {{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
+                            @if(! $menu->is_event)
+                                <a href="{{ route('reservations.same-day.times') }}"
+                                   class="mt-2 block w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                                    今日予約する
+                                </a>
+                            @endif
                         </div>
                     </form>
                 </div>
