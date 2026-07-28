@@ -45,7 +45,7 @@ class AvailabilityService
 
             $summary['open_days']++;
 
-            if (! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times'])) {
+            if ($this->hasAvailableTime($menu, $optionIds, $date)) {
                 $summary['available_days']++;
             }
         }
@@ -69,9 +69,7 @@ class AvailabilityService
                 continue;
             }
 
-            $result[$date->toDateString()] = ! empty(
-                $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']
-            );
+            $result[$date->toDateString()] = $this->hasAvailableTime($menu, $optionIds, $date);
         }
 
         return $result;
@@ -163,7 +161,13 @@ class AvailabilityService
      */
     private function hasAvailableTime(Menu $menu, array $optionIds, Carbon $date): bool
     {
-        return ! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']);
+        $availability = $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString());
+
+        if ($menu->is_event) {
+            return ! empty($availability['slot_details'] ?? []);
+        }
+
+        return ! empty($availability['times'] ?? []);
     }
 
     /**

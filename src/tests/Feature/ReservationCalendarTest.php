@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\BusinessHour;
 use App\Models\Menu;
+use App\Models\Reservation;
 use App\Models\ReservationPublicationMonth;
+use App\Models\Slot;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -293,6 +295,55 @@ class ReservationCalendarTest extends TestCase
 
             $response->assertOk();
             $response->assertSee('value="2026-06-08"', false);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_full_event_date_is_still_shown_on_calendar(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate([
+                'year_month' => '2026-06',
+            ], [
+                'is_published' => true,
+            ]);
+
+            $menu = Menu::factory()->create([
+                'is_event' => true,
+                'duration' => 0,
+            ]);
+
+            $slot = Slot::create([
+                'menu_id' => $menu->id,
+                'date' => '2026-06-12',
+                'start_time' => '16:00',
+                'end_time' => '17:00',
+                'capacity' => 1,
+                'is_reserved' => false,
+            ]);
+
+            Reservation::create([
+                'user_id' => User::factory()->create()->id,
+                'menu_id' => $menu->id,
+                'slot_id' => $slot->id,
+                'date' => '2026-06-12',
+                'start_time' => '16:00',
+                'end_time' => '17:00',
+                'status' => 'confirmed',
+            ]);
+
+            $user = User::factory()->create();
+
+            $response = $this->actingAs($user)->get(route('reservations.calendar', [
+                'menu_id' => $menu->id,
+                'month' => '2026-06',
+            ]));
+
+            $response->assertOk();
+            $response->assertSee('value="2026-06-12"', false);
         } finally {
             Carbon::setTestNow();
         }

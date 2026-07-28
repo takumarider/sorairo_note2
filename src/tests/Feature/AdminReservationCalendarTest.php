@@ -74,7 +74,72 @@ class AdminReservationCalendarTest extends TestCase
         $this->assertSame(3, $slotEvent['extendedProps']['capacity']);
         $this->assertSame(0, $slotEvent['extendedProps']['confirmed_count']);
         $this->assertSame(3, $slotEvent['extendedProps']['remaining_capacity']);
+        $this->assertSame('14:00 - 15:30', $slotEvent['extendedProps']['timeLabel']);
+        $this->assertSame('受付中', $slotEvent['extendedProps']['statusLabel']);
+        $this->assertNotEmpty($slotEvent['extendedProps']['tooltip']);
         $this->assertStringContainsString('（枠）', $slotEvent['title']);
+    }
+
+    public function test_calendar_events_can_be_filtered_by_visibility_toggles(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+        $customer = User::factory()->create();
+
+        $menu = Menu::factory()->create([
+            'name' => '全身ケア',
+            'is_event' => false,
+        ]);
+        $eventMenu = Menu::factory()->create([
+            'name' => '春イベント',
+            'is_event' => true,
+            'duration' => 0,
+        ]);
+
+        $rangeStart = now('Asia/Tokyo')->startOfWeek();
+        $rangeEndExclusive = now('Asia/Tokyo')->endOfWeek()->addDay();
+        $date = $rangeStart->copy()->addDay()->toDateString();
+
+        Reservation::create([
+            'user_id' => $customer->id,
+            'menu_id' => $menu->id,
+            'slot_id' => null,
+            'date' => $date,
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'status' => 'confirmed',
+        ]);
+
+        Slot::create([
+            'menu_id' => $eventMenu->id,
+            'date' => $date,
+            'start_time' => '14:00',
+            'end_time' => '15:00',
+            'capacity' => 2,
+            'is_reserved' => false,
+        ]);
+
+        TimeBlock::create([
+            'start_at' => Carbon::createFromFormat('Y-m-d H:i', $date.' 16:00', 'Asia/Tokyo'),
+            'end_at' => Carbon::createFromFormat('Y-m-d H:i', $date.' 17:00', 'Asia/Tokyo'),
+            'reason' => '臨時対応',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin);
+
+        $page = app(ManageReservationCalendar::class);
+        $page->showEventSlotEvents = false;
+        $page->showBlockEvents = false;
+
+        $events = collect($page->getCalendarEvents(
+            $rangeStart->toIso8601String(),
+            $rangeEndExclusive->toIso8601String(),
+        ));
+
+        $this->assertTrue($events->every(fn (array $event): bool => ($event['extendedProps']['type'] ?? null) === 'reservation'));
+        $this->assertSame(1, $events->count());
     }
 
     public function test_calendar_events_hide_canceled_reservations_and_simplify_reservation_title(): void
@@ -651,6 +716,72 @@ class AdminReservationCalendarTest extends TestCase
             );
 
         $this->assertSame(1, Reservation::query()->where('slot_id', $slot->id)->where('status', 'confirmed')->count());
+    }
+
+    public function test_direct_reservation_event_slots_can_be_sorted_and_filtered(): void
+    {
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+        $customer = User::factory()->create();
+
+        $eventMenu = Menu::factory()->create([
+            'is_event' => true,
+            'duration' => 0,
+            'is_active' => true,
+        ]);
+
+        $date = now('Asia/Tokyo')->addDays(6)->startOfDay();
+        $slotFull = Slot::create([
+            'menu_id' => $eventMenu->id,
+            'date' => $date->toDateString(),
+            'start_time' => '14:00',
+            'end_time' => '15:00',
+            'capacity' => 1,
+            'is_reserved' => false,
+        ]);
+        $slotAvailable = Slot::create([
+            'menu_id' => $eventMenu->id,
+            'date' => $date->toDateString(),
+            'start_time' => '16:00',
+            'end_time' => '17:00',
+            'capacity' => 3,
+            'is_reserved' => false,
+        ]);
+
+        Reservation::create([
+            'user_id' => $customer->id,
+            'menu_id' => $eventMenu->id,
+            'slot_id' => $slotFull->id,
+            'date' => $date->toDateString(),
+            'start_time' => '14:00',
+            'end_time' => '15:00',
+            'status' => 'confirmed',
+        ]);
+
+        Reservation::create([
+            'user_id' => $customer->id,
+            'menu_id' => $eventMenu->id,
+            'slot_id' => $slotAvailable->id,
+            'date' => $date->toDateString(),
+            'start_time' => '16:00',
+            'end_time' => '17:00',
+            'status' => 'confirmed',
+        ]);
+
+        $page = app(ManageReservationCalendar::class);
+        $page->directReservationMenuId = $eventMenu->id;
+        $page->pendingDirectReservationStart = $date->copy()->toIso8601String();
+        $page->pendingDirectReservationEnd = $date->copy()->endOfDay()->toIso8601String();
+        $page->directReservationEventSlotSort = 'remaining_capacity';
+        $page->directReservationHideFullSlots = true;
+
+        $slots = $page->getDirectReservationEventSlots();
+
+        $this->assertCount(1, $slots);
+        $this->assertSame($slotAvailable->id, $slots[0]['id']);
+        $this->assertSame('受付中', $slots[0]['status_label']);
+        $this->assertSame('16:00 - 17:00', $slots[0]['time_label']);
     }
 
     public function test_admin_can_create_direct_treatment_reservation_with_guest_name(): void

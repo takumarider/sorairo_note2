@@ -41,7 +41,7 @@
                             data-menu-card
                             x-show="isVisible({{ $menu->id }})"
                             x-transition.opacity
-                            class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200"
+                            class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 {{ $menu->is_event ? 'ring-rose-200' : 'ring-slate-200' }}"
                         >
                             <div class="relative aspect-[4/3] w-full overflow-hidden">
                                 @if($menu->image_path)
@@ -52,31 +52,31 @@
                                     </div>
                                 @endif
 
-                                <div class="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                                <div class="absolute left-3 top-3 rounded-full px-3 py-1 text-xs font-semibold ring-1 {{ $menu->is_event ? 'reservation-flow-chip--event ring-rose-200' : 'bg-white/90 text-slate-700 ring-slate-200' }}">
                                     {{ $menu->is_event ? 'イベント' : $menu->duration . '分' }}
                                 </div>
                             </div>
 
                             <div class="p-4 sm:p-5">
                                 @if($menu->is_event)
-                                    <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">EVENT</span>
+                                    <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold reservation-flow-chip--event">EVENT</span>
                                 @endif
                                 <h2 class="text-lg font-bold text-slate-900">{{ $menu->name }}</h2>
                                 <p class="mt-2 min-h-[3rem] text-sm text-slate-600">
                                     {{ \Illuminate\Support\Str::limit((string) $menu->description, 78) }}
                                 </p>
 
-                                <div class="mt-4 flex items-center justify-between rounded-xl bg-cyan-50 px-3 py-2">
-                                    <span class="text-xs font-semibold text-cyan-700">料金</span>
+                                <div class="mt-4 flex items-center justify-between rounded-xl px-3 py-2 {{ $menu->is_event ? 'reservation-flow-price-card--event' : 'reservation-flow-price-card--standard' }}">
+                                    <span class="text-xs font-semibold {{ $menu->is_event ? 'reservation-flow-price-text--event' : 'reservation-flow-price-text--standard' }}">料金</span>
                                     @if($menu->price_max)
-                                        <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</span>
+                                        <span class="text-xl font-bold {{ $menu->is_event ? 'reservation-flow-price-text--event' : 'reservation-flow-price-text--standard' }}">¥{{ number_format($menu->price) }}〜¥{{ number_format($menu->price_max) }}</span>
                                     @else
-                                        <span class="text-xl font-bold text-cyan-700">¥{{ number_format($menu->price) }}</span>
+                                        <span class="text-xl font-bold {{ $menu->is_event ? 'reservation-flow-price-text--event' : 'reservation-flow-price-text--standard' }}">¥{{ number_format($menu->price) }}</span>
                                     @endif
                                 </div>
 
                                 <a href="{{ route('menus.show', ['menu' => $menu->id]) }}"
-                                   class="mt-4 block w-full rounded-xl bg-sky-500 px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                                   class="mt-4 block w-full rounded-xl border px-4 py-3 text-center text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $menu->is_event ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                                     {{ $menu->is_event ? 'このイベントの日時を選ぶ' : 'このメニューで日時を選ぶ' }}
                                 </a>
                             </div>

@@ -194,4 +194,43 @@ class EventReservationFlowTest extends TestCase
         $secondStore->assertSessionHasErrors('start_time');
         $this->assertSame(1, Reservation::query()->where('user_id', $user->id)->where('menu_id', $menu->id)->whereDate('date', $date)->where('status', 'confirmed')->count());
     }
+
+    public function test_full_event_slot_is_visible_with_capacity_full_message(): void
+    {
+        $user = User::factory()->create();
+        $menu = Menu::factory()->create([
+            'is_event' => true,
+            'duration' => 0,
+        ]);
+        $date = now('Asia/Tokyo')->addDay()->toDateString();
+
+        $slot = Slot::create([
+            'menu_id' => $menu->id,
+            'date' => $date,
+            'start_time' => '16:00',
+            'end_time' => '17:00',
+            'capacity' => 1,
+            'is_reserved' => false,
+        ]);
+
+        Reservation::create([
+            'user_id' => User::factory()->create()->id,
+            'menu_id' => $menu->id,
+            'slot_id' => $slot->id,
+            'date' => $date,
+            'start_time' => '16:00',
+            'end_time' => '17:00',
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('reservations.times', [
+            'menu_id' => $menu->id,
+            'date' => $date,
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('16:00');
+        $response->assertSee('定員いっぱいになりました');
+        $response->assertDontSee('value="16:00"', false);
+    }
 }
