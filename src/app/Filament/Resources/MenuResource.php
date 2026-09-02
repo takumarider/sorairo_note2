@@ -114,13 +114,15 @@ class MenuResource extends Resource
                                     ->numeric()
                                     ->suffix('円')
                                     ->required()
-                                    ->default(0),
+                                    ->default(0)
+                                    ->helperText('マイナス値を設定すると割引オプションになります（合計料金は0円を下限にクランプされます）。'),
                                 Forms\Components\TextInput::make('duration')
                                     ->label('追加所要時間')
                                     ->numeric()
                                     ->suffix('分')
                                     ->required()
-                                    ->default(0),
+                                    ->default(0)
+                                    ->helperText('マイナス値を設定すると所要時間を短縮できます（合計所要時間は0分を下限にクランプされます）。'),
                                 Forms\Components\FileUpload::make('image_path')
                                     ->label('オプション画像')
                                     ->image()

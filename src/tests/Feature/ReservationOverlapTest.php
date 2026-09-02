@@ -198,13 +198,14 @@ class ReservationOverlapTest extends TestCase
             $availableTimes = (new AvailabilityService)->getAvailableTimes($menu, [], '2026-06-08');
 
             $this->assertNotContains('15:00', $availableTimes);
-            $this->assertContains('15:30', $availableTimes);
+            $this->assertNotContains('15:30', $availableTimes);
+            $this->assertContains('16:00', $availableTimes);
         } finally {
             Carbon::setTestNow();
         }
     }
 
-    public function test_web_store_rejects_past_time_on_same_day(): void
+    public function test_web_store_rejects_time_within_thirty_minutes_on_same_day(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
 
@@ -221,7 +222,7 @@ class ReservationOverlapTest extends TestCase
             $response = $this->actingAs($user)->post('/reservations', [
                 'menu_id' => $menu->id,
                 'date' => '2026-06-08',
-                'start_time' => '10:00',
+                'start_time' => '10:30',
                 'options' => [],
             ]);
 
@@ -233,7 +234,7 @@ class ReservationOverlapTest extends TestCase
         }
     }
 
-    public function test_api_store_rejects_past_time_on_same_day(): void
+    public function test_api_store_rejects_time_within_thirty_minutes_on_same_day(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
 
@@ -250,7 +251,7 @@ class ReservationOverlapTest extends TestCase
             $response = $this->actingAs($user)->postJson('/api/reservations', [
                 'menu_id' => $menu->id,
                 'date' => '2026-06-08',
-                'start_time' => '10:00',
+                'start_time' => '10:30',
                 'options' => [],
             ]);
 

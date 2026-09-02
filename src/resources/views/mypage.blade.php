@@ -25,7 +25,8 @@
             @endif
 
             @php
-                $reservationPayload = $reservations->map(function ($reservation) {
+                $commentService = app(\App\Services\ReservationCommentService::class);
+                $reservationPayload = $reservations->map(function ($reservation) use ($commentService) {
                     return [
                         'id' => $reservation->id,
                         'number' => str_pad((string) $reservation->id, 6, '0', STR_PAD_LEFT),
@@ -34,7 +35,8 @@
                         'time_label' => $reservation->start_time->format('H:i').' - '.$reservation->end_time->format('H:i'),
                         'menu_name' => $reservation->menu->name,
                         'is_event' => (bool) $reservation->menu->is_event,
-                        'price_label' => '¥'.number_format((int) ($reservation->menu->price ?? 0) + (int) $reservation->options->sum('price')),
+                        'price_label' => '¥'.number_format($reservation->resolvedTotalPrice()),
+                        'comment' => $commentService->getComment($reservation->id),
                         'cancel_url' => route('reservations.cancel', $reservation),
                         'api_cancel_url' => url('/api/reservations/'.$reservation->id),
                     ];
@@ -276,6 +278,17 @@
                     wrapper.append($('<p>').addClass('text-sm text-slate-700').text(reservation.date_label));
                     wrapper.append($('<p>').addClass('text-sm text-slate-700').text((reservation.is_event ? '開催時間: ' : '') + reservation.time_label));
                     wrapper.append($('<p>').addClass('text-sm font-semibold text-sky-700').text(reservation.price_label));
+
+                    const commentText = reservation.comment || (function() {
+                        try { return localStorage.getItem('reservation_comment_' + reservation.id); } catch (e) { return null; }
+                    })();
+
+                    if (commentText && commentText.trim() !== '') {
+                        const commentBox = $('<div>').addClass('mt-2 rounded-xl bg-slate-50 p-3 border border-slate-200');
+                        commentBox.append($('<p>').addClass('text-xs font-semibold text-slate-500 mb-1').text('コメント・ご要望'));
+                        commentBox.append($('<p>').addClass('text-sm text-slate-700 whitespace-pre-wrap leading-relaxed').text(commentText));
+                        wrapper.append(commentBox);
+                    }
 
                     const form = $('<form>', {
                         method: 'POST',

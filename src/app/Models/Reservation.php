@@ -21,6 +21,8 @@ class Reservation extends Model
         'end_time',
         'status',
         'canceled_at',
+        'total_price',
+        'total_duration',
     ];
 
     protected function casts(): array
@@ -30,6 +32,8 @@ class Reservation extends Model
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
             'canceled_at' => 'datetime',
+            'total_price' => 'integer',
+            'total_duration' => 'integer',
         ];
     }
 
@@ -141,6 +145,60 @@ class Reservation extends Model
         }
 
         return 'キャンセル期限を過ぎたため、サロンまで直接ご連絡ください。詳しくはWelcomeページのお問い合わせをご確認ください。';
+    }
+
+    /**
+     * 予約時点の合計料金を返す。
+     * 予約作成時に total_price が保存されていればその値を、
+     * 未設定（機能追加前の既存データ）の場合はメニュー・オプションから算出した値を返す。
+     */
+    public function resolvedTotalPrice(): int
+    {
+        if ($this->total_price !== null) {
+            return (int) $this->total_price;
+        }
+
+        return $this->fallbackTotalPrice();
+    }
+
+    /**
+     * 予約時点の合計所要時間（分）を返す。
+     * total_duration が未設定の場合は開始〜終了時刻の差分から算出する。
+     */
+    public function resolvedTotalDuration(): int
+    {
+        if ($this->total_duration !== null) {
+            return (int) $this->total_duration;
+        }
+
+        return $this->fallbackTotalDuration();
+    }
+
+    private function fallbackTotalPrice(): int
+    {
+        $menu = $this->relationLoaded('menu') ? $this->menu : $this->menu()->first();
+
+        if (! $menu) {
+            return 0;
+        }
+
+        $price = (int) $menu->price;
+
+        if (! $menu->is_event) {
+            $options = $this->relationLoaded('options') ? $this->options : $this->options()->get();
+            $price = max(0, $price + (int) $options->sum('price'));
+        }
+
+        return $price;
+    }
+
+    private function fallbackTotalDuration(): int
+    {
+        if (! $this->start_time || ! $this->end_time) {
+            return 0;
+        }
+
+        return max(0, $this->start_time->diffInMinutes($this->end_time));
     }
 
     protected function resolveStartDateTime(): ?Carbon

@@ -43,7 +43,7 @@ class SameDayReservationFlowTest extends TestCase
 
     public function test_same_day_times_page_shows_available_time_buttons(): void
     {
-        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
 
         try {
             ReservationPublicationMonth::updateOrCreate([
@@ -64,7 +64,8 @@ class SameDayReservationFlowTest extends TestCase
 
             $response->assertOk();
             $response->assertSee('今日予約する');
-            $response->assertSee('value="10:00"', false);
+            $response->assertDontSee('value="10:30"', false);
+            $response->assertSee('value="11:00"', false);
         } finally {
             Carbon::setTestNow();
         }
@@ -119,7 +120,7 @@ class SameDayReservationFlowTest extends TestCase
         }
     }
 
-    public function test_same_day_menus_rejects_past_time_selection(): void
+    public function test_same_day_menus_rejects_time_within_thirty_minutes(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 10, 10, 0, 'Asia/Tokyo'));
 
@@ -139,7 +140,7 @@ class SameDayReservationFlowTest extends TestCase
             $user = User::factory()->create();
 
             $response = $this->actingAs($user)->get(route('reservations.same-day.menus', [
-                'start_time' => '10:00',
+                'start_time' => '10:30',
             ]));
 
             $response->assertRedirect(route('reservations.same-day.times'));
