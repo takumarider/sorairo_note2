@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Auth;
 
 class AvailabilityService
 {
+    public const SAME_DAY_BOOKING_LEAD_MINUTES = 30;
+
     public function getMonthlyAvailabilitySummary(Menu $menu, array $optionIds, Carbon $month): array
     {
         $summary = [
@@ -45,7 +47,7 @@ class AvailabilityService
 
             $summary['open_days']++;
 
-            if (! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times'])) {
+            if ($this->hasAvailableTime($menu, $optionIds, $date)) {
                 $summary['available_days']++;
             }
         }
@@ -69,9 +71,7 @@ class AvailabilityService
                 continue;
             }
 
-            $result[$date->toDateString()] = ! empty(
-                $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']
-            );
+            $result[$date->toDateString()] = $this->hasAvailableTime($menu, $optionIds, $date);
         }
 
         return $result;
@@ -80,6 +80,8 @@ class AvailabilityService
     public function getAvailableTimesWithReason(Menu $menu, array $optionIds, string $date): array
     {
         $dateCarbon = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+        $nowTokyo = now('Asia/Tokyo');
+        $isSameDayAsNow = $dateCarbon->isSameDay($nowTokyo);
         $businessSetting = BusinessHour::getSettingForDate($dateCarbon);
 
         if (! $businessSetting) {
@@ -119,6 +121,11 @@ class AvailabilityService
                 $dateCarbon->toDateString().' '.$candidate,
                 'Asia/Tokyo'
             );
+
+            if ($isSameDayAsNow && $this->isSameDayTreatmentTimeClosed($startDateTime, $nowTokyo)) {
+                continue;
+            }
+
             $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
 
             $conflict = $this->hasConflict($startDateTime, $endDateTime, $reservedRanges);
@@ -151,16 +158,36 @@ class AvailabilityService
         return $this->getAvailableTimesWithReason($menu, $optionIds, $date)['times'];
     }
 
+    public function isSameDayTreatmentTimeClosed(Carbon $startDateTime, ?Carbon $nowTokyo = null): bool
+    {
+        $nowTokyo ??= now('Asia/Tokyo');
+
+        if (! $startDateTime->isSameDay($nowTokyo)) {
+            return false;
+        }
+
+        return $startDateTime->lte(
+            $nowTokyo->copy()->addMinutes(self::SAME_DAY_BOOKING_LEAD_MINUTES)
+        );
+    }
+
     /**
      * 指定日で利用可能な時刻が存在するかを判定
      */
     private function hasAvailableTime(Menu $menu, array $optionIds, Carbon $date): bool
     {
-        return ! empty($this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString())['times']);
+        $availability = $this->getAvailableTimesWithReason($menu, $optionIds, $date->toDateString());
+
+        if ($menu->is_event) {
+            return ! empty($availability['slot_details'] ?? []);
+        }
+
+        return ! empty($availability['times'] ?? []);
     }
 
     /**
      * メニュー + 選択オプションの合計所要時間を計算
+     * オプションの所要時間には負の値（短縮オプション）を許容するため、0分未満にはならないようクランプする。
      */
     private function getTotalDuration(Menu $menu, array $optionIds): int
     {
@@ -177,7 +204,35 @@ class AvailabilityService
             $duration += $optionDurations;
         }
 
-        return $duration;
+        return max(0, $duration);
+    }
+
+    /**
+     * メニューとオプションから合計料金・合計所要時間を算出する。
+     *
+     * 施術メニューはオプション分を合算し、負の合計（割引オプションによるマイナス）は0にクランプする。
+     * イベントメニューはオプションを含めず、所要時間はスロットの時間帯（$eventDurationMinutes）に基づく。
+     *
+     * @param  Collection  $options  選択された MenuOption のコレクション
+     * @param  int|null  $eventDurationMinutes  イベントメニューの場合のスロット所要時間（分）
+     * @return array{price: int, duration: int}
+     */
+    public function calculateTotals(Menu $menu, Collection $options, ?int $eventDurationMinutes = null): array
+    {
+        if ($menu->is_event) {
+            return [
+                'price' => (int) $menu->price,
+                'duration' => $eventDurationMinutes !== null ? max(0, $eventDurationMinutes) : 0,
+            ];
+        }
+
+        $price = (int) $menu->price + (int) $options->sum('price');
+        $duration = (int) $menu->duration + (int) $options->sum('duration');
+
+        return [
+            'price' => max(0, $price),
+            'duration' => max(0, $duration),
+        ];
     }
 
     public function findReservableEventSlot(Menu $menu, string $date, string $startTime): ?Slot
@@ -210,6 +265,9 @@ class AvailabilityService
 
     private function getEventAvailableTimesWithReason(Menu $menu, Carbon $dateCarbon): array
     {
+        $nowTokyo = now('Asia/Tokyo');
+        $isSameDayAsNow = $dateCarbon->isSameDay($nowTokyo);
+
         $slots = Slot::query()
             ->with('menu')
             ->withCount([
@@ -238,6 +296,15 @@ class AvailabilityService
 
         foreach ($slots as $slot) {
             $time = $slot->start_time->format('H:i');
+            $slotStartDateTime = Carbon::createFromFormat(
+                'Y-m-d H:i',
+                $dateCarbon->toDateString().' '.$time,
+                'Asia/Tokyo'
+            );
+
+            if ($isSameDayAsNow && $slotStartDateTime->lt($nowTokyo)) {
+                continue;
+            }
 
             if ($userAlreadyReserved) {
                 $status = 'user_already_reserved';

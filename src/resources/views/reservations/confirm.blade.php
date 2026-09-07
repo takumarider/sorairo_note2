@@ -1,6 +1,10 @@
 <x-app-layout>
+    @php
+        $isEvent = (bool) $menu->is_event;
+    @endphp
+
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl {{ $isEvent ? 'text-violet-900' : 'text-gray-800' }} leading-tight">
             {{ __('予約内容確認') }}
         </h2>
     </x-slot>
@@ -33,7 +37,7 @@
                                     </div>
                                     <span class="text-gray-700">{{ $option->name }}</span>
                                 </div>
-                                <span class="text-gray-700">+¥{{ number_format($option->price) }}</span>
+                                <span class="text-gray-700">{{ $option->priceLabel() }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -64,16 +68,18 @@
                 @endif
 
                 <!-- 料金 -->
-                <div class="bg-blue-50 rounded-lg p-6 mt-8 mb-8">
+                <div class="rounded-lg p-6 mt-8 mb-8 {{ $isEvent ? 'reservation-flow-price-card--event' : 'bg-blue-50' }}">
                     <div class="flex justify-between items-center">
                         <p class="text-lg font-semibold text-gray-900">合計料金</p>
-                        <p class="text-3xl font-bold text-blue-600">¥{{ number_format($totalPrice) }}</p>
+                        <p class="text-3xl font-bold {{ $isEvent ? 'text-violet-700' : 'text-blue-600' }}">¥{{ number_format($totalPrice) }}</p>
                     </div>
                 </div>
 
                 <!-- 予約ボタン -->
                 <form method="POST"
                         action="{{ route('reservations.store') }}"
+                    data-loading-overlay="true"
+                    data-loading-message="予約を確定しています。完了までそのままお待ちください。"
                         x-data="{ submitting: false }"
                         @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
                     @csrf
@@ -87,17 +93,31 @@
                         <input type="hidden" name="options[]" value="{{ $option->id }}">
                     @endforeach
 
+                    <!-- コメント（任意） -->
+                    <div class="mb-6">
+                        <label for="reservation_comment" class="block text-sm font-semibold text-gray-700 mb-2">
+                            コメント・ご要望（任意）
+                        </label>
+                        <textarea id="reservation_comment"
+                                  name="comment"
+                                  rows="3"
+                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm text-gray-900 placeholder-gray-400"
+                                  placeholder="施術に関するご要望やご相談などがございましたらご自由にご記入ください（任意）。">{{ old('comment') }}</textarea>
+                    </div>
+
                     <div class="flex gap-4">
                         <button type="submit"
                                 :disabled="submitting"
-                                :class="submitting ? 'bg-blue-500 cursor-not-allowed opacity-70' : 'bg-blue-600 hover:bg-blue-700'"
-                                class="flex-1 px-6 py-3 text-white rounded-lg transition font-semibold text-center">
+                                :class="submitting
+                                    ? '{{ $isEvent ? 'from-violet-400 via-rose-400 to-orange-300 border-rose-300' : 'bg-blue-500' }} cursor-not-allowed opacity-70'
+                                    : '{{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}'"
+                                class="flex-1 px-6 py-3 text-white rounded-lg transition font-semibold text-center border focus:outline-none focus:ring-2 focus:ring-offset-2">
                             <span x-show="!submitting">予約を確定する</span>
                             <span x-show="submitting" x-cloak>確定中...</span>
                         </button>
                         <a href="{{ route('reservations.calendar', ['menu_id' => $menu->id]) }}"
                            :class="submitting ? 'pointer-events-none opacity-50' : ''"
-                           class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                           class="px-6 py-3 rounded-lg border transition font-semibold {{ $isEvent ? 'reservation-flow-ghost-btn--event' : 'bg-gray-200 text-gray-700 border-gray-200 hover:bg-gray-300' }}">
                             戻る
                         </a>
                     </div>

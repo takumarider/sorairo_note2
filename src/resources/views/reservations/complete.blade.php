@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+        <h2 class="font-semibold text-xl {{ $reservation->menu->is_event ? 'text-violet-900' : 'text-gray-800' }} leading-tight">
             {{ __('予約完了') }}
         </h2>
     </x-slot>
@@ -19,8 +19,8 @@
                 </div>
                 
                 <div class="p-8">
-                    <div class="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6">
-                        <p class="text-sm text-blue-800">
+                    <div class="p-4 mb-6 border-l-4 {{ $reservation->menu->is_event ? 'reservation-flow-note--event border-rose-500' : 'bg-blue-50 border-blue-600' }}">
+                        <p class="text-sm {{ $reservation->menu->is_event ? 'text-violet-800' : 'text-blue-800' }}">
                             予約番号: <span class="font-bold">#{{ str_pad($reservation->id, 6, '0', STR_PAD_LEFT) }}</span>
                         </p>
                     </div>
@@ -57,13 +57,23 @@
                         
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">料金</h3>
-                            <p class="text-2xl font-bold text-blue-600">¥{{ number_format($reservation->menu->price) }}</p>
+                            @php
+                                $totalPrice = $reservation->resolvedTotalPrice();
+                            @endphp
+                            <p class="text-2xl font-bold {{ $reservation->menu->is_event ? 'text-violet-700' : 'text-blue-600' }}">¥{{ number_format($totalPrice) }}</p>
                         </div>
                         
-                        <div class="pb-4">
+                        <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">予約日時</h3>
                             <p class="text-gray-700">{{ $reservation->created_at->isoFormat('Y年M月D日 HH:mm') }}</p>
                         </div>
+
+                        @if(!empty($comment))
+                        <div class="border-b pb-4">
+                            <h3 class="text-sm text-gray-500 mb-1">コメント・ご要望</h3>
+                            <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ $comment }}</p>
+                        </div>
+                        @endif
                     </div>
                     
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
@@ -75,11 +85,11 @@
                     
                     <div class="flex gap-4">
                         <a href="{{ route('mypage') }}" 
-                           class="flex-1 text-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-bold">
+                           class="flex-1 text-center px-6 py-3 border text-white rounded-lg transition font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $reservation->menu->is_event ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                             マイページへ
                         </a>
                         <a href="{{ route('menus.index') }}" 
-                           class="flex-1 text-center px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-semibold">
+                           class="flex-1 text-center px-6 py-3 border rounded-lg transition font-semibold {{ $reservation->menu->is_event ? 'reservation-flow-ghost-btn--event' : 'bg-gray-200 text-gray-700 border-gray-200 hover:bg-gray-300' }}">
                             メニュー一覧へ
                         </a>
                     </div>

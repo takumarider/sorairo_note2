@@ -48,8 +48,7 @@ class ListBusinessHours extends ListRecords
 
     public function prevMonth(): void
     {
-        $this->selectedMonth = Carbon::createFromFormat('Y-m', $this->selectedMonth)
-            ->startOfMonth()
+        $this->selectedMonth = $this->parseSelectedMonth($this->selectedMonth)
             ->subMonth()->format('Y-m');
         $this->syncMonthPublication();
         $this->dispatch('business-hour-calendar-month-updated', month: $this->selectedMonth);
@@ -57,8 +56,7 @@ class ListBusinessHours extends ListRecords
 
     public function nextMonth(): void
     {
-        $this->selectedMonth = Carbon::createFromFormat('Y-m', $this->selectedMonth)
-            ->startOfMonth()
+        $this->selectedMonth = $this->parseSelectedMonth($this->selectedMonth)
             ->addMonth()->format('Y-m');
         $this->syncMonthPublication();
         $this->dispatch('business-hour-calendar-month-updated', month: $this->selectedMonth);
@@ -93,7 +91,7 @@ class ListBusinessHours extends ListRecords
      */
     public function getMonthDays(): array
     {
-        $month = Carbon::createFromFormat('Y-m', $this->selectedMonth ?: now()->format('Y-m'));
+        $month = $this->parseSelectedMonth($this->selectedMonth ?: now()->format('Y-m'));
         $start = $month->clone()->startOfMonth();
         $end = $month->clone()->endOfMonth();
 
@@ -509,7 +507,7 @@ class ListBusinessHours extends ListRecords
      */
     protected function getTableQuery(): Builder
     {
-        $month = Carbon::createFromFormat('Y-m', $this->selectedMonth ?: now()->format('Y-m'));
+        $month = $this->parseSelectedMonth($this->selectedMonth ?: now()->format('Y-m'));
 
         return BusinessHour::query()
             ->where(function (Builder $q) use ($month): void {
@@ -522,6 +520,11 @@ class ListBusinessHours extends ListRecords
             ->orderByRaw('CASE WHEN specific_date IS NULL THEN 0 ELSE 1 END')
             ->orderBy('day_of_week')
             ->orderBy('specific_date');
+    }
+
+    private function parseSelectedMonth(string $yearMonth): Carbon
+    {
+        return Carbon::createFromFormat('!Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
     }
 
     protected function getHeaderActions(): array

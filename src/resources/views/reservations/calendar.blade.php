@@ -1,4 +1,8 @@
 <x-app-layout>
+    @php
+        $isEvent = (bool) $menu->is_event;
+    @endphp
+
     <style>
         .reservation-calendar-mobile {
             display: block;
@@ -20,7 +24,7 @@
     </style>
 
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 leading-tight">
+        <h2 class="font-semibold text-xl {{ $isEvent ? 'text-violet-900' : 'text-slate-800' }} leading-tight">
             予約日を選択
         </h2>
     </x-slot>
@@ -28,13 +32,13 @@
     <div class="py-6 sm:py-10">
         <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
             <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-7">
-                <div class="mb-5 rounded-2xl bg-gradient-to-r from-cyan-50 to-sky-50 p-4 ring-1 ring-cyan-100 sm:p-5">
-                    <p class="text-xs font-semibold tracking-wide text-cyan-700">STEP 1 / 2</p>
+                <div class="mb-5 rounded-2xl p-4 ring-1 sm:p-5 {{ $isEvent ? 'reservation-flow-header--event' : 'reservation-flow-header--standard' }}">
+                    <p class="text-xs font-semibold tracking-wide {{ $isEvent ? 'reservation-flow-step-text--event' : 'reservation-flow-step-text--standard' }}">STEP 1 / 2</p>
                     <h1 class="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">{{ $menu->name }}</h1>
                     <div class="mt-3 grid grid-cols-2 gap-2 text-sm sm:flex sm:flex-wrap sm:gap-5">
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
                             <span class="text-xs text-slate-500">料金</span>
-                            <div class="font-bold text-cyan-700">¥{{ number_format($totalPrice) }}</div>
+                            <div class="font-bold {{ $isEvent ? 'reservation-flow-price-text--event' : 'reservation-flow-price-text--standard' }}">¥{{ number_format($totalPrice) }}</div>
                         </div>
                         <div class="rounded-lg bg-white px-3 py-2 text-slate-700 ring-1 ring-slate-200">
                             <span class="text-xs text-slate-500">{{ $menu->is_event ? '時間枠' : '所要時間' }}</span>
@@ -72,10 +76,11 @@
 
                     $start = $month->clone()->startOfMonth()->startOfWeek();
                     $end = $month->clone()->endOfMonth()->endOfWeek();
+                    $today = now('Asia/Tokyo')->startOfDay();
                     $availableDateList = [];
                     for ($d = $start->copy(); $d < $end; $d->addDay()) {
                         $key = $d->toDateString();
-                        if (($availableDates[$key] ?? false) && ! $d->isPast()) {
+                        if (($availableDates[$key] ?? false) && $d->gte($today)) {
                             $availableDateList[] = $d->copy();
                         }
                     }
@@ -96,7 +101,9 @@
                 @endif
 
                 <div class="mb-5 flex items-center justify-between gap-3">
-                    <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->subMonth()->format('Y-m') }}"
+                          <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->subMonth()->format('Y-m') }}"
+                              data-loading-overlay="true"
+                              data-loading-message="空き状況を読み込んでいます。しばらくお待ちください。"
                        class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
                         ← 前月
                     </a>
@@ -107,13 +114,15 @@
                         </span>
                     @else
                         <a href="{{ url()->full() . (strpos(url()->full(), '?') ? '&' : '?') . 'month=' . $month->clone()->addMonth()->format('Y-m') }}"
-                            class="rounded-xl border border-sky-600 !bg-sky-600 px-3 py-2 text-sm font-semibold !text-white shadow-sm transition hover:!bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                            data-loading-overlay="true"
+                            data-loading-message="空き状況を読み込んでいます。しばらくお待ちください。"
+                            class="rounded-xl border px-3 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                             翌月 →
                         </a>
                     @endif
                 </div>
 
-                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-mobile">
+                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-mobile" data-loading-overlay="true" data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     @foreach($optionIds as $optionId)
                         <input type="hidden" name="options[]" value="{{ $optionId }}">
@@ -132,13 +141,13 @@
                                 <button type="submit"
                                         name="date"
                                         value="{{ $date->toDateString() }}"
-                                        class="w-full rounded-xl border border-sky-500 bg-sky-500 px-4 py-3 text-left text-white shadow-sm transition hover:bg-sky-600 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                                        class="w-full rounded-xl border px-4 py-3 text-left text-white shadow-sm transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                                     <div class="flex items-center justify-between gap-3">
                                         <div>
-                                            <p class="text-xs font-semibold text-sky-100">{{ $date->isoFormat('M月D日(ddd)') }}</p>
+                                            <p class="text-xs font-semibold {{ $isEvent ? 'text-rose-100' : 'text-sky-100' }}">{{ $date->isoFormat('M月D日(ddd)') }}</p>
                                             <p class="text-base font-bold text-white">{{ $date->isoFormat('Y年M月D日') }}</p>
                                         </div>
-                                        <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">選択する</span>
+                                        <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold ring-1 {{ $isEvent ? 'text-violet-700 ring-rose-200' : 'text-sky-700 ring-sky-200' }}">選択する</span>
                                     </div>
                                 </button>
                             @endforeach
@@ -146,7 +155,7 @@
                     @endif
                 </form>
 
-                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-desktop">
+                <form method="GET" action="{{ route('reservations.times') }}" class="reservation-calendar-desktop" data-loading-overlay="true" data-loading-message="予約可能な日時を確認しています。しばらくお待ちください。">
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     @foreach($optionIds as $optionId)
                         <input type="hidden" name="options[]" value="{{ $optionId }}">
@@ -165,13 +174,13 @@
                                 <button type="submit"
                                         name="date"
                                         value="{{ $date->toDateString() }}"
-                                        class="w-full rounded-xl border border-sky-500 bg-sky-500 px-4 py-3 text-left text-white shadow-sm transition hover:bg-sky-600 active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2">
+                                        class="w-full rounded-xl border px-4 py-3 text-left text-white shadow-sm transition active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $isEvent ? 'reservation-flow-primary-btn--event' : 'reservation-flow-primary-btn--standard' }}">
                                     <div class="flex items-center justify-between gap-3">
                                         <div>
-                                            <p class="text-xs font-semibold text-sky-100">{{ $date->isoFormat('M月D日(ddd)') }}</p>
+                                            <p class="text-xs font-semibold {{ $isEvent ? 'text-rose-100' : 'text-sky-100' }}">{{ $date->isoFormat('M月D日(ddd)') }}</p>
                                             <p class="text-base font-bold text-white">{{ $date->isoFormat('Y年M月D日') }}</p>
                                         </div>
-                                        <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-200">選択する</span>
+                                        <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold ring-1 {{ $isEvent ? 'text-violet-700 ring-rose-200' : 'text-sky-700 ring-sky-200' }}">選択する</span>
                                     </div>
                                 </button>
                             @endforeach
@@ -179,7 +188,7 @@
                     @endif
                 </form>
 
-                <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-slate-700">
+                <div class="rounded-xl border p-4 text-sm text-slate-700 {{ $isEvent ? 'reservation-flow-note--event' : 'border-cyan-200 bg-cyan-50' }}">
                     日付を選ぶと次の画面で時間を選択できます。
                 </div>
 
