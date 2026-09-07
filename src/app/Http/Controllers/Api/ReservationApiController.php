@@ -52,9 +52,11 @@ class ReservationApiController extends Controller
 
         $reservations = $query->get();
 
+        $commentService = app(\App\Services\ReservationCommentService::class);
+
         return response()->json([
             'success' => true,
-            'reservations' => $reservations->map(function (Reservation $reservation): array {
+            'reservations' => $reservations->map(function (Reservation $reservation) use ($commentService): array {
                 return [
                     'id' => $reservation->id,
                     'number' => str_pad((string) $reservation->id, 6, '0', STR_PAD_LEFT),
@@ -62,7 +64,8 @@ class ReservationApiController extends Controller
                     'date_label' => $reservation->date?->locale('ja')->isoFormat('Y年M月D日(ddd)') ?? '日付未設定',
                     'time_label' => sprintf('%s - %s', $reservation->start_time?->format('H:i') ?? '--:--', $reservation->end_time?->format('H:i') ?? '--:--'),
                     'menu_name' => $reservation->menu?->name ?? 'メニュー未設定',
-                    'price_label' => '¥'.number_format((int) ($reservation->menu?->price ?? 0) + (int) $reservation->options->sum('price')),
+                    'price_label' => '¥'.number_format($reservation->resolvedTotalPrice()),
+                    'comment' => $commentService->getComment($reservation->id),
                     'cancel_url' => route('reservations.cancel', $reservation),
                     'api_cancel_url' => url('/api/reservations/'.$reservation->id),
                 ];
@@ -79,6 +82,7 @@ class ReservationApiController extends Controller
             'slot_id' => 'nullable|exists:slots,id',
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
+            'comment' => 'nullable|string|max:1000',
         ]);
 
         $menu = Menu::findOrFail($validated['menu_id']);
@@ -91,7 +95,11 @@ class ReservationApiController extends Controller
 
         $optionIds = $validated['options'] ?? [];
         $options = ! $menu->is_event && ! empty($optionIds)
-            ? MenuOption::whereIn('id', $optionIds)->active()->get()
+            ? MenuOption::query()
+                ->whereIn('id', $optionIds)
+                ->where('menu_id', $menu->id)
+                ->active()
+                ->get()
             : collect();
 
         try {
@@ -159,6 +167,13 @@ class ReservationApiController extends Controller
                         ]);
                     }
 
+                    $slotEndDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $slot->date->toDateString().' '.$slot->end_time->format('H:i'),
+                        'Asia/Tokyo'
+                    );
+                    $totals = $availabilityService->calculateTotals($menu, $options, $slotStartDateTime->diffInMinutes($slotEndDateTime));
+
                     $reservation = Reservation::create([
                         'user_id' => Auth::id(),
                         'menu_id' => $menu->id,
@@ -167,6 +182,8 @@ class ReservationApiController extends Controller
                         'start_time' => $slot->start_time->format('H:i'),
                         'end_time' => $slot->end_time->format('H:i'),
                         'status' => 'confirmed',
+                        'total_price' => $totals['price'],
+                        'total_duration' => $totals['duration'],
                     ]);
                 } else {
                     $startDateTime = Carbon::createFromFormat(
@@ -175,13 +192,14 @@ class ReservationApiController extends Controller
                         'Asia/Tokyo'
                     );
 
-                    if ($startDateTime->lt(now('Asia/Tokyo'))) {
+                    if ($availabilityService->isSameDayTreatmentTimeClosed($startDateTime)) {
                         throw ValidationException::withMessages([
                             'start_time' => '当日のこの時間は選択できません。',
                         ]);
                     }
 
-                    $endDateTime = $startDateTime->clone()->addMinutes($menu->duration + $options->sum('duration'));
+                    $totals = $availabilityService->calculateTotals($menu, $options);
+                    $endDateTime = $startDateTime->clone()->addMinutes($totals['duration']);
 
                     Reservation::where('date', $startDateTime->toDateString())
                         ->where('status', 'confirmed')
@@ -208,6 +226,8 @@ class ReservationApiController extends Controller
                         'start_time' => $startDateTime->format('H:i'),
                         'end_time' => $endDateTime->format('H:i'),
                         'status' => 'confirmed',
+                        'total_price' => $totals['price'],
+                        'total_duration' => $totals['duration'],
                     ]);
                 }
 
@@ -221,6 +241,10 @@ class ReservationApiController extends Controller
                     'success' => false,
                     'message' => '予約の作成に失敗しました。',
                 ], 500);
+            }
+
+            if (! empty($validated['comment'])) {
+                $commentService->saveComment($reservation->id, $validated['comment']);
             }
 
             $this->notificationService->sendReservationConfirmedToUser($reservation);

@@ -704,12 +704,14 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
-                ? (int) MenuOption::query()
+            $selectedOptions = $selectedOptionIds->isNotEmpty()
+                ? MenuOption::query()
                     ->where('menu_id', $menu->id)
                     ->whereIn('id', $selectedOptionIds->all())
-                    ->sum('duration')
-                : 0;
+                    ->get()
+                : collect();
+
+            $selectedOptionDuration = (int) $selectedOptions->sum('duration');
 
             $totalDuration = (int) $menu->duration + $selectedOptionDuration;
             if ($totalDuration <= 0) {
@@ -717,6 +719,8 @@ class ManageReservationCalendar extends Page
                     'duration' => '合計所要時間が不正なため更新できません。',
                 ]);
             }
+
+            $totalPrice = max(0, (int) $menu->price + (int) $selectedOptions->sum('price'));
 
             $resolvedEndAt = $startAt->copy()->addMinutes($totalDuration);
 
@@ -726,7 +730,7 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            DB::transaction(function () use ($reservation, $startAt, $resolvedEndAt, $selectedOptionIds): void {
+            DB::transaction(function () use ($reservation, $startAt, $resolvedEndAt, $selectedOptionIds, $totalPrice, $totalDuration): void {
                 Reservation::query()
                     ->whereDate('date', $startAt->toDateString())
                     ->where('status', 'confirmed')
@@ -742,6 +746,8 @@ class ManageReservationCalendar extends Page
                 $reservation->options()->sync($selectedOptionIds->all());
                 $reservation->update([
                     'end_time' => $resolvedEndAt->format('H:i'),
+                    'total_price' => $totalPrice,
+                    'total_duration' => $totalDuration,
                 ]);
             });
 
@@ -889,6 +895,9 @@ class ManageReservationCalendar extends Page
         $menuDuration = (int) ($reservation->menu?->duration ?? 0);
         $optionTotalPrice = (int) $reservation->options->sum('price');
         $optionTotalDuration = (int) $reservation->options->sum('duration');
+        $totalPrice = $reservation->resolvedTotalPrice();
+        $totalDuration = $reservation->resolvedTotalDuration();
+        $comment = app(\App\Services\ReservationCommentService::class)->getComment($reservation->id);
 
         return [
             'id' => $reservation->id,
@@ -898,6 +907,7 @@ class ManageReservationCalendar extends Page
             'customer_name' => $reservation->user?->name ?? '未設定',
             'customer_email' => $reservation->user?->email ?? '未設定',
             'menu_name' => $reservation->menu?->name ?? '未設定',
+            'comment' => $comment,
             'option_ids' => $reservation->options
                 ->pluck('id')
                 ->map(fn ($id): int => (int) $id)
@@ -907,15 +917,15 @@ class ManageReservationCalendar extends Page
             'options' => $reservation->options
                 ->map(fn ($option): array => [
                     'name' => $option->name,
-                    'price_label' => $this->formatPrice((int) $option->price),
-                    'duration_label' => ((int) $option->duration) > 0 ? ((int) $option->duration).'分' : '未設定',
+                    'price_label' => $option->priceLabel(),
+                    'duration_label' => $option->durationLabel(),
                 ])
                 ->values()
                 ->all(),
             'option_total_price_label' => $this->formatPrice($optionTotalPrice),
             'option_total_duration_label' => $optionTotalDuration > 0 ? $optionTotalDuration.'分' : '0分',
-            'total_price_label' => $this->formatPrice($menuPrice + $optionTotalPrice),
-            'total_duration_label' => ($menuDuration + $optionTotalDuration) > 0 ? ($menuDuration + $optionTotalDuration).'分' : '未設定',
+            'total_price_label' => $this->formatPrice($totalPrice),
+            'total_duration_label' => $totalDuration > 0 ? $totalDuration.'分' : '未設定',
             'date_label' => $startAt->locale('ja')->isoFormat('Y年M月D日(ddd)'),
             'time_label' => $startAt->format('H:i').' - '.$endAt->format('H:i'),
             'status_label' => $status['label'],
@@ -1134,6 +1144,7 @@ class ManageReservationCalendar extends Page
 
         $selectedOptionIds = collect();
         $resolvedEndAt = $endAt;
+        $selectedOptions = collect();
 
         if (! $useSelectedRange) {
             $activeOptions = $this->resolveActiveMenuOptions($menu);
@@ -1158,12 +1169,14 @@ class ManageReservationCalendar extends Page
                 ]);
             }
 
-            $selectedOptionDuration = $selectedOptionIds->isNotEmpty()
-                ? (int) MenuOption::query()
+            $selectedOptions = $selectedOptionIds->isNotEmpty()
+                ? MenuOption::query()
                     ->where('menu_id', $menu->id)
                     ->whereIn('id', $selectedOptionIds->all())
-                    ->sum('duration')
-                : 0;
+                    ->get()
+                : collect();
+
+            $selectedOptionDuration = (int) $selectedOptions->sum('duration');
 
             $totalDuration = (int) $menu->duration + $selectedOptionDuration;
 
@@ -1184,7 +1197,10 @@ class ManageReservationCalendar extends Page
             }
         }
 
-        DB::transaction(function () use ($user, $menu, $startAt, $resolvedEndAt, $selectedOptionIds, $useSelectedRange): void {
+        $totalPrice = max(0, (int) $menu->price + (int) $selectedOptions->sum('price'));
+        $totalDurationForPersistence = max(0, $startAt->diffInMinutes($resolvedEndAt));
+
+        DB::transaction(function () use ($user, $menu, $startAt, $resolvedEndAt, $selectedOptionIds, $useSelectedRange, $totalPrice, $totalDurationForPersistence): void {
             Reservation::query()
                 ->whereDate('date', $startAt->toDateString())
                 ->where('status', 'confirmed')
@@ -1215,6 +1231,8 @@ class ManageReservationCalendar extends Page
                 'start_time' => $startAt->format('H:i'),
                 'end_time' => $resolvedEndAt->format('H:i'),
                 'status' => 'confirmed',
+                'total_price' => $totalPrice,
+                'total_duration' => $totalDurationForPersistence,
             ]);
 
             if ($selectedOptionIds->isNotEmpty()) {
@@ -1311,6 +1329,8 @@ class ManageReservationCalendar extends Page
                 'start_time' => $slotStartAt->format('H:i'),
                 'end_time' => $slotEndAt->format('H:i'),
                 'status' => 'confirmed',
+                'total_price' => (int) $menu->price,
+                'total_duration' => max(0, $slotStartAt->diffInMinutes($slotEndAt)),
             ]);
         });
 

@@ -112,6 +112,15 @@ class ReservationResource extends Resource
                     ->label('終了時刻')
                     ->time('H:i')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('total_price')
+                    ->label('合計料金')
+                    ->getStateUsing(fn (Reservation $record): string => '¥'.number_format($record->resolvedTotalPrice()))
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('total_price', $direction)),
+                Tables\Columns\TextColumn::make('total_duration')
+                    ->label('合計所要時間')
+                    ->getStateUsing(fn (Reservation $record): string => $record->resolvedTotalDuration().'分')
+                    ->sortable(query: fn ($query, string $direction) => $query->orderBy('total_duration', $direction))
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\BadgeColumn::make('status')
                     ->label('ステータス')
                     ->formatStateUsing(fn (string $state): string => match ($state) {

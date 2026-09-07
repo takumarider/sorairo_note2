@@ -58,15 +58,22 @@
                         <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">料金</h3>
                             @php
-                                $totalPrice = (int) ($reservation->menu->price ?? 0) + (int) $reservation->options->sum('price');
+                                $totalPrice = $reservation->resolvedTotalPrice();
                             @endphp
                             <p class="text-2xl font-bold {{ $reservation->menu->is_event ? 'text-violet-700' : 'text-blue-600' }}">¥{{ number_format($totalPrice) }}</p>
                         </div>
                         
-                        <div class="pb-4">
+                        <div class="border-b pb-4">
                             <h3 class="text-sm text-gray-500 mb-1">予約日時</h3>
                             <p class="text-gray-700">{{ $reservation->created_at->isoFormat('Y年M月D日 HH:mm') }}</p>
                         </div>
+
+                        @if(!empty($comment))
+                        <div class="border-b pb-4">
+                            <h3 class="text-sm text-gray-500 mb-1">コメント・ご要望</h3>
+                            <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ $comment }}</p>
+                        </div>
+                        @endif
                     </div>
                     
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">

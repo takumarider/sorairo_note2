@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\ReservationCommentService;
 use Illuminate\Support\Facades\Auth;
 
 class MypageController extends Controller
 {
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private ReservationCommentService $commentService
     ) {}
 
     public function index()

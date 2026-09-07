@@ -37,7 +37,7 @@
                                     </div>
                                     <span class="text-gray-700">{{ $option->name }}</span>
                                 </div>
-                                <span class="text-gray-700">+¥{{ number_format($option->price) }}</span>
+                                <span class="text-gray-700">{{ $option->priceLabel() }}</span>
                             </div>
                         @endforeach
                     </div>
@@ -92,6 +92,18 @@
                     @foreach($options ?? [] as $option)
                         <input type="hidden" name="options[]" value="{{ $option->id }}">
                     @endforeach
+
+                    <!-- コメント（任意） -->
+                    <div class="mb-6">
+                        <label for="reservation_comment" class="block text-sm font-semibold text-gray-700 mb-2">
+                            コメント・ご要望（任意）
+                        </label>
+                        <textarea id="reservation_comment"
+                                  name="comment"
+                                  rows="3"
+                                  class="w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm text-gray-900 placeholder-gray-400"
+                                  placeholder="施術に関するご要望やご相談などがございましたらご自由にご記入ください（任意）。">{{ old('comment') }}</textarea>
+                    </div>
 
                     <div class="flex gap-4">
                         <button type="submit"

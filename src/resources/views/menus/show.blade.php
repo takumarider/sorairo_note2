@@ -72,7 +72,7 @@
                         </div>
                     @endif
 
-                    @if($menu->options && $menu->options->isNotEmpty())
+                    @if(! $isEvent && $menu->options && $menu->options->isNotEmpty())
                         <div class="mb-8">
                             <div class="flex items-center justify-between mb-3">
                                 <h2 class="text-lg sm:text-xl font-bold text-sky-950">オプション</h2>
@@ -130,8 +130,8 @@
                                                     </div>
 
                                                     <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                                        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">+¥{{ number_format($option->price) }}</span>
-                                                        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">+{{ $option->duration }}分</span>
+                                                        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">{{ $option->priceLabel() }}</span>
+                                                        <span class="rounded-full bg-sky-100 px-2 py-1 font-semibold text-sky-800">{{ $option->durationLabel() }}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -242,8 +242,8 @@
                         totalDuration += Number(checkbox.dataset.duration || 0);
                     });
 
-                    this.totalPriceValue = totalPrice;
-                    this.totalDurationValue = totalDuration;
+                    this.totalPriceValue = Math.max(0, totalPrice);
+                    this.totalDurationValue = Math.max(0, totalDuration);
                 },
                 syncHiddenOptions() {
                     const container = document.getElementById('selected-options-container');

@@ -59,7 +59,7 @@
                                                     @foreach($menu->options as $option)
                                                         <label class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                                                             <span>{{ $option->name }}</span>
-                                                            <span class="text-xs text-slate-500">+¥{{ number_format($option->price) }} / +{{ $option->duration }}分</span>
+                                                            <span class="text-xs text-slate-500">{{ $option->priceLabel() }} / {{ $option->durationLabel() }}</span>
                                                             <input type="checkbox" name="options[]" value="{{ $option->id }}" class="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500">
                                                         </label>
                                                     @endforeach
