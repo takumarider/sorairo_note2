@@ -37,6 +37,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/reservations/{reservation}/complete', [ReservationController::class, 'complete'])->name('reservations.complete');
 
     Route::get('/mypage', [MypageController::class, 'index'])->name('mypage');
+    Route::get('/mypage/messages', [MypageController::class, 'messages'])->name('mypage.messages');
+    Route::get('/mypage/messages/archive', [MypageController::class, 'archivedMessages'])->name('mypage.messages.archive');
+    Route::get('/mypage/reservations/{reservation}/comments', [MypageController::class, 'comments'])->name('mypage.reservations.comments');
+    Route::post('/mypage/reservations/{reservation}/comments', [MypageController::class, 'storeComment'])->name('mypage.reservations.comments.store');
+    Route::delete('/mypage/reservations/{reservation}/comments/{comment}', [MypageController::class, 'destroyComment'])->name('mypage.reservations.comments.destroy');
     Route::delete('/reservations/{reservation}', [MypageController::class, 'cancel'])->name('reservations.cancel');
 });
 

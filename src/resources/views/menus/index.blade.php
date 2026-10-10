@@ -1,10 +1,4 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 leading-tight">
-            メニュー選択
-        </h2>
-    </x-slot>
-
     <div class="py-6 sm:py-10">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" x-data="menuList({{ $menus->count() }})">
             <section class="rounded-3xl bg-gradient-to-br from-cyan-50 via-white to-amber-50 p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">

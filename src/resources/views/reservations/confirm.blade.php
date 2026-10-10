@@ -93,10 +93,10 @@
                         <input type="hidden" name="options[]" value="{{ $option->id }}">
                     @endforeach
 
-                    <!-- コメント（任意） -->
+                    <!-- 初回メッセージ（任意） -->
                     <div class="mb-6">
                         <label for="reservation_comment" class="block text-sm font-semibold text-gray-700 mb-2">
-                            コメント・ご要望（任意）
+                            sorairoメッセージ・ご要望（任意）
                         </label>
                         <textarea id="reservation_comment"
                                   name="comment"
