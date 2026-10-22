@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+[x-cloak] {
+    display: none !important;
+}
+
 @layer components {
     .reservation-flow-header--standard {
         @apply bg-gradient-to-r from-cyan-50 to-sky-50 ring-cyan-100;
