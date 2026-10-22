@@ -1,7 +1,7 @@
 # ============================================
 # ビルドステージ
 # ============================================
-FROM php:8.4-cli AS builder
+FROM php:8.4.27-cli AS builder
 
 # システムパッケージのインストール
 RUN apt-get update && apt-get install -y \
@@ -73,7 +73,7 @@ RUN rm -rf node_modules
 # ============================================
 # 本番ステージ
 # ============================================
-FROM php:8.4-cli
+FROM php:8.4.27-cli
 
 # 必要な実行時パッケージのみインストール
 RUN apt-get update && apt-get install -y \
