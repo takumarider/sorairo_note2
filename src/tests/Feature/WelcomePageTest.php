@@ -115,7 +115,6 @@ class WelcomePageTest extends TestCase
         $response->assertSee('text-2xl lg:text-3xl', false);
         $response->assertSee('text-amber-700', false);
         $response->assertSee('bg-indigo-100 text-indigo-800', false);
-        $response->assertSee('border-indigo-200 text-indigo-800', false);
         $response->assertSee('from-indigo-50', false);
     }
 

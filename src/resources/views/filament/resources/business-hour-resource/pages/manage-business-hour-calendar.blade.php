@@ -11,7 +11,7 @@
 
         <div class="text-center">
             <h2 class="text-lg font-bold text-slate-900">
-                {{ \Carbon\Carbon::createFromFormat('Y-m', $this->selectedMonth)->isoFormat('YYYY年M月') }}
+                {{ \Carbon\Carbon::createFromFormat('!Y-m', $this->selectedMonth, 'Asia/Tokyo')->isoFormat('YYYY年M月') }}
             </h2>
             <p class="text-xs text-slate-500">営業カレンダー</p>
         </div>
@@ -30,7 +30,7 @@
     <div class="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-                <h3 class="text-sm font-semibold text-slate-900">{{ \Carbon\Carbon::createFromFormat('Y-m', $this->selectedMonth)->isoFormat('YYYY年M月') }} の予約公開設定</h3>
+                <h3 class="text-sm font-semibold text-slate-900">{{ \Carbon\Carbon::createFromFormat('!Y-m', $this->selectedMonth, 'Asia/Tokyo')->isoFormat('YYYY年M月') }} の予約公開設定</h3>
                 <p class="text-xs text-slate-500">未設定の月は非公開です。必要な月を明示的に公開してください。</p>
             </div>
 

@@ -10,7 +10,9 @@ use App\Models\Slot;
 use App\Models\User;
 use App\Services\AvailabilityService;
 use App\Services\NotificationService;
+use App\Services\ReservationCommentService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -21,8 +23,39 @@ class ReservationController extends Controller
     private const MONTH_UNPUBLISHED_REASON = 'month_unpublished';
 
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private ReservationCommentService $commentService
     ) {}
+
+    /**
+     * 予約導線の入口。
+     * 未ログイン時は認証へ誘導し、ログイン・登録後にカレンダーへ戻す。
+     */
+    public function start(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'menu_id' => 'required|exists:menus,id',
+            'options' => 'nullable|array',
+            'options.*' => 'exists:menu_options,id',
+        ]);
+
+        $calendarParams = [
+            'menu_id' => $validated['menu_id'],
+        ];
+
+        if (! empty($validated['options'])) {
+            $calendarParams['options'] = $validated['options'];
+        }
+
+        if (! Auth::check()) {
+            $loginRedirect = redirect()->guest(route('login'));
+            $request->session()->put('url.intended', route('reservations.calendar', $calendarParams, false));
+
+            return $loginRedirect->with('status', '予約するためには「新規登録」が必要です。');
+        }
+
+        return redirect()->route('reservations.calendar', $calendarParams);
+    }
 
     /**
      * カレンダー画面（月表示で空き有無を表示）
@@ -39,7 +72,7 @@ class ReservationController extends Controller
         $menuId = $validated['menu_id'];
         $optionIds = $validated['options'] ?? [];
         $month = ! empty($validated['month'])
-            ? Carbon::createFromFormat('Y-m', $validated['month'], 'Asia/Tokyo')->startOfMonth()
+            ? $this->parseYearMonth($validated['month'])
             : now('Asia/Tokyo')->startOfMonth();
         $availabilityReason = null;
 
@@ -59,21 +92,14 @@ class ReservationController extends Controller
 
         $menu = Menu::findOrFail($menuId);
 
-        $options = ! empty($optionIds)
-            ? $this->resolveOptions($menu, $optionIds)
-            : collect();
+        $options = $this->resolveOptions($menu, $optionIds);
 
         $availabilityService = new AvailabilityService;
         $availableDates = $availabilityService->getAvailableDates($menu, $optionIds, $month);
         $availabilitySummary = $availabilityService->getMonthlyAvailabilitySummary($menu, $optionIds, $month);
 
         // 合計所要時間・合計料金を計算
-        $totalDuration = $menu->is_event ? 0 : $menu->duration;
-        $totalPrice = $menu->price;
-        foreach ($options as $option) {
-            $totalDuration += $option->duration;
-            $totalPrice += $option->price;
-        }
+        $totals = $availabilityService->calculateTotals($menu, $options);
 
         return view('reservations.calendar', [
             'menu' => $menu,
@@ -82,8 +108,8 @@ class ReservationController extends Controller
             'availableDates' => $availableDates,
             'availabilitySummary' => $availabilitySummary,
             'month' => $month,
-            'totalDuration' => $totalDuration,
-            'totalPrice' => $totalPrice,
+            'totalDuration' => $totals['duration'],
+            'totalPrice' => $totals['price'],
             'canViewNextMonth' => $this->isMonthVisibleToUsers($month->clone()->addMonth()),
             'availabilityReason' => $availabilityReason,
         ]);
@@ -113,21 +139,14 @@ class ReservationController extends Controller
 
         $menu = Menu::findOrFail($menuId);
 
-        $options = ! empty($optionIds)
-            ? $this->resolveOptions($menu, $optionIds)
-            : collect();
+        $options = $this->resolveOptions($menu, $optionIds);
 
         $availabilityService = new AvailabilityService;
         $availability = $availabilityService->getAvailableTimesWithReason($menu, $optionIds, $date);
         $availableTimes = $availability['times'];
 
         // 合計所要時間・合計料金
-        $totalDuration = $menu->is_event ? 0 : $menu->duration;
-        $totalPrice = $menu->price;
-        foreach ($options as $option) {
-            $totalDuration += $option->duration;
-            $totalPrice += $option->price;
-        }
+        $totals = $availabilityService->calculateTotals($menu, $options);
 
         return view('reservations.times', [
             'menu' => $menu,
@@ -137,8 +156,78 @@ class ReservationController extends Controller
             'availableTimes' => $availableTimes,
             'availabilityReason' => $availability['reason'],
             'eventSlotDetails' => $availability['slot_details'] ?? [],
-            'totalDuration' => $totalDuration,
-            'totalPrice' => $totalPrice,
+            'totalDuration' => $totals['duration'],
+            'totalPrice' => $totals['price'],
+        ]);
+    }
+
+    /**
+     * 当日専用: 時間選択画面
+     */
+    public function sameDayTimes()
+    {
+        $today = now('Asia/Tokyo')->startOfDay();
+        $date = $today->toDateString();
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return view('reservations.same-day-times', [
+                'date' => $today,
+                'availableTimes' => [],
+                'availabilityReason' => self::MONTH_UNPUBLISHED_REASON,
+            ]);
+        }
+
+        $availableTimes = $this->getSameDayAvailableTimes($date);
+
+        return view('reservations.same-day-times', [
+            'date' => $today,
+            'availableTimes' => $availableTimes,
+            'availabilityReason' => empty($availableTimes) ? 'fully_booked' : 'available',
+        ]);
+    }
+
+    /**
+     * 当日専用: メニュー選択画面
+     */
+    public function sameDayMenus(Request $request)
+    {
+        $validated = $request->validate([
+            'start_time' => 'required|date_format:H:i',
+        ]);
+
+        $today = now('Asia/Tokyo')->startOfDay();
+        $date = $today->toDateString();
+        $startTime = $validated['start_time'];
+
+        if (! $this->isDateReservableForUsers($date)) {
+            return redirect()->route('reservations.same-day.times')
+                ->with('availability_reason', self::MONTH_UNPUBLISHED_REASON);
+        }
+
+        $availabilityService = new AvailabilityService;
+        $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $date.' '.$startTime, 'Asia/Tokyo');
+        if ($availabilityService->isSameDayTreatmentTimeClosed($startDateTime)) {
+            return redirect()->route('reservations.same-day.times')
+                ->withErrors(['start_time' => '当日のこの時間は選択できません。']);
+        }
+
+        $menus = Menu::query()
+            ->treatments()
+            ->where('is_active', true)
+            ->with(['options' => fn ($query) => $query->active()])
+            ->orderedForDisplay()
+            ->get()
+            ->filter(function (Menu $menu) use ($availabilityService, $date, $startTime): bool {
+                $availableTimes = $availabilityService->getAvailableTimes($menu, [], $date);
+
+                return in_array($startTime, $availableTimes, true);
+            })
+            ->values();
+
+        return view('reservations.same-day-menus', [
+            'date' => $today,
+            'startTime' => $startTime,
+            'menus' => $menus,
         ]);
     }
 
@@ -174,9 +263,7 @@ class ReservationController extends Controller
             ]);
         }
 
-        $options = ! empty($optionIds)
-            ? $this->resolveOptions($menu, $optionIds)
-            : collect();
+        $options = $this->resolveOptions($menu, $optionIds);
 
         $availabilityService = new AvailabilityService;
         $slotId = null;
@@ -209,25 +296,15 @@ class ReservationController extends Controller
                 'Asia/Tokyo'
             );
             $startTime = $slot->start_time->format('H:i');
-            $totalDuration = $startDateTime->diffInMinutes($endDateTime);
-            $totalPrice = $menu->price;
-            foreach ($options as $option) {
-                $totalPrice += $option->price;
-            }
+            $totals = $availabilityService->calculateTotals($menu, $options, $startDateTime->diffInMinutes($endDateTime));
         } else {
-            $totalDuration = $menu->duration;
-            $totalPrice = $menu->price;
-            foreach ($options as $option) {
-                $totalDuration += $option->duration;
-                $totalPrice += $option->price;
-            }
-
             $startDateTime = Carbon::createFromFormat(
                 'Y-m-d H:i',
                 "$date $startTime",
                 'Asia/Tokyo'
             );
-            $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
+            $totals = $availabilityService->calculateTotals($menu, $options);
+            $endDateTime = $startDateTime->clone()->addMinutes($totals['duration']);
         }
 
         return view('reservations.confirm', [
@@ -237,8 +314,8 @@ class ReservationController extends Controller
             'startTime' => $startTime,
             'endTime' => $endDateTime->format('H:i'),
             'slotId' => $slotId,
-            'totalDuration' => $totalDuration,
-            'totalPrice' => $totalPrice,
+            'totalDuration' => $totals['duration'],
+            'totalPrice' => $totals['price'],
         ]);
     }
 
@@ -257,6 +334,7 @@ class ReservationController extends Controller
             'slot_id' => 'nullable|exists:slots,id',
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
+            'comment' => 'nullable|string|max:1000',
         ]);
 
         $menuId = $request->input('menu_id');
@@ -274,9 +352,7 @@ class ReservationController extends Controller
         }
 
         $menu = Menu::findOrFail($menuId);
-        $options = ! empty($optionIds)
-            ? $this->resolveOptions($menu, $optionIds)
-            : collect();
+        $options = $this->resolveOptions($menu, $optionIds);
 
         try {
             $reservation = null;
@@ -329,6 +405,18 @@ class ReservationController extends Controller
                         ]);
                     }
 
+                    $slotStartDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $slot->date->toDateString().' '.$slot->start_time->format('H:i'),
+                        'Asia/Tokyo'
+                    );
+
+                    if ($slotStartDateTime->lt(now('Asia/Tokyo'))) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
+                    }
+
                     $confirmedCount = Reservation::query()
                         ->where('slot_id', $slot->id)
                         ->where('status', 'confirmed')
@@ -342,6 +430,13 @@ class ReservationController extends Controller
                         ]);
                     }
 
+                    $slotEndDateTime = Carbon::createFromFormat(
+                        'Y-m-d H:i',
+                        $slot->date->toDateString().' '.$slot->end_time->format('H:i'),
+                        'Asia/Tokyo'
+                    );
+                    $totals = $availabilityService->calculateTotals($menu, $options, $slotStartDateTime->diffInMinutes($slotEndDateTime));
+
                     $reservation = Reservation::create([
                         'user_id' => $user->id,
                         'menu_id' => $menu->id,
@@ -350,6 +445,8 @@ class ReservationController extends Controller
                         'start_time' => $slot->start_time->format('H:i'),
                         'end_time' => $slot->end_time->format('H:i'),
                         'status' => 'confirmed',
+                        'total_price' => $totals['price'],
+                        'total_duration' => $totals['duration'],
                     ]);
                 } else {
                     $startDateTime = Carbon::createFromFormat(
@@ -358,12 +455,14 @@ class ReservationController extends Controller
                         'Asia/Tokyo'
                     );
 
-                    $totalDuration = $menu->duration;
-                    foreach ($options as $option) {
-                        $totalDuration += $option->duration;
+                    if ($availabilityService->isSameDayTreatmentTimeClosed($startDateTime)) {
+                        throw ValidationException::withMessages([
+                            'start_time' => '当日のこの時間は選択できません。',
+                        ]);
                     }
 
-                    $endDateTime = $startDateTime->clone()->addMinutes($totalDuration);
+                    $totals = $availabilityService->calculateTotals($menu, $options);
+                    $endDateTime = $startDateTime->clone()->addMinutes($totals['duration']);
 
                     Reservation::where('date', $startDateTime->toDateString())
                         ->where('status', 'confirmed')
@@ -385,6 +484,8 @@ class ReservationController extends Controller
                         'start_time' => $startDateTime->format('H:i'),
                         'end_time' => $endDateTime->format('H:i'),
                         'status' => 'confirmed',
+                        'total_price' => $totals['price'],
+                        'total_duration' => $totals['duration'],
                     ]);
                 }
 
@@ -395,6 +496,10 @@ class ReservationController extends Controller
 
             if (! $reservation instanceof Reservation) {
                 return redirect()->route('menus.index')->with('error', '予約の作成に失敗しました。');
+            }
+
+            if ($request->filled('comment')) {
+                $this->commentService->saveComment($reservation->id, $request->input('comment'));
             }
 
             $this->notificationService->sendReservationConfirmedToUser($reservation);
@@ -420,8 +525,9 @@ class ReservationController extends Controller
         }
 
         $reservation->load(['menu', 'options']);
+        $comment = $this->commentService->getComment($reservation->id);
 
-        return view('reservations.complete', compact('reservation'));
+        return view('reservations.complete', compact('reservation', 'comment'));
     }
 
     private function isDateReservableForUsers(string $date): bool
@@ -449,15 +555,48 @@ class ReservationController extends Controller
             return null;
         }
 
-        return Carbon::createFromFormat('Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
+        return $this->parseYearMonth($yearMonth);
     }
 
+    private function parseYearMonth(string $yearMonth): Carbon
+    {
+        return Carbon::createFromFormat('!Y-m', $yearMonth, 'Asia/Tokyo')->startOfMonth();
+    }
+
+    /**
+     * メニューに紐づく有効なオプションを解決する。
+     * イベントメニューはオプションの対象外のため、常に空のコレクションを返す。
+     */
     private function resolveOptions(Menu $menu, array $optionIds)
     {
-        if ($optionIds === []) {
+        if ($menu->is_event || $optionIds === []) {
             return collect();
         }
 
         return MenuOption::whereIn('id', $optionIds)->where('menu_id', $menu->id)->active()->get();
+    }
+
+    private function getSameDayAvailableTimes(string $date): array
+    {
+        $availabilityService = new AvailabilityService;
+        $menus = Menu::query()
+            ->treatments()
+            ->where('is_active', true)
+            ->orderedForDisplay()
+            ->get();
+
+        $timeMap = [];
+
+        foreach ($menus as $menu) {
+            $times = $availabilityService->getAvailableTimes($menu, [], $date);
+            foreach ($times as $time) {
+                $timeMap[$time] = true;
+            }
+        }
+
+        $availableTimes = array_keys($timeMap);
+        sort($availableTimes);
+
+        return $availableTimes;
     }
 }

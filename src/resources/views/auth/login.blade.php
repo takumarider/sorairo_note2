@@ -8,7 +8,8 @@
                     <br class="hidden lg:block" />
                 </h1>
                 <p class="text-base lg:text-lg text-slate-600">アカウントにログインして、予約確認やキャンセル、メニュー変更もここから。</p>
-                <div class="flex gap-3">
+
+                <div class="flex flex-wrap gap-3 pt-1">
                     <a href="/" class="text-sm font-semibold text-sky-700 hover:text-sky-900">トップに戻る</a>
                     @if (Route::has('register'))
                         <a href="{{ route('register') }}" class="text-sm font-semibold text-sky-700 hover:text-sky-900">新規登録</a>
@@ -18,7 +19,13 @@
 
             <div class="lg:col-span-3">
                 <!-- Session Status -->
-                <x-auth-session-status class="mb-4" :status="session('labels.status')" />
+                @if (session('status'))
+                    <div class="mb-4 rounded-2xl border border-sky-200 bg-gradient-to-r from-sky-50 to-cyan-50 px-4 py-3 shadow-sm">
+                        <p class="text-lg lg:text-xl font-bold leading-relaxed text-sky-800 text-center">
+                            {{ session('status') }}
+                        </p>
+                    </div>
+                @endif
 
                 <form method="POST" action="{{ route('login') }}" class="space-y-5">
                     @csrf

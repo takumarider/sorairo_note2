@@ -11,7 +11,9 @@
 
 **日時:** {{ $reservation->date->format('Y年m月d日') }} {{ $reservation->start_time->format('H:i') }} - {{ $reservation->end_time->format('H:i') }}
 
-**料金:** ¥{{ number_format($reservation->menu->price) }}
+**料金:** ¥{{ number_format($reservation->resolvedTotalPrice()) }}
+
+**所要時間:** {{ $reservation->resolvedTotalDuration() }}分
 
 **予約ID:** #{{ $reservation->id }}
 
