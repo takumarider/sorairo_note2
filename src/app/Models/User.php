@@ -6,6 +6,7 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -63,6 +64,11 @@ class User extends Authenticatable implements FilamentUser
     public function reservations()
     {
         return $this->hasMany(Reservation::class);
+    }
+
+    public function reservationComments(): HasMany
+    {
+        return $this->hasMany(ReservationComment::class, 'sender_id');
     }
 
     public static function createDirectReservationGuest(string $name): self

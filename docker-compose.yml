@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: sorairo_app
+    env_file:
+      - ./src/.env
     volumes:
       - ./src:/var/www/html
     ports:
@@ -42,7 +44,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sorairo_note2"]
+      test: ["CMD-SHELL", "pg_isready -U sorairo"]
       interval: 10s
       timeout: 5s
       retries: 5

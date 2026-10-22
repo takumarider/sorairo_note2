@@ -70,7 +70,7 @@
 
                         @if(!empty($comment))
                         <div class="border-b pb-4">
-                            <h3 class="text-sm text-gray-500 mb-1">コメント・ご要望</h3>
+                            <h3 class="text-sm text-gray-500 mb-1">sorairoメッセージ・ご要望</h3>
                             <p class="text-gray-700 whitespace-pre-wrap leading-relaxed">{{ $comment }}</p>
                         </div>
                         @endif

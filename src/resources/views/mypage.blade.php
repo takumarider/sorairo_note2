@@ -1,16 +1,15 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-sky-900 leading-tight">
-            マイページ
-        </h2>
-    </x-slot>
-
     <div class="py-6 sm:py-10">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between mb-6">
-                <h3 class="text-2xl font-bold text-slate-900">あなたの予約</h3>
-                <a href="{{ route('menus.index') }}" class="text-sky-600 hover:text-sky-700 text-sm font-semibold">新しく予約する</a>
-            </div>
+            <a href="{{ route('mypage.messages') }}" class="mb-6 flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-sky-400 to-blue-500 px-4 py-3 sm:px-5 sm:py-4 text-white shadow-sm transition hover:from-sky-500 hover:to-blue-600">
+                <span class="whitespace-nowrap font-bold">sorairoメッセージ</span>
+                <span class="flex shrink-0 items-center gap-2 sm:gap-3">
+                    @if($unreadMessageCount > 0)
+                        <span class="whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-xs font-bold text-rose-600">{{ $unreadMessageCount }}件の未読</span>
+                    @endif
+                    <span class="whitespace-nowrap text-sm font-semibold"><span class="hidden sm:inline">メッセージを見る </span>→</span>
+                </span>
+            </a>
 
             @if(session('success'))
                 <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-800">
@@ -50,10 +49,6 @@
                          data-csrf='{{ csrf_token() }}'
                         data-events-url='{{ url('/api/reservations/events') }}'
                          class="hidden"></div>
-
-                    <div class="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-                        カレンダーの日付または予約イベントを選ぶと、右側に予約詳細を表示します。
-                    </div>
 
                     <div class="grid gap-4 lg:grid-cols-5">
                         <div class="lg:col-span-3 overflow-x-auto rounded-2xl border border-slate-200 p-3 sm:p-4">
@@ -285,7 +280,7 @@
 
                     if (commentText && commentText.trim() !== '') {
                         const commentBox = $('<div>').addClass('mt-2 rounded-xl bg-slate-50 p-3 border border-slate-200');
-                        commentBox.append($('<p>').addClass('text-xs font-semibold text-slate-500 mb-1').text('コメント・ご要望'));
+                        commentBox.append($('<p>').addClass('text-xs font-semibold text-slate-500 mb-1').text('sorairoメッセージ・ご要望'));
                         commentBox.append($('<p>').addClass('text-sm text-slate-700 whitespace-pre-wrap leading-relaxed').text(commentText));
                         wrapper.append(commentBox);
                     }

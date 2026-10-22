@@ -2,60 +2,120 @@
 
 namespace App\Services;
 
+use App\Models\Reservation;
+use App\Models\ReservationComment;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class ReservationCommentService
 {
     private const DIRECTORY = 'reservation_comments';
 
-    /**
-     * 指定された予約のコメントを取得します。
-     */
     public function getComment(int $reservationId): ?string
     {
-        $path = $this->getFilePath($reservationId);
-
-        if (! Storage::disk('local')->exists($path)) {
-            return null;
-        }
-
-        $content = Storage::disk('local')->get($path);
-        $trimmed = trim((string) $content);
-
-        return $trimmed !== '' ? $trimmed : null;
+        return $this->commentsFor($reservationId)
+            ->firstWhere('sender_type', ReservationComment::SENDER_USER)
+            ?->body;
     }
 
-    /**
-     * 指定された予約のコメントを保存または削除します。
-     */
     public function saveComment(int $reservationId, ?string $comment): void
     {
-        $path = $this->getFilePath($reservationId);
         $trimmed = trim((string) $comment);
 
         if ($trimmed === '') {
-            $this->deleteComment($reservationId);
-
             return;
         }
 
-        Storage::disk('local')->put($path, $trimmed);
+        $reservation = Reservation::findOrFail($reservationId);
+
+        $this->send($reservation, $reservation->user, ReservationComment::SENDER_USER, $trimmed);
     }
 
-    /**
-     * 指定された予約のコメントを削除します。
-     */
     public function deleteComment(int $reservationId): void
     {
-        $path = $this->getFilePath($reservationId);
+        ReservationComment::where('reservation_id', $reservationId)->delete();
 
+        $path = self::DIRECTORY.'/'.$reservationId.'.txt';
         if (Storage::disk('local')->exists($path)) {
             Storage::disk('local')->delete($path);
         }
     }
 
-    private function getFilePath(int $reservationId): string
+    public function commentsFor(int $reservationId): Collection
     {
-        return self::DIRECTORY.'/'.$reservationId.'.txt';
+        $this->importLegacyComment($reservationId);
+
+        return ReservationComment::query()
+            ->with('sender')
+            ->where('reservation_id', $reservationId)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get();
+    }
+
+    public function send(Reservation $reservation, User $sender, string $senderType, string $body): ReservationComment
+    {
+        return $reservation->comments()->create([
+            'sender_type' => $senderType,
+            'sender_id' => $sender->id,
+            'body' => trim($body),
+        ]);
+    }
+
+    public function markReceivedCommentsAsRead(Reservation $reservation, string $senderType): void
+    {
+        $reservation->comments()
+            ->where('sender_type', $senderType)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+    }
+
+    public function importLegacyComments(): int
+    {
+        $importedCount = 0;
+
+        foreach (Storage::disk('local')->files(self::DIRECTORY) as $path) {
+            $filename = pathinfo($path, PATHINFO_FILENAME);
+            if (! ctype_digit($filename)) {
+                continue;
+            }
+
+            if ($this->importLegacyComment((int) $filename)) {
+                $importedCount++;
+            }
+        }
+
+        return $importedCount;
+    }
+
+    private function importLegacyComment(int $reservationId): bool
+    {
+        if (ReservationComment::where('reservation_id', $reservationId)->exists()) {
+            return false;
+        }
+
+        $path = self::DIRECTORY.'/'.$reservationId.'.txt';
+        if (! Storage::disk('local')->exists($path)) {
+            return false;
+        }
+
+        $body = trim((string) Storage::disk('local')->get($path));
+        if ($body === '') {
+            return false;
+        }
+
+        $reservation = Reservation::find($reservationId);
+        if (! $reservation) {
+            return false;
+        }
+
+        $reservation->comments()->create([
+            'sender_type' => ReservationComment::SENDER_USER,
+            'sender_id' => $reservation->user_id,
+            'body' => $body,
+        ]);
+
+        return true;
     }
 }

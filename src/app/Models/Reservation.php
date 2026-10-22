@@ -5,6 +5,8 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Auth;
 
 class Reservation extends Model
@@ -55,6 +57,23 @@ class Reservation extends Model
     public function options()
     {
         return $this->belongsToMany(MenuOption::class, 'reservation_options');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(ReservationComment::class);
+    }
+
+    public function latestVisibleComment(): HasOne
+    {
+        return $this->hasOne(ReservationComment::class)
+            ->ofMany(['id' => 'max'], fn ($query) => $query->whereNull('hidden_by_user_at')->whereNull('deleted_by_admin_at'));
+    }
+
+    public function latestComment(): HasOne
+    {
+        return $this->hasOne(ReservationComment::class)
+            ->ofMany(['id' => 'max'], fn ($query) => $query->whereNull('deleted_by_admin_at'));
     }
 
     public function cancel(): void

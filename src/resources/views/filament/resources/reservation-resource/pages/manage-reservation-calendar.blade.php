@@ -227,7 +227,7 @@
 
                             @if (!empty($selectedReservation['comment']))
                                 <div class="reservation-modal__info-card">
-                                    <p class="reservation-modal__label">コメント・ご要望</p>
+                                    <p class="reservation-modal__label">sorairoメッセージ・ご要望</p>
                                     <p class="reservation-modal__subvalue whitespace-pre-wrap text-gray-800 font-medium leading-relaxed">{{ $selectedReservation['comment'] }}</p>
                                 </div>
                             @endif
