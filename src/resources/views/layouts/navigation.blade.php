@@ -2,6 +2,8 @@
     @php
         $currentUser = auth()->user();
         $isAdmin = $currentUser?->is_admin === true;
+        $unreadMessageCount = $currentUser ? $currentUser->unreadAdminMessageCount() : 0;
+        $unreadLabel = $unreadMessageCount > 99 ? '99+' : $unreadMessageCount;
     @endphp
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -32,8 +34,13 @@
                         </a>
                         <a href="{{ route('mypage') }}"
                            class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 transition shadow-sm"
-                           aria-label="マイページ">
-                            マイページ
+                           aria-label="マイページ{{ $unreadMessageCount > 0 ? '（未読'.$unreadLabel.'件）' : '' }}">
+                            <span class="flex flex-col items-center leading-tight">
+                                <span>マイページ</span>
+                                @if($unreadMessageCount > 0)
+                                    <span class="mt-0.5 inline-flex whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold leading-none text-white">未読{{ $unreadLabel }}</span>
+                                @endif
+                            </span>
                         </a>
                     @endauth
                 </div>
@@ -141,8 +148,13 @@
                           {{ request()->routeIs('mypage')
                               ? 'bg-sky-600 text-white shadow-sky-300 shadow-md'
                               : 'bg-white/80 text-sky-800 ring-1 ring-sky-200' }}"
-                   aria-label="マイページ">
-                    マイページ
+                   aria-label="マイページ{{ $unreadMessageCount > 0 ? '（未読'.$unreadLabel.'件）' : '' }}">
+                    <span class="flex flex-col items-center leading-tight">
+                        <span>マイページ</span>
+                        @if($unreadMessageCount > 0)
+                            <span class="mt-0.5 inline-flex whitespace-nowrap rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold leading-none text-white">未読{{ $unreadLabel }}</span>
+                        @endif
+                    </span>
                 </a>
                 <form method="POST" action="{{ route('logout') }}" class="contents">
                     @csrf
