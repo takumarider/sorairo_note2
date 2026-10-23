@@ -51,6 +51,7 @@
                                         <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                                         <input type="hidden" name="date" value="{{ $date->toDateString() }}">
                                         <input type="hidden" name="start_time" value="{{ $startTime }}">
+                                        <input type="hidden" name="reservation_flow" value="same_day">
 
                                         @if($menu->options->isNotEmpty())
                                             <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">

@@ -240,6 +240,7 @@ class ReservationController extends Controller
             'menu_id' => 'required|exists:menus,id',
             'date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'start_time' => 'nullable|date_format:H:i',
+            'reservation_flow' => 'nullable|in:same_day',
         ]);
 
         $menuId = $request->input('menu_id');
@@ -316,6 +317,7 @@ class ReservationController extends Controller
             'slotId' => $slotId,
             'totalDuration' => $totals['duration'],
             'totalPrice' => $totals['price'],
+            'isSameDayFlow' => $request->input('reservation_flow') === 'same_day',
         ]);
     }
 
@@ -335,6 +337,7 @@ class ReservationController extends Controller
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
             'comment' => 'nullable|string|max:1000',
+            'reservation_flow' => 'nullable|in:same_day',
         ]);
 
         $menuId = $request->input('menu_id');
@@ -472,7 +475,7 @@ class ReservationController extends Controller
                     $availableTimes = $availabilityService->getAvailableTimes($menu, $optionIds, $startDateTime->toDateString());
                     if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
                         throw ValidationException::withMessages([
-                            'start_time' => 'この時間帯は既に予約されています。',
+                            'start_time' => '選択した時間では予約できません。予約状況や営業時間が変わった可能性があります。時間またはメニュー・オプションを選び直してください。',
                         ]);
                     }
 
@@ -507,7 +510,17 @@ class ReservationController extends Controller
 
             return redirect()->route('reservations.complete', ['reservation' => $reservation->id]);
         } catch (ValidationException $e) {
-            return back()->withErrors($e->errors())->withInput();
+            $errors = $e->errors();
+            if (! $menu->is_event
+                && $request->input('reservation_flow') === 'same_day'
+                && $date === now('Asia/Tokyo')->toDateString()
+                && array_key_exists('start_time', $errors)) {
+                return redirect()->route('reservations.same-day.times')
+                    ->withErrors($errors)
+                    ->withInput();
+            }
+
+            return back()->withErrors($errors)->withInput();
         }
     }
 
@@ -578,25 +591,6 @@ class ReservationController extends Controller
 
     private function getSameDayAvailableTimes(string $date): array
     {
-        $availabilityService = new AvailabilityService;
-        $menus = Menu::query()
-            ->treatments()
-            ->where('is_active', true)
-            ->orderedForDisplay()
-            ->get();
-
-        $timeMap = [];
-
-        foreach ($menus as $menu) {
-            $times = $availabilityService->getAvailableTimes($menu, [], $date);
-            foreach ($times as $time) {
-                $timeMap[$time] = true;
-            }
-        }
-
-        $availableTimes = array_keys($timeMap);
-        sort($availableTimes);
-
-        return $availableTimes;
+        return (new AvailabilityService)->getSameDayAvailableTimes($date);
     }
 }

@@ -86,6 +86,9 @@
                     <input type="hidden" name="menu_id" value="{{ $menu->id }}">
                     <input type="hidden" name="date" value="{{ $date }}">
                     <input type="hidden" name="start_time" value="{{ $startTime }}">
+                    @if($isSameDayFlow)
+                        <input type="hidden" name="reservation_flow" value="same_day">
+                    @endif
                     @if(!empty($slotId))
                         <input type="hidden" name="slot_id" value="{{ $slotId }}">
                     @endif
