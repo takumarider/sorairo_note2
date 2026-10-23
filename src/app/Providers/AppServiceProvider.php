@@ -4,9 +4,12 @@ namespace App\Providers;
 
 use App\Models\User;
 use App\Observers\UserObserver;
+use App\Services\AvailabilityService;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\View\View as ViewInstance;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +26,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        View::composer('layouts.navigation', function (ViewInstance $view): void {
+            $hasSameDayAvailability = auth()->check()
+                && (new AvailabilityService)->getSameDayAvailableTimes(
+                    now('Asia/Tokyo')->toDateString()
+                ) !== [];
+
+            $view->with('hasSameDayAvailability', $hasSameDayAvailability);
+        });
+
         // 管理者権限変更の監査ログ用オブザーバー登録
         User::observe(UserObserver::class);
 
