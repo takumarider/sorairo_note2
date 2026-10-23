@@ -8,6 +8,7 @@ use App\Models\ReservationComment;
 use App\Models\User;
 use App\Services\ReservationCommentService;
 use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -50,6 +51,10 @@ class ReservationCommentResource extends Resource
         return $query
             ->where('status', 'confirmed')
             ->whereDoesntHave('comments', fn (Builder $q) => $q->where('sender_type', ReservationComment::SENDER_ADMIN))
+            // 既読にした（お客様メッセージが既読）予約は NEW から外れ、既読タブへ移る
+            ->whereDoesntHave('comments', fn (Builder $q) => $q
+                ->where('sender_type', ReservationComment::SENDER_USER)
+                ->whereNotNull('read_at'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')
                 ->from('reservations as earlier')
                 ->whereColumn('earlier.user_id', 'reservations.user_id')
@@ -148,6 +153,26 @@ class ReservationCommentResource extends Resource
                     ),
             ])
             ->actions([
+                Tables\Actions\Action::make('toggleRead')
+                    ->label(fn (Reservation $record): string => $record->unread_user_comments_count > 0 ? '既読にする' : '未読にする')
+                    ->icon(fn (Reservation $record): string => $record->unread_user_comments_count > 0 ? 'heroicon-o-envelope-open' : 'heroicon-o-envelope')
+                    ->color('gray')
+                    ->visible(fn (Reservation $record): bool => $record->comments()
+                        ->where('sender_type', ReservationComment::SENDER_USER)
+                        ->exists())
+                    ->action(function (Reservation $record): void {
+                        $service = app(ReservationCommentService::class);
+
+                        if ($record->unread_user_comments_count > 0) {
+                            $service->markReceivedCommentsAsRead($record, ReservationComment::SENDER_USER);
+                            $title = '既読にしました';
+                        } else {
+                            $service->markLatestReceivedCommentAsUnread($record, ReservationComment::SENDER_USER);
+                            $title = '未読にしました';
+                        }
+
+                        Notification::make()->title($title)->success()->send();
+                    }),
                 Tables\Actions\Action::make('reply')
                     ->label('メッセージを確認・返信')
                     ->icon('heroicon-o-chat-bubble-left-right')

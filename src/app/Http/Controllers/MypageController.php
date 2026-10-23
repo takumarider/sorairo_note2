@@ -30,12 +30,7 @@ class MypageController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        $unreadMessageCount = ReservationComment::query()
-            ->whereIn('reservation_id', $user->reservations()->select('id'))
-            ->where('sender_type', ReservationComment::SENDER_ADMIN)
-            ->whereNull('deleted_by_admin_at')
-            ->whereNull('read_at')
-            ->count();
+        $unreadMessageCount = $user->unreadAdminMessageCount();
 
         return view('mypage', compact('reservations', 'unreadMessageCount'));
     }

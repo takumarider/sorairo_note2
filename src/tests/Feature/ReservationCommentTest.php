@@ -284,14 +284,19 @@ class ReservationCommentTest extends TestCase
         $reopen->update(['status' => 'completed']);
         $service->send($reopen, $reopenUser, ReservationComment::SENDER_USER, '終了後の連絡');
 
+        $markedUser = User::factory()->create();
+        $marked = $mk($markedUser);
+        $service->send($marked, $markedUser, ReservationComment::SENDER_USER, '最初の予約で質問');
+        $service->markReceivedCommentsAsRead($marked, ReservationComment::SENDER_USER);
+
         $ids = fn (string $tab) => \Livewire\Livewire::actingAs($admin)
             ->test(\App\Filament\Resources\ReservationCommentResource\Pages\ListReservationComments::class, ['activeTab' => $tab])
             ->instance()->getTableRecords()->pluck('id')->all();
 
-        $this->assertSame([$new->id], array_values(array_intersect($ids('new'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id])));
-        $this->assertEqualsCanonicalizing([$unread->id, $reopen->id], array_values(array_intersect($ids('unread'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id])));
-        $this->assertSame([$ended->id], array_values(array_intersect($ids('ended'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id])));
-        $this->assertSame([$read->id], array_values(array_intersect($ids('read'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id])));
+        $this->assertSame([$new->id], array_values(array_intersect($ids('new'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id, $marked->id])));
+        $this->assertEqualsCanonicalizing([$unread->id, $reopen->id], array_values(array_intersect($ids('unread'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id, $marked->id])));
+        $this->assertSame([$ended->id], array_values(array_intersect($ids('ended'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id, $marked->id])));
+        $this->assertEqualsCanonicalizing([$read->id, $marked->id], array_values(array_intersect($ids('read'), [$new->id, $unread->id, $read->id, $ended->id, $reopen->id, $marked->id])));
     }
 
     public function test_past_and_canceled_reservations_are_listed_in_message_archive(): void
@@ -349,6 +354,34 @@ class ReservationCommentTest extends TestCase
         $this->assertDatabaseMissing('reservation_comments', ['reservation_id' => $reservation->id, 'sender_type' => ReservationComment::SENDER_USER, 'read_at' => null]);
     }
 
+    public function test_admin_can_toggle_read_and_unread_without_replying(): void
+    {
+        $user = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $reservation = Reservation::create([
+            'user_id' => $user->id,
+            'menu_id' => Menu::factory()->create()->id,
+            'date' => now('Asia/Tokyo')->addDay()->toDateString(),
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'status' => 'confirmed',
+        ]);
+        $service = app(ReservationCommentService::class);
+        $service->send($reservation, $admin, ReservationComment::SENDER_ADMIN, '先行返信');
+        $service->send($reservation, $user, ReservationComment::SENDER_USER, '質問です');
+
+        $component = \Livewire\Livewire::actingAs($admin)
+            ->test(\App\Filament\Resources\ReservationCommentResource\Pages\ListReservationComments::class)
+            ->set('activeTab', 'unread')
+            ->callTableAction('toggleRead', $reservation);
+
+        $this->assertDatabaseMissing('reservation_comments', ['reservation_id' => $reservation->id, 'sender_type' => ReservationComment::SENDER_USER, 'read_at' => null]);
+
+        $component->set('activeTab', 'read')->callTableAction('toggleRead', $reservation);
+
+        $this->assertDatabaseHas('reservation_comments', ['reservation_id' => $reservation->id, 'sender_type' => ReservationComment::SENDER_USER, 'read_at' => null]);
+    }
+
     public function test_admin_can_delete_own_message_and_user_no_longer_sees_it(): void
     {
         $user = User::factory()->create();
@@ -384,5 +417,26 @@ class ReservationCommentTest extends TestCase
         $this->assertStringContainsString('ユーザー削除分', $html);
         $this->assertStringContainsString('削除済みのメッセージ', $html);
         $this->assertStringNotContainsString('間違い送信です', $html);
+    }
+
+    public function test_header_mypage_button_shows_unread_admin_message_count(): void
+    {
+        $user = User::factory()->create();
+        $admin = User::factory()->create(['is_admin' => true]);
+        $menu = Menu::factory()->create();
+        $reservation = Reservation::create([
+            'user_id' => $user->id, 'menu_id' => $menu->id,
+            'date' => now('Asia/Tokyo')->addDay()->toDateString(),
+            'start_time' => '10:00', 'end_time' => '11:00', 'status' => 'confirmed',
+        ]);
+
+        $this->actingAs($user)->get(route('menus.index'))->assertDontSee('未読1');
+
+        $service = app(ReservationCommentService::class);
+        $service->send($reservation, $admin, ReservationComment::SENDER_ADMIN, 'こんにちは');
+        $this->actingAs($user)->get(route('menus.index'))->assertSee('未読1');
+
+        $service->markReceivedCommentsAsRead($reservation, ReservationComment::SENDER_ADMIN);
+        $this->actingAs($user)->get(route('menus.index'))->assertDontSee('未読1');
     }
 }

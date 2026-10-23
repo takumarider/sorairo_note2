@@ -66,6 +66,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Reservation::class);
     }
 
+    public function unreadAdminMessageCount(): int
+    {
+        return ReservationComment::query()
+            ->whereIn('reservation_id', $this->reservations()->select('id'))
+            ->where('sender_type', ReservationComment::SENDER_ADMIN)
+            ->whereNull('deleted_by_admin_at')
+            ->whereNull('read_at')
+            ->count();
+    }
+
     public function reservationComments(): HasMany
     {
         return $this->hasMany(ReservationComment::class, 'sender_id');
