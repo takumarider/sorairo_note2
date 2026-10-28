@@ -304,6 +304,22 @@ class ReservationController extends Controller
                 "$date $startTime",
                 'Asia/Tokyo'
             );
+            $availableTimes = $availabilityService->getAvailableTimes($menu, $optionIds, $date);
+
+            if (! in_array($startDateTime->format('H:i'), $availableTimes, true)) {
+                $message = '選択した時間では予約できません。営業時間外、または他の予約と重なっています。時間またはメニュー・オプションを選び直してください。';
+
+                if ($request->input('reservation_flow') === 'same_day' && $date === now('Asia/Tokyo')->toDateString()) {
+                    return redirect()->route('reservations.same-day.times')
+                        ->withErrors(['start_time' => $message]);
+                }
+
+                return redirect()->route('reservations.times', [
+                    'menu_id' => $menuId,
+                    'date' => $date,
+                ] + ($optionIds !== [] ? ['options' => $optionIds] : []))->withErrors(['start_time' => $message]);
+            }
+
             $totals = $availabilityService->calculateTotals($menu, $options);
             $endDateTime = $startDateTime->clone()->addMinutes($totals['duration']);
         }

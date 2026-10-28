@@ -23,6 +23,7 @@ class Reservation extends Model
         'end_time',
         'status',
         'canceled_at',
+        'new_dismissed_at',
         'total_price',
         'total_duration',
     ];
@@ -34,6 +35,7 @@ class Reservation extends Model
             'start_time' => 'datetime:H:i',
             'end_time' => 'datetime:H:i',
             'canceled_at' => 'datetime',
+            'new_dismissed_at' => 'datetime',
             'total_price' => 'integer',
             'total_duration' => 'integer',
         ];
