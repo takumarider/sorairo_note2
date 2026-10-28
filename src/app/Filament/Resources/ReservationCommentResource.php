@@ -16,6 +16,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
 
 class ReservationCommentResource extends Resource
@@ -50,6 +51,7 @@ class ReservationCommentResource extends Resource
     {
         return $query
             ->where('status', 'confirmed')
+            ->whereNull('reservations.new_dismissed_at')
             ->whereDoesntHave('comments', fn (Builder $q) => $q->where('sender_type', ReservationComment::SENDER_ADMIN))
             // 既読にした（お客様メッセージが既読）予約は NEW から外れ、既読タブへ移る
             ->whereDoesntHave('comments', fn (Builder $q) => $q
@@ -70,8 +72,12 @@ class ReservationCommentResource extends Resource
 
     public static function endedQuery(Builder $query): Builder
     {
-        return $query->whereIn('status', ['completed', 'canceled'])
-            ->whereHas('comments')
+        return $query
+            ->where(fn (Builder $q) => $q
+                ->where(fn (Builder $ended) => $ended
+                    ->whereIn('status', ['completed', 'canceled'])
+                    ->whereHas('comments'))
+                ->orWhereNotNull('reservations.new_dismissed_at'))
             ->whereDoesntHave('comments', fn (Builder $q) => $q
                 ->where('sender_type', ReservationComment::SENDER_USER)
                 ->whereNull('read_at'));
@@ -80,6 +86,7 @@ class ReservationCommentResource extends Resource
     public static function readQuery(Builder $query): Builder
     {
         return $query->where('status', 'confirmed')
+            ->whereNull('reservations.new_dismissed_at')
             ->whereHas('comments')
             ->whereDoesntHave('comments', fn (Builder $q) => $q
                 ->where('sender_type', ReservationComment::SENDER_USER)
@@ -208,6 +215,37 @@ class ReservationCommentResource extends Resource
                         );
 
                         $action->success();
+                    }),
+                Tables\Actions\Action::make('dismissNew')
+                    ->label('NEWから外す')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->color('gray')
+                    ->requiresConfirmation()
+                    ->modalHeading('NEWから外しますか？')
+                    ->modalDescription('この予約をNEWタブから外し、終了タブへ移動します。')
+                    ->visible(fn (Reservation $record): bool => static::newQuery(Reservation::query())
+                        ->whereKey($record->getKey())
+                        ->exists())
+                    ->action(function (Reservation $record): void {
+                        $record->update(['new_dismissed_at' => now()]);
+
+                        Notification::make()->title('NEWから外しました（終了タブへ移動）')->success()->send();
+                    }),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkAction::make('dismissNewBulk')
+                    ->label('選択をNEWから外す')
+                    ->icon('heroicon-o-archive-box-arrow-down')
+                    ->requiresConfirmation()
+                    ->modalHeading('選択した予約をNEWから外しますか？')
+                    ->modalDescription('NEWの予約のみ対象になり、終了タブへ移動します。')
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records): void {
+                        $count = static::newQuery(Reservation::query())
+                            ->whereIn('reservations.id', $records->modelKeys())
+                            ->update(['new_dismissed_at' => now()]);
+
+                        Notification::make()->title("{$count}件をNEWから外しました（終了タブへ移動）")->success()->send();
                     }),
             ]);
     }

@@ -9,8 +9,8 @@
                 </div>
 
                 @if($errors->has('start_time'))
-                    <div role="alert" class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                        {{ $errors->first('start_time') }}
+                    <div class="mb-4">
+                        <x-reservation-error-alert :message="$errors->first('start_time')" />
                     </div>
                 @endif
 

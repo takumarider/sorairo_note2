@@ -354,6 +354,43 @@ class ReservationCommentTest extends TestCase
         $this->assertDatabaseMissing('reservation_comments', ['reservation_id' => $reservation->id, 'sender_type' => ReservationComment::SENDER_USER, 'read_at' => null]);
     }
 
+    public function test_admin_can_dismiss_new_reservations_to_ended_tab(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $menu = Menu::factory()->create();
+        $mk = fn (User $u) => Reservation::create([
+            'user_id' => $u->id, 'menu_id' => $menu->id,
+            'date' => now('Asia/Tokyo')->addDay()->toDateString(),
+            'start_time' => '10:00', 'end_time' => '11:00', 'status' => 'confirmed',
+        ]);
+
+        $single = $mk(User::factory()->create());
+        $bulkA = $mk(User::factory()->create());
+        $bulkB = $mk(User::factory()->create());
+        $unreadUser = User::factory()->create();
+        $withUnread = $mk($unreadUser);
+        app(ReservationCommentService::class)->send($withUnread, $unreadUser, ReservationComment::SENDER_USER, '未読です');
+
+        $page = \App\Filament\Resources\ReservationCommentResource\Pages\ListReservationComments::class;
+        $ids = fn (string $tab) => \Livewire\Livewire::actingAs($admin)
+            ->test($page, ['activeTab' => $tab])
+            ->instance()->getTableRecords()->pluck('id')->all();
+
+        \Livewire\Livewire::actingAs($admin)->test($page)
+            ->callTableAction('dismissNew', $single)
+            ->callTableBulkAction('dismissNewBulk', [$bulkA, $bulkB, $withUnread]);
+
+        $this->assertNotNull($single->fresh()->new_dismissed_at);
+        $this->assertNotNull($bulkA->fresh()->new_dismissed_at);
+        $this->assertNotNull($bulkB->fresh()->new_dismissed_at);
+
+        $check = [$single->id, $bulkA->id, $bulkB->id, $withUnread->id];
+        $this->assertSame([], array_values(array_intersect($ids('new'), $check)));
+        $this->assertEqualsCanonicalizing([$single->id, $bulkA->id, $bulkB->id], array_values(array_intersect($ids('ended'), $check)));
+        $this->assertSame([], array_values(array_intersect($ids('read'), $check)));
+        $this->assertSame([$withUnread->id], array_values(array_intersect($ids('unread'), $check)));
+    }
+
     public function test_admin_can_toggle_read_and_unread_without_replying(): void
     {
         $user = User::factory()->create();

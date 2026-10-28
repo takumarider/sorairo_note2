@@ -291,6 +291,49 @@ class SameDayReservationFlowTest extends TestCase
         }
     }
 
+    public function test_confirm_redirects_before_rendering_when_time_is_unavailable(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
+
+        try {
+            ReservationPublicationMonth::updateOrCreate(['year_month' => '2026-06'], ['is_published' => true]);
+
+            $menu = Menu::factory()->create(['is_event' => false, 'is_active' => true, 'duration' => 60]);
+            $reservedBy = User::factory()->create();
+            $user = User::factory()->create();
+
+            Reservation::create([
+                'user_id' => $reservedBy->id,
+                'menu_id' => $menu->id,
+                'slot_id' => null,
+                'date' => '2026-06-08',
+                'start_time' => '10:00',
+                'end_time' => '11:00',
+                'status' => 'confirmed',
+            ]);
+
+            // 重複（当日フロー）
+            $this->actingAs($user)->get(route('reservations.confirm', [
+                'menu_id' => $menu->id,
+                'date' => '2026-06-08',
+                'start_time' => '10:30',
+                'reservation_flow' => 'same_day',
+            ]))->assertRedirect(route('reservations.same-day.times'))
+                ->assertSessionHasErrors('start_time');
+
+            // 営業時間外（通常フロー）
+            $response = $this->actingAs($user)->get(route('reservations.confirm', [
+                'menu_id' => $menu->id,
+                'date' => '2026-06-10',
+                'start_time' => '03:00',
+            ]));
+            $response->assertRedirect(route('reservations.times', ['menu_id' => $menu->id, 'date' => '2026-06-10']));
+            $response->assertSessionHasErrors('start_time');
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     public function test_same_day_flow_pages_include_loading_overlay_messages(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
