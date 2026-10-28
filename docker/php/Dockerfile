@@ -15,10 +15,14 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     zip \
     unzip \
-    nodejs \
-    npm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Node.js 24 を公式イメージから取得（docker-compose.yml の vite サービスと同じバージョン）
+COPY --from=node:24.22.1-bookworm /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:24.22.1-bookworm /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 # PHP拡張機能のインストール
 RUN docker-php-ext-install \
