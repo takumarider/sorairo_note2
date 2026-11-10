@@ -118,7 +118,7 @@
                             <span x-show="!submitting">予約を確定する</span>
                             <span x-show="submitting" x-cloak>確定中...</span>
                         </button>
-                        <a href="{{ route('reservations.calendar', ['menu_id' => $menu->id]) }}"
+                        <a href="{{ route('reservations.calendar', ['menu_id' => $menu->id, 'options' => $options->pluck('id')->all()]) }}"
                            :class="submitting ? 'pointer-events-none opacity-50' : ''"
                            class="px-6 py-3 rounded-lg border transition font-semibold {{ $isEvent ? 'reservation-flow-ghost-btn--event' : 'bg-gray-200 text-gray-700 border-gray-200 hover:bg-gray-300' }}">
                             戻る

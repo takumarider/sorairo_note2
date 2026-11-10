@@ -11,8 +11,9 @@
 
         <div class="py-6 sm:py-10"
             x-data="menuOptionSelector({{ $menu->price }}, {{ $menu->duration }})"
-         x-init="init()"
-         data-requested-options='@json(array_map("intval", (array) request("options", [])))'>
+         data-requested-options='@json(array_map("intval", (array) request("options", [])))'
+         data-same-day-url="{{ $isEvent ? '' : route('menus.same-day-availability', $menu) }}"
+         data-same-day-available="{{ $hasSameDayAvailability ? 'true' : 'false' }}">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-28 sm:pb-6">
             <div class="rounded-2xl bg-white shadow-sm ring-1 overflow-hidden {{ $isEvent ? 'ring-rose-100' : 'ring-sky-100' }}">
                 <div class="aspect-[16/9] w-full overflow-hidden {{ $isEvent ? 'bg-gradient-to-br from-violet-50 via-rose-50 to-orange-50' : 'bg-gradient-to-br from-sky-50 to-cyan-50' }}">
@@ -157,10 +158,11 @@
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
                             @if(! $menu->is_event)
-                                <a href="{{ route('reservations.same-day.times') }}"
-                                   class="px-5 py-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-100 transition whitespace-nowrap">
-                                    今日予約する
-                                </a>
+                                <button type="submit" name="booking_type" value="same_day"
+                                   class="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200 hover:bg-emerald-100 transition whitespace-nowrap">
+                                    <span>今日予約する</span>
+                                    <x-reservation-status-badge :available="$hasSameDayAvailability" />
+                                </button>
                             @endif
                             <a href="{{ route('menus.index') }}"
                                class="px-5 py-3.5 rounded-xl border font-semibold transition {{ $isEvent ? 'reservation-flow-ghost-btn--event' : 'reservation-flow-ghost-btn--standard' }}">
@@ -178,10 +180,11 @@
                                 {{ $menu->is_event ? 'イベント日時を選択する' : '日時を選択して予約へ進む' }}
                             </button>
                             @if(! $menu->is_event)
-                                <a href="{{ route('reservations.same-day.times') }}"
-                                   class="mt-2 block w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
-                                    今日予約する
-                                </a>
+                                <button type="submit" name="booking_type" value="same_day"
+                                   class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                                    <span>今日予約する</span>
+                                    <x-reservation-status-badge :available="$hasSameDayAvailability" />
+                                </button>
                             @endif
                         </div>
                     </form>
@@ -198,9 +201,47 @@
                 selectedIds: [],
                 totalPriceValue: basePrice,
                 totalDurationValue: baseDuration,
+                sameDayStatus: 'loading',
+                sameDayRequestId: 0,
+                sameDayTimer: null,
                 init() {
                     this.restoreRequestedOptions();
                     this.updateTotals();
+                    if (this.$root.dataset.sameDayUrl) {
+                        this.sameDayStatus = this.$root.dataset.sameDayAvailable === 'true' ? 'available' : 'unavailable';
+                        if (this.selectedIds.length > 0) {
+                            this.refreshSameDayAvailability();
+                        }
+                        this.sameDayTimer = setInterval(() => this.refreshSameDayAvailability(), 60000);
+                    }
+                },
+                destroy() {
+                    clearInterval(this.sameDayTimer);
+                },
+                async refreshSameDayAvailability() {
+                    const requestId = ++this.sameDayRequestId;
+                    this.sameDayStatus = 'loading';
+                    const url = new URL(this.$root.dataset.sameDayUrl, window.location.origin);
+                    this.selectedIds.forEach((id) => url.searchParams.append('options[]', id));
+
+                    try {
+                        const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
+                        if (!response.ok) {
+                            throw new Error(`空き状況の取得に失敗しました (${response.status})`);
+                        }
+                        const result = await response.json();
+                        if (typeof result.available !== 'boolean') {
+                            throw new Error('空き状況の応答が不正です');
+                        }
+                        if (requestId === this.sameDayRequestId) {
+                            this.sameDayStatus = result.available ? 'available' : 'unavailable';
+                        }
+                    } catch (error) {
+                        if (requestId === this.sameDayRequestId) {
+                            console.error('当日の空き状況を確認できませんでした', error);
+                            this.sameDayStatus = 'error';
+                        }
+                    }
                 },
                 restoreRequestedOptions() {
                     const root = this.$root;
@@ -232,6 +273,9 @@
                 onOptionChanged() {
                     this.selectedIds = this.getCheckedOptions().map((checkbox) => Number(checkbox.value));
                     this.updateTotals();
+                    if (this.$root.dataset.sameDayUrl) {
+                        this.refreshSameDayAvailability();
+                    }
                 },
                 updateTotals() {
                     let totalPrice = this.basePrice;

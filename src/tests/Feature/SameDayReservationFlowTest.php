@@ -64,17 +64,14 @@ class SameDayReservationFlowTest extends TestCase
             $response = $this->actingAs($user)->get(route('reservations.same-day.times'));
 
             $response->assertOk();
-            $response->assertSee('今日予約する');
             $response->assertDontSee('value="10:30"', false);
             $response->assertSee('value="11:00"', false);
-            $this->assertSame(3, substr_count($response->getContent(), 'inline-flex shrink-0 whitespace-nowrap rounded-full'));
-            $response->assertSeeText('受付中');
         } finally {
             Carbon::setTestNow();
         }
     }
 
-    public function test_same_day_navigation_shows_preparing_when_no_times_are_available(): void
+    public function test_same_day_times_page_shows_message_when_no_times_are_available(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 19, 30, 0, 'Asia/Tokyo'));
 
@@ -96,14 +93,13 @@ class SameDayReservationFlowTest extends TestCase
 
             $response->assertOk();
             $response->assertDontSee('value="19:00"', false);
-            $this->assertSame(3, substr_count($response->getContent(), 'inline-flex shrink-0 whitespace-nowrap rounded-full'));
-            $response->assertSeeText('準備中');
+            $response->assertSee('本日ご案内できる時間がありません。');
         } finally {
             Carbon::setTestNow();
         }
     }
 
-    public function test_same_day_navigation_shows_preparing_when_all_times_are_booked(): void
+    public function test_same_day_times_page_shows_message_when_all_times_are_booked(): void
     {
         Carbon::setTestNow(Carbon::create(2026, 6, 8, 9, 0, 0, 'Asia/Tokyo'));
 
@@ -147,8 +143,6 @@ class SameDayReservationFlowTest extends TestCase
 
             $response->assertOk();
             $response->assertSee('本日ご案内できる時間がありません。');
-            $this->assertSame(3, substr_count($response->getContent(), 'inline-flex shrink-0 whitespace-nowrap rounded-full'));
-            $response->assertSeeText('準備中');
         } finally {
             Carbon::setTestNow();
         }
