@@ -16,6 +16,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class ReservationController extends Controller
@@ -37,6 +38,7 @@ class ReservationController extends Controller
             'menu_id' => 'required|exists:menus,id',
             'options' => 'nullable|array',
             'options.*' => 'exists:menu_options,id',
+            'booking_type' => 'nullable|in:same_day',
         ]);
 
         $calendarParams = [
@@ -47,14 +49,39 @@ class ReservationController extends Controller
             $calendarParams['options'] = $validated['options'];
         }
 
+        $destination = ($validated['booking_type'] ?? null) === 'same_day'
+            ? 'reservations.same-day.selected'
+            : 'reservations.calendar';
+
         if (! Auth::check()) {
             $loginRedirect = redirect()->guest(route('login'));
-            $request->session()->put('url.intended', route('reservations.calendar', $calendarParams, false));
+            $request->session()->put('url.intended', route($destination, $calendarParams, false));
 
             return $loginRedirect->with('status', '予約するためには「新規登録」が必要です。');
         }
 
-        return redirect()->route('reservations.calendar', $calendarParams);
+        return redirect()->route($destination, $calendarParams);
+    }
+
+    public function selectedSameDay(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'menu_id' => ['required', Rule::exists('menus', 'id')->where('is_event', 0)->where('is_active', 1)],
+            'options' => 'nullable|array',
+            'options.*' => ['integer', Rule::exists('menu_options', 'id')
+                ->where('menu_id', $request->input('menu_id'))
+                ->where('is_active', 1)],
+        ]);
+
+        $params = [
+            'menu_id' => $validated['menu_id'],
+            'date' => now('Asia/Tokyo')->toDateString(),
+        ];
+        if (! empty($validated['options'])) {
+            $params['options'] = $validated['options'];
+        }
+
+        return redirect()->route('reservations.times', $params);
     }
 
     /**

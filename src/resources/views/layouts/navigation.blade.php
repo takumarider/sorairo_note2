@@ -27,12 +27,6 @@
                         メニューを見る
                     </a>
                     @auth
-                        <a href="{{ route('reservations.same-day.times') }}"
-                           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-emerald-400 hover:to-teal-500 transition shadow-sm"
-                           aria-label="今日予約する（{{ $hasSameDayAvailability ? '受付中' : '準備中' }}）">
-                            <span>今日予約する</span>
-                            <x-reservation-status-badge :available="$hasSameDayAvailability" />
-                        </a>
                         <a href="{{ route('mypage') }}"
                            class="px-3 py-2 rounded-lg text-sm font-semibold text-sky-800 hover:text-white hover:bg-gradient-to-r hover:from-sky-400 hover:to-blue-500 transition shadow-sm"
                            aria-label="マイページ{{ $unreadMessageCount > 0 ? '（未読'.$unreadLabel.'件）' : '' }}">
@@ -120,19 +114,13 @@
             </div>
         </div>
 
-        <div class="grid {{ $currentUser ? 'grid-cols-4' : 'grid-cols-3' }} gap-1.5 pb-2 sm:hidden">
+        <div class="grid grid-cols-3 gap-1.5 pb-2 sm:hidden">
             <a href="{{ route('menus.index') }}"
                class="inline-flex min-w-0 items-center justify-center whitespace-nowrap rounded-lg px-1 py-2 text-xs font-semibold shadow-sm ring-1 ring-sky-200 transition-all duration-150 ease-out active:scale-95 active:text-white active:bg-gradient-to-r active:from-sky-400 active:to-blue-500 {{ request()->routeIs('menus.*') ? 'text-white bg-gradient-to-r from-sky-400 to-blue-500' : 'text-sky-800' }}"
                aria-label="メニュー">
                 メニュー
             </a>
             @auth
-                <a href="{{ route('reservations.same-day.times') }}"
-                   class="inline-flex min-w-0 flex-col items-center justify-center gap-1 whitespace-nowrap rounded-lg px-1 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-sky-200 transition-all duration-150 ease-out active:scale-95 active:text-white active:bg-gradient-to-r active:from-emerald-400 active:to-teal-500 {{ request()->routeIs('reservations.same-day.*') ? 'text-white bg-gradient-to-r from-emerald-400 to-teal-500' : 'text-sky-800' }}"
-                   aria-label="今日予約する（{{ $hasSameDayAvailability ? '受付中' : '準備中' }}）">
-                    <span>今日予約する</span>
-                    <x-reservation-status-badge :available="$hasSameDayAvailability" />
-                </a>
                 <a href="{{ route('mypage') }}"
                    class="inline-flex min-w-0 items-center justify-center whitespace-nowrap rounded-lg px-1 py-2 text-xs font-semibold shadow-sm ring-1 ring-sky-200 transition-all duration-150 ease-out active:scale-95 active:text-white active:bg-gradient-to-r active:from-sky-400 active:to-blue-500 {{ request()->routeIs('mypage') ? 'text-white bg-gradient-to-r from-sky-400 to-blue-500' : 'text-sky-800' }}"
                    aria-label="マイページ{{ $unreadMessageCount > 0 ? '（未読'.$unreadLabel.'件）' : '' }}">
@@ -177,13 +165,6 @@
             <div class="pt-2 pb-3 space-y-1">
                 <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('お知らせ') }}
-                </x-responsive-nav-link>
-
-                <x-responsive-nav-link :href="route('reservations.same-day.times')" :active="request()->routeIs('reservations.same-day.*')" aria-label="今日予約する（{{ $hasSameDayAvailability ? '受付中' : '準備中' }}）">
-                    <span class="flex items-center justify-between gap-2">
-                        <span>{{ __('今日予約する') }}</span>
-                        <x-reservation-status-badge :available="$hasSameDayAvailability" />
-                    </span>
                 </x-responsive-nav-link>
 
                 @if($isAdmin)

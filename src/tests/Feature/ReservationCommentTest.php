@@ -354,6 +354,46 @@ class ReservationCommentTest extends TestCase
         $this->assertDatabaseMissing('reservation_comments', ['reservation_id' => $reservation->id, 'sender_type' => ReservationComment::SENDER_USER, 'read_at' => null]);
     }
 
+    public function test_admin_can_move_past_reservations_without_messages_from_new_to_ended(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $menu = Menu::factory()->create();
+        $makeReservation = fn () => Reservation::create([
+            'user_id' => User::factory()->create()->id,
+            'menu_id' => $menu->id,
+            'date' => now('Asia/Tokyo')->subDay()->toDateString(),
+            'start_time' => '10:00',
+            'end_time' => '11:00',
+            'status' => 'confirmed',
+        ]);
+        $single = $makeReservation();
+        $bulk = $makeReservation();
+        $page = \App\Filament\Resources\ReservationCommentResource\Pages\ListReservationComments::class;
+
+        $this->assertDatabaseCount('reservation_comments', 0);
+
+        \Livewire\Livewire::actingAs($admin)->test($page)
+            ->assertCanSeeTableRecords([$single, $bulk])
+            ->assertTableActionVisible('dismissNew', $single)
+            ->callTableAction('dismissNew', $single)
+            ->assertHasNoTableActionErrors()
+            ->assertCanNotSeeTableRecords([$single])
+            ->callTableBulkAction('dismissNewBulk', [$bulk])
+            ->assertCanNotSeeTableRecords([$bulk]);
+
+        \Livewire\Livewire::actingAs($admin)->test($page, ['activeTab' => 'ended'])
+            ->assertCanSeeTableRecords([$single, $bulk])
+            ->assertTableActionHidden('dismissNew', $single);
+
+        foreach ([$single, $bulk] as $reservation) {
+            $reservation->refresh();
+            $this->assertNotNull($reservation->new_dismissed_at);
+            $this->assertSame('confirmed', $reservation->status);
+        }
+
+        $this->assertDatabaseCount('reservation_comments', 0);
+    }
+
     public function test_admin_can_dismiss_new_reservations_to_ended_tab(): void
     {
         $admin = User::factory()->create(['is_admin' => true]);
