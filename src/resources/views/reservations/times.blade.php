@@ -84,6 +84,10 @@
                         <input type="hidden" name="options[]" value="{{ $optionId }}">
                     @endforeach
 
+                    @if($errors->has('start_time'))
+                        <x-reservation-error-alert :message="$errors->first('start_time')" />
+                    @endif
+
                     <div>
                         <h2 class="text-base font-bold text-slate-900 sm:text-lg">開始時間を選択してください</h2>
                         <p class="mt-1 text-xs text-slate-500">ボタンをタップすると確認画面へ進みます</p>

@@ -158,6 +158,39 @@ class AvailabilityService
         return $this->getAvailableTimesWithReason($menu, $optionIds, $date)['times'];
     }
 
+    /**
+     * 当日の通常メニューで選択できる開始時刻をまとめて返す
+     *
+     * @return array<string>
+     */
+    public function getSameDayAvailableTimes(string $date): array
+    {
+        $dateCarbon = Carbon::createFromFormat('Y-m-d', $date, 'Asia/Tokyo')->startOfDay();
+
+        if (! $this->isDatePublicForUsers($dateCarbon)) {
+            return [];
+        }
+
+        $menus = Menu::query()
+            ->treatments()
+            ->where('is_active', true)
+            ->orderedForDisplay()
+            ->get();
+
+        $timeMap = [];
+
+        foreach ($menus as $menu) {
+            foreach ($this->getAvailableTimes($menu, [], $date) as $time) {
+                $timeMap[$time] = true;
+            }
+        }
+
+        $availableTimes = array_keys($timeMap);
+        sort($availableTimes);
+
+        return $availableTimes;
+    }
+
     public function isSameDayTreatmentTimeClosed(Carbon $startDateTime, ?Carbon $nowTokyo = null): bool
     {
         $nowTokyo ??= now('Asia/Tokyo');

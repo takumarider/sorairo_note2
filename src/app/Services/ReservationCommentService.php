@@ -71,6 +71,17 @@ class ReservationCommentService
             ->update(['read_at' => now()]);
     }
 
+    public function markLatestReceivedCommentAsUnread(Reservation $reservation, string $senderType): void
+    {
+        $latest = $reservation->comments()
+            ->where('sender_type', $senderType)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+
+        $latest?->update(['read_at' => null]);
+    }
+
     public function importLegacyComments(): int
     {
         $importedCount = 0;
