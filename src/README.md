@@ -176,6 +176,14 @@ npm run build
     - Password: `password`
 - **メール確認**: http://localhost:8025
 
+### テストの実行
+
+```bash
+docker exec sorairo_app php artisan test
+```
+
+テストは設定キャッシュを使わず、メモリ内のSQLiteデータベースを使用します。`pdo_sqlite` 拡張機能が必要です。開発用データベースはテストに使用しません。
+
 ---
 
 ## 📁 プロジェクト構成

@@ -700,9 +700,10 @@ class AdminReservationCalendarTest extends TestCase
             'user_id' => $customer1->id,
             'menu_id' => $eventMenu->id,
             'slot_id' => $slot->id,
-            'date' => $date->toDateString(),
             'status' => 'confirmed',
         ]);
+        $reservation = Reservation::query()->where('slot_id', $slot->id)->firstOrFail();
+        $this->assertSame($date->toDateString(), $reservation->date->toDateString());
 
         Livewire::actingAs($admin)
             ->test(ManageReservationCalendar::class)
